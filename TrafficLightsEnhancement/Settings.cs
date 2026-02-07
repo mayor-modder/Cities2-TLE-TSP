@@ -1,10 +1,14 @@
+using System;
+using System.Collections.Generic;
 using System.Reflection;
+using C2VM.TrafficLightsEnhancement.Components;
 using Colossal.IO.AssetDatabase;
 using Game.Input;
 using Game.Modding;
 using Game.SceneFlow;
 using Game.Settings;
 using Game.UI.Widgets;
+using Newtonsoft.Json;
 using Unity.Entities;
 
 namespace C2VM.TrafficLightsEnhancement;
@@ -91,10 +95,10 @@ public class Settings : ModSetting
     public bool m_CompatibilityMode { get; private set; }
 
     [SettingsUISection(kTabGeneral, kGroupVersion)]
-    public string m_ReleaseChannel => IsNotCanary() ? "Alpha" : "Canary";
+    public string m_ReleaseChannel => IsNotBeta() ? "Stable" : "Beta";
 
     [SettingsUISection(kTabGeneral, kGroupVersion)]
-    public string m_TleVersion => Mod.m_InformationalVersion.Substring(0, 20);
+    public string m_TleVersion => Mod.Version;
 
     [SettingsUISection(kTabGeneral, kGroupVersion)]
     public string m_LaneSystemVersion => C2VM.CommonLibraries.LaneSystem.Mod.m_InformationalVersion.Substring(0, 20);
@@ -129,6 +133,106 @@ public class Settings : ModSetting
         }
     }
 
+    [SettingsUISection(kTabGeneral, kGroupDefault)]
+    [SettingsUIDropdown(typeof(Settings), "GetComponentTypeValues")]
+    [SettingsUIDisableByCondition(typeof(Settings), "IsNotInGame")]
+    public string m_ComponentTypeToClear { get; set; } = "All";
+
+    [SettingsUISection(kTabGeneral, kGroupDefault)]
+    [SettingsUIButton]
+    [SettingsUIConfirmation(null, null)]
+    [SettingsUIDisableByCondition(typeof(Settings), "IsNotInGame")]
+    public bool m_ClearSelectedComponent
+    {
+        set
+        {
+            ClearSelectedTLEComponent();
+        }
+    }
+
+    public static DropdownItem<string>[] GetComponentTypeValues()
+    {
+        return new []
+        {
+            new DropdownItem<string> { value = "All", displayName = "All Components" },
+            new DropdownItem<string> { value = "CustomTrafficLights", displayName = "CustomTrafficLights" },
+            new DropdownItem<string> { value = "CustomPhaseData", displayName = "CustomPhaseData" },
+            new DropdownItem<string> { value = "TrafficGroup", displayName = "TrafficGroup" },
+            new DropdownItem<string> { value = "TrafficGroupMember", displayName = "TrafficGroupMember" },
+            new DropdownItem<string> { value = "EdgeGroupMask", displayName = "EdgeGroupMask" },
+            new DropdownItem<string> { value = "ExtraLaneSignal", displayName = "ExtraLaneSignal" },
+        };
+    }
+
+    private void ClearSelectedTLEComponent()
+    {
+        var entityManager = Mod.m_World.EntityManager;
+        int removedCount = 0;
+        string componentName = m_ComponentTypeToClear;
+        
+        if (componentName == "All" || componentName == "CustomTrafficLights")
+        {
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.CustomTrafficLights>());
+            if (!query.IsEmptyIgnoreFilter)
+            {
+                removedCount += query.CalculateEntityCount();
+                entityManager.RemoveComponent<Components.CustomTrafficLights>(query);
+            }
+        }
+        
+        if (componentName == "All" || componentName == "CustomPhaseData")
+        {
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.CustomPhaseData>());
+            if (!query.IsEmptyIgnoreFilter)
+            {
+                removedCount += query.CalculateEntityCount();
+                entityManager.RemoveComponent<Components.CustomPhaseData>(query);
+            }
+        }
+        
+        if (componentName == "All" || componentName == "TrafficGroup")
+        {
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.TrafficGroup>());
+            if (!query.IsEmptyIgnoreFilter)
+            {
+                removedCount += query.CalculateEntityCount();
+                entityManager.RemoveComponent<Components.TrafficGroup>(query);
+            }
+        }
+        
+        if (componentName == "All" || componentName == "TrafficGroupMember")
+        {
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.TrafficGroupMember>());
+            if (!query.IsEmptyIgnoreFilter)
+            {
+                removedCount += query.CalculateEntityCount();
+                entityManager.RemoveComponent<Components.TrafficGroupMember>(query);
+            }
+        }
+        
+        if (componentName == "All" || componentName == "EdgeGroupMask")
+        {
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.EdgeGroupMask>());
+            if (!query.IsEmptyIgnoreFilter)
+            {
+                removedCount += query.CalculateEntityCount();
+                entityManager.RemoveComponent<Components.EdgeGroupMask>(query);
+            }
+        }
+        
+        if (componentName == "All" || componentName == "ExtraLaneSignal")
+        {
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.ExtraLaneSignal>());
+            if (!query.IsEmptyIgnoreFilter)
+            {
+                removedCount += query.CalculateEntityCount();
+                entityManager.RemoveComponent<Components.ExtraLaneSignal>(query);
+            }
+        }
+        
+        Mod.m_Log.Info($"Cleared {componentName} from {removedCount} entities. Save game to persist changes.");
+    }
+
     [SettingsUISection(kTabGeneral, kGroupVersion)]
     [SettingsUIButton]
     [SettingsUIConfirmation(null, null)]
@@ -143,7 +247,7 @@ public class Settings : ModSetting
         {
             if (value == true)
             {
-                m_SuppressCanaryWarningVersion = Mod.m_InformationalVersion;
+                m_SuppressCanaryWarningVersion = Mod.InformationalVersion;
                 Systems.UI.UISystem.m_MainPanelBinding?.Update();
             }
         }
@@ -284,9 +388,9 @@ public class Settings : ModSetting
         return GameManager.instance.gameMode != Game.GameMode.Game;
     }
 
-    public bool IsNotCanary()
+    public bool IsNotBeta()
     {
-        return !Mod.IsCanary();
+        return !Mod.IsBeta();
     }
 
     public bool IsCompatibilityMode()
@@ -297,5 +401,64 @@ public class Settings : ModSetting
     public bool IsTrue()
     {
         return true;
+    }
+
+    public class UserPreset
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public ushort MinDuration { get; set; }
+        public ushort MaxDuration { get; set; }
+        public float TargetDurationMultiplier { get; set; }
+        public float IntervalExponent { get; set; }
+        public float WaitFlowBalance { get; set; }
+        public int ChangeMetric { get; set; }
+    }
+
+    [SettingsUIHideByCondition(typeof(Settings), "IsTrue")]
+    public List<UserPreset> m_UserPresets { get; set; } = new List<UserPreset>();
+
+    public string GetUserPresetsJson()
+    {
+        return JsonConvert.SerializeObject(m_UserPresets ?? new List<UserPreset>());
+    }
+
+    public void SaveUserPreset(string name, CustomPhaseData phase)
+    {
+        m_UserPresets ??= new List<UserPreset>();
+        var preset = new UserPreset
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = name,
+            MinDuration = phase.m_MinimumDuration,
+            MaxDuration = phase.m_MaximumDuration,
+            TargetDurationMultiplier = phase.m_TargetDurationMultiplier,
+            IntervalExponent = phase.m_IntervalExponent,
+            WaitFlowBalance = phase.m_WaitFlowBalance,
+            ChangeMetric = (int)phase.m_ChangeMetric
+        };
+        m_UserPresets.Add(preset);
+        ApplyAndSave();
+    }
+
+    public void DeleteUserPreset(string presetId)
+    {
+        m_UserPresets?.RemoveAll(p => p.Id == presetId);
+        ApplyAndSave();
+    }
+
+    public UserPreset GetUserPreset(string presetId)
+    {
+        return m_UserPresets?.Find(p => p.Id == presetId);
+    }
+
+    public void UpdateUserPresetName(string presetId, string newName)
+    {
+        var preset = m_UserPresets?.Find(p => p.Id == presetId);
+        if (preset != null)
+        {
+            preset.Name = newName;
+            ApplyAndSave();
+        }
     }
 }

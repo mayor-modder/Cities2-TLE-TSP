@@ -1,0 +1,74 @@
+import { EdgeInfo, ScreenPointMap, ToolTooltipMessage } from "./mods/general";
+import { OneWayBinding } from "./utils/oneWayBinding";
+import { TwoWayBinding } from "./utils/bothWayBinding";
+import triggers from "./utils/trigger";
+
+export const locale = new OneWayBinding<string>("GetLocale", "{}");
+export const cityConfiguration = new OneWayBinding<string>("GetCityConfiguration", "{}");
+export const mainPanel = new OneWayBinding<string>("GetMainPanel", "{}");
+export const toolTooltipMessage = new OneWayBinding<ToolTooltipMessage[]>("GetToolTooltipMessage", []);
+export const activeEditingCustomPhaseIndex = new OneWayBinding<number>("GetActiveEditingCustomPhaseIndex", -1);
+export const edgeInfo = new OneWayBinding<EdgeInfo[]>("GetEdgeInfo", []);
+export const screenPoint = new OneWayBinding<ScreenPointMap>("GetScreenPoint", {});
+
+export const callKeyPress = triggers.create<[string]>("CallKeyPress");
+export const callMainPanelSave = triggers.create<[string]>("CallMainPanelSave");
+export const callMainPanelUpdatePattern = triggers.create<[string]>("CallMainPanelUpdatePattern");
+export const callMainPanelUpdateOption = triggers.create<[string]>("CallMainPanelUpdateOption");
+export const callMainPanelUpdateValue = triggers.create<[string]>("CallMainPanelUpdateValue");
+export const callLaneDirectionToolReset = triggers.create<[string]>("CallLaneDirectionToolReset");
+export const callSetMainPanelState = triggers.create<[string]>("CallSetMainPanelState");
+export const callMainPanelUpdatePosition = triggers.create<[string]>("CallMainPanelUpdatePosition");
+export const callAddWorldPosition = triggers.create<[string]>("CallAddWorldPosition");
+export const callRemoveWorldPosition = triggers.create<[string]>("CallRemoveWorldPosition");
+export const callAddCustomPhase = triggers.create<[string]>("CallAddCustomPhase");
+export const callUpdateSubLaneGroupMask = triggers.create<[string]>("CallUpdateSubLaneGroupMask");
+export const callUpdateEdgeGroupMask = triggers.create<[string]>("CallUpdateEdgeGroupMask");
+export const callUpdateCustomPhaseData = triggers.create<[string]>("CallUpdateCustomPhaseData");
+export const callSetActiveCustomPhaseIndex = triggers.create<[string]>("CallSetActiveCustomPhaseIndex");
+export const callSwapCustomPhase = triggers.create<[string]>("CallSwapCustomPhase");
+export const callRemoveCustomPhase = triggers.create<[string]>("CallRemoveCustomPhase");
+
+export const callCreateTrafficGroup = triggers.create<[string]>("CallCreateTrafficGroup");
+export const callAddJunctionToGroup = triggers.create<[string]>("CallAddJunctionToGroup");
+export const callRemoveJunctionFromGroup = triggers.create<[string]>("CallRemoveJunctionFromGroup");
+export const callDeleteTrafficGroup = triggers.create<[string]>("CallDeleteTrafficGroup");
+export const callSetTrafficGroupName = triggers.create<[string]>("CallSetTrafficGroupName");
+export const callSetGreenWaveEnabled = triggers.create<[string]>("CallSetGreenWaveEnabled");
+export const callSetGreenWaveSpeed = triggers.create<[string]>("CallSetGreenWaveSpeed");
+export const callSetGreenWaveOffset = triggers.create<[string]>("CallSetGreenWaveOffset");
+export const callSetSignalDelay = triggers.create<[string]>("CallSetSignalDelay");
+export const callRemoveSignalDelay = triggers.create<[string]>("CallRemoveSignalDelay");
+export const callCalculateSignalDelays = triggers.create<[string]>("CallCalculateSignalDelays");
+export const signalDelayData = new OneWayBinding<string>("GetSignalDelayData", "{}");
+export const callSetCoordinated = triggers.create<[string]>("CallSetCoordinated");
+export const callSelectJunction = triggers.create<[string]>("CallSelectJunction");
+export const callEnterAddMemberMode = triggers.create<[string]>("CallEnterAddMemberMode");
+export const callExitAddMemberMode = triggers.create<[string]>("CallExitAddMemberMode");
+export const callFinishAddMemberMode = triggers.create<[string]>("CallFinishAddMemberMode");
+export const addMemberState = new OneWayBinding<string>("GetAddMemberState", "{}");
+export const callEnterSelectMemberMode = triggers.create<[string]>("CallEnterSelectMemberMode");
+export const callExitSelectMemberMode = triggers.create<[string]>("CallExitSelectMemberMode");
+export const selectMemberState = new OneWayBinding<string>("GetSelectMemberState", "{}");
+export const callUpdateSignalDelay = triggers.create<[string]>("CallUpdateSignalDelay");
+export const callCopyPhasesToJunction = triggers.create<[string]>("CallCopyPhasesToJunction");
+export const callApplyBestPhase = triggers.create<[string]>("CallApplyBestPhase");
+export const callUpdateMemberPhaseData = triggers.create<[string]>("CallUpdateMemberPhaseData");
+export const callUpdateEdgeGroupMaskForJunction = triggers.create<[string]>("CallUpdateEdgeGroupMaskForJunction");
+export const callUpdateMemberPattern = triggers.create<[string]>("CallUpdateMemberPattern");
+export const callHighlightEdge = triggers.create<[string]>("CallHighlightEdge");
+export const callUpdateEdgeDelay = triggers.create<[string]>("CallUpdateEdgeDelay");
+export const callApplyPhaseTemplate = triggers.create<[string]>("CallApplyPhaseTemplate");
+export const userPresets = new OneWayBinding<string>("GetUserPresets", "[]");
+export const callSaveUserPreset = triggers.create<[string]>("CallSaveUserPreset");
+export const callDeleteUserPreset = triggers.create<[string]>("CallDeleteUserPreset");
+export const callApplyUserPreset = triggers.create<[string]>("CallApplyUserPreset");
+export const callUpdateUserPreset = triggers.create<[string]>("CallUpdateUserPreset");
+
+// Migration issues bindings
+export const affectedEntities = new OneWayBinding<any[]>("GetAffectedEntities", []);
+export const hasMigrationIssues = new OneWayBinding<boolean>("HasMigrationIssues", false);
+export const callNavigateToEntity = (entity: {index: number, version: number}) => {
+	triggers.create<[string]>("NavigateToEntity")(JSON.stringify(entity));
+};
+export const callRemoveAffectedEntity = triggers.create<[number]>("RemoveAffectedEntity");

@@ -1,6 +1,6 @@
 #region Assembly Game, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-// location unknown
-// Decompiled with ICSharpCode.Decompiler 9.1.0.7988
+
+
 #endregion
 
 using System.Runtime.CompilerServices;
@@ -138,15 +138,26 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                 CustomTrafficLights customTrafficLights = i < customTrafficLightsArray.Length ? customTrafficLightsArray[i] : new CustomTrafficLights();
 
-                if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase && i < customPhaseDataBufferAccessor.Length && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0)
+                if ((customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase) && i < customPhaseDataBufferAccessor.Length && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0)
                 {
                     DynamicBuffer<CustomPhaseData> customPhaseDataBuffer = customPhaseDataBufferAccessor[i];
                     CustomStateMachine.CalculatePriority(this, subLanes, customPhaseDataBuffer);
                     CustomStateMachine.CalculateFlow(this, unfilteredChunkIndex, subLanes, trafficLights, customPhaseDataBuffer);
-                    if (CustomStateMachine.UpdateTrafficLightState(ref trafficLights, ref customTrafficLights, customPhaseDataBuffer))
+                    
+                    Entity currentEntity = nativeArray[i];
+                    if (CustomStateMachine.ShouldFollowLeader(this, currentEntity, out Entity leaderEntity))
                     {
+                        CustomStateMachine.SyncSignalGroupWithLeader(this, currentEntity, leaderEntity, ref trafficLights, ref customTrafficLights);
                         UpdateLaneSignals(laneSignals, trafficLights);
                         UpdateTrafficLightObjects(subObjects, trafficLights);
+                    }
+                    else
+                    {
+                        if (CustomStateMachine.UpdateTrafficLightState(ref trafficLights, ref customTrafficLights, customPhaseDataBuffer))
+                        {
+                            UpdateLaneSignals(laneSignals, trafficLights);
+                            UpdateTrafficLightObjects(subObjects, trafficLights);
+                        }
                     }
                 }
                 else if (UpdateTrafficLightState(laneSignals, moveableBridgeData, ref trafficLights, ref customTrafficLights))
@@ -446,17 +457,17 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 }
                 if ((value.m_GroupMask & (1 << trafficLights.m_CurrentSignalGroup - 1)) != 0)
                 {
-                    // Reduce priority if the lane has IgnorePriority flag
+                    
                     if ((extraLaneSignal.m_IgnorePriorityGroupMask & (1 << trafficLights.m_CurrentSignalGroup - 1)) != 0)
                     {
                         value.m_Priority = value.m_Default;
                     }
 
-                    // Stop pedestrian phase from hogging the green light
-                    // if ((customTrafficLights.m_PedestrianPhaseGroupMask & value.m_GroupMask) != 0)
-                    // {
-                    //     value.m_Priority = value.m_Default;
-                    // }
+                    
+                    
+                    
+                    
+                    
                 }
 
                 int num5 = math.min(value.m_Priority, y);

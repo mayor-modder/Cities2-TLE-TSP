@@ -4,12 +4,15 @@ using C2VM.TrafficLightsEnhancement.Systems.Overlay;
 using Colossal.Entities;
 using Game.Net;
 using Game.Prefabs;
+using Game.Rendering;
 using Game.Tools;
 using Game.UI.Localization;
 using Game.UI.Tooltip;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace C2VM.TrafficLightsEnhancement.Systems.Tool;
 
@@ -41,6 +44,15 @@ public partial class ToolSystem : NetToolSystem
 
     private StringTooltip m_RemoveTrafficLightsTooltip;
 
+    private StringTooltip m_SelectGroupMemberTooltip;
+
+    
+    private const float CircleScale = 0.7f;
+
+    
+    private static readonly Color DefaultCircleColor = new Color(0.5f, 1.0f, 2.0f, 1.0f);
+    private static readonly Color SelectMemberCircleColor = new Color(1.0f, 0.6f, 0.0f, 1.0f);
+
     protected override void OnCreate()
     {
         base.OnCreate();
@@ -70,6 +82,12 @@ public partial class ToolSystem : NetToolSystem
             icon = "Media/Mouse/RMB.svg",
             value = LocalizedString.Id("C2VM.TLE.Tooltips.RemoveTrafficLights"),
         };
+        m_SelectGroupMemberTooltip = new StringTooltip
+        {
+            path = "C2VM.TLE.Tooltips.SelectGroupMember",
+            icon = "Media/Mouse/LMB.svg",
+            value = LocalizedString.Id("C2VM.TLE.Tooltips.SelectGroupMember"),
+        };
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
@@ -89,7 +107,25 @@ public partial class ToolSystem : NetToolSystem
                 {
                     if (EntityManager.HasComponent<CustomTrafficLights>(m_RaycastResult))
                     {
+                        
+                        var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
+                        trafficGroupSystem.RemoveJunctionFromGroup(m_RaycastResult);
+                        
+                        
                         EntityManager.RemoveComponent<CustomTrafficLights>(m_RaycastResult);
+                        if (EntityManager.HasBuffer<CustomPhaseData>(m_RaycastResult))
+                        {
+                            EntityManager.RemoveComponent<CustomPhaseData>(m_RaycastResult);
+                        }
+                        if (EntityManager.HasBuffer<EdgeGroupMask>(m_RaycastResult))
+                        {
+                            EntityManager.RemoveComponent<EdgeGroupMask>(m_RaycastResult);
+                        }
+                        if (EntityManager.HasBuffer<SubLaneGroupMask>(m_RaycastResult))
+                        {
+                            EntityManager.RemoveComponent<SubLaneGroupMask>(m_RaycastResult);
+                        }
+                        
                         EntityManager.AddComponentData(m_RaycastResult, default(Game.Common.Updated));
                         m_UISystem.RedrawIcon();
                         UpdateTooltip(m_RaycastResult);
@@ -102,26 +138,56 @@ public partial class ToolSystem : NetToolSystem
                 if (originalEntity != m_RaycastResult)
                 {
                     m_RaycastResult = originalEntity;
-                    m_RenderSystem.ClearLineMesh();
-                    if (IsValidEntity(m_RaycastResult) && EntityManager.TryGetComponent<NodeGeometry>(m_RaycastResult, out var nodeGeometry))
-                    {
-                        m_RenderSystem.AddBounds(nodeGeometry.m_Bounds, new UnityEngine.Color(0.5f, 1.0f, 2.0f, 1.0f), 0.5f);
-                        m_RenderSystem.BuildLineMesh();
-                    }
                     UpdateTooltip(m_RaycastResult);
+                }
+
+                
+                bool isSelectMemberMode = m_UISystem.IsSelectingGroupMember;
+                bool isValidForMode = isSelectMemberMode
+                    ? m_UISystem.IsEntityInTargetGroup(m_RaycastResult)
+                    : IsValidEntity(m_RaycastResult);
+
+                if (isValidForMode && EntityManager.TryGetComponent<NodeGeometry>(m_RaycastResult, out var nodeGeometry))
+                {
+                    var overlayRenderSystem = World.GetOrCreateSystemManaged<OverlayRenderSystem>();
+                    var overlayBuffer = overlayRenderSystem.GetBuffer(out JobHandle dependencies);
+                    dependencies.Complete();
+                    float3 center = (nodeGeometry.m_Bounds.min + nodeGeometry.m_Bounds.max) * 0.5f;
+                    float diameter = nodeGeometry.m_Bounds.max.x - nodeGeometry.m_Bounds.min.x;
+
+                    
+                    diameter = math.max(0.01f, diameter * CircleScale);
+
+                    
+                    Color circleColor = isSelectMemberMode ? SelectMemberCircleColor : DefaultCircleColor;
+                    overlayBuffer.DrawCircle(circleColor, center, diameter);
                 }
             }
             else if (m_RaycastResult != Entity.Null)
             {
                 m_RaycastResult = Entity.Null;
-                m_RenderSystem.ClearLineMesh();
                 UpdateTooltip(m_RaycastResult);
             }
             if (applyAction.WasReleasedThisFrame())
             {
                 Entity entity = m_ParentAppliedUpgrade.Value.m_Entity;
                 CompositionFlags flags = m_ParentAppliedUpgrade.Value.m_Flags;
-                if (entity != Entity.Null && (flags.m_General & CompositionFlags.General.TrafficLights) != 0 && IsValidEntity(entity))
+                bool isSelectMemberMode = m_UISystem.IsSelectingGroupMember;
+
+                if (isSelectMemberMode)
+                {
+                    
+                    if (entity != Entity.Null && m_UISystem.IsEntityInTargetGroup(entity))
+                    {
+                        m_UISystem.ChangeSelectedEntity(entity);
+                    }
+                    else
+                    {
+                        
+                        m_UISystem.ExitSelectMemberMode();
+                    }
+                }
+                else if (entity != Entity.Null && (flags.m_General & CompositionFlags.General.TrafficLights) != 0 && IsValidEntity(entity))
                 {
                     m_UISystem.ChangeSelectedEntity(entity);
                 }
@@ -175,6 +241,17 @@ public partial class ToolSystem : NetToolSystem
     private void UpdateTooltip(Entity entity)
     {
         m_TooltipSystem.m_TooltipList.Clear();
+
+        
+        if (m_UISystem.IsSelectingGroupMember)
+        {
+            if (m_UISystem.IsEntityInTargetGroup(entity))
+            {
+                m_TooltipSystem.m_TooltipList.Add(m_SelectGroupMemberTooltip);
+            }
+            return;
+        }
+
         if (IsValidEntity(entity))
         {
             m_TooltipSystem.m_TooltipList.Add(m_ConfigureTooltip);

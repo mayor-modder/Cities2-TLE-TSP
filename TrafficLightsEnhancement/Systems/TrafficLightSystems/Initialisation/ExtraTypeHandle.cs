@@ -36,6 +36,8 @@ public struct ExtraTypeHandle
     public BufferTypeHandle<SubLaneGroupMask> m_SubLaneGroupMask;
 
     public BufferTypeHandle<CustomPhaseData> m_CustomPhaseData;
+    
+    public ComponentLookup<SecondaryLane> m_SecondaryLane;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AssignHandles(ref SystemState state)
@@ -54,6 +56,7 @@ public struct ExtraTypeHandle
         m_EdgeGroupMask = state.GetBufferTypeHandle<EdgeGroupMask>();
         m_SubLaneGroupMask = state.GetBufferTypeHandle<SubLaneGroupMask>();
         m_CustomPhaseData = state.GetBufferTypeHandle<CustomPhaseData>();
+        m_SecondaryLane = state.GetComponentLookup<SecondaryLane>();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -73,5 +76,6 @@ public struct ExtraTypeHandle
         m_EdgeGroupMask.Update(ref state);
         m_SubLaneGroupMask.Update(ref state);
         m_CustomPhaseData.Update(ref state);
+        m_SecondaryLane.Update(ref state);
     }
 }

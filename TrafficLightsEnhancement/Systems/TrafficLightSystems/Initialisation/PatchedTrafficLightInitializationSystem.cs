@@ -1,6 +1,6 @@
 #region Assembly Game, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-// location unknown
-// Decompiled with ICSharpCode.Decompiler 9.1.0.7988
+
+
 #endregion
 
 using System.Runtime.CompilerServices;
@@ -153,6 +153,8 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
 
         [NativeDisableParallelForRestriction]
         public ComponentLookup<LaneSignal> m_LaneSignalData;
+        
+        
 
         public bool m_LeftHandTraffic;
 
@@ -235,7 +237,7 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                 }
 
                 PredefinedPatternsProcessor.ResetExtraLaneSignal(ref this, subLanes, ref trafficLights);
-                if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase && i < edgeGroupMaskAccessor.Length && i < subLaneGroupMaskAccessor.Length && i < customPhaseDataAccessor.Length)
+                if ((customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase) && i < edgeGroupMaskAccessor.Length && i < subLaneGroupMaskAccessor.Length && i < customPhaseDataAccessor.Length)
                 {
                     CustomPhaseUtils.ValidateBuffer(ref this, entityArray[i], subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i], m_ExtraTypeHandle.m_SubLane);
                     CustomPhaseProcessor.ProcessLanes(ref this, unfilteredChunkIndex, entityArray[i], connectedEdgeAccessor[i], subLanes, out groupCount, ref trafficLights, ref customTrafficLights, edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i], customPhaseDataAccessor[i]);
@@ -243,7 +245,7 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                 else
                 {
                     var edgeInfoArray = NodeUtils.GetEdgeInfoList(Allocator.Temp, entityArray[i], ref this, subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i]).AsArray();
-                    var pattern = customTrafficLights.GetPattern();
+                     var pattern = customTrafficLights.GetPattern();
                     if (NodeUtils.HasTrainTrack(edgeInfoArray) || !PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, pattern))
                     {
                         pattern = CustomTrafficLights.Patterns.Vanilla;
@@ -253,9 +255,13 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                     {
                         PredefinedPatternsProcessor.SetupSplitPhasing(ref this, connectedEdgeAccessor[i], subLanes, out groupCount, ref trafficLights);
                     }
-                    else if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.ProtectedCentreTurn)
+                    else if ((customTrafficLights.GetPatternOnly() & CustomTrafficLights.Patterns.ProtectedCentreTurn) != 0)
                     {
                         PredefinedPatternsProcessor.SetupProtectedCentreTurn(ref this, connectedEdgeAccessor[i], subLanes, out groupCount, ref trafficLights);
+                    }
+                    else if ((customTrafficLights.GetPatternOnly() & CustomTrafficLights.Patterns.SplitPhasingProtectedLeft) != 0)
+                    {
+                        PredefinedPatternsProcessor.SetupSplitPhasingProtectedLeft(ref this, connectedEdgeAccessor[i], subLanes, out groupCount, ref trafficLights);
                     }
                     else
                     {

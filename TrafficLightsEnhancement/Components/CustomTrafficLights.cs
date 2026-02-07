@@ -1,3 +1,5 @@
+using System;
+using C2VM.TrafficLightsEnhancement.Systems.Serialization;
 using Colossal.Serialization.Entities;
 using Unity.Entities;
 
@@ -5,123 +7,105 @@ namespace C2VM.TrafficLightsEnhancement.Components;
 
 public struct CustomTrafficLights : IComponentData, IQueryTypeParameter, ISerializable
 {
-    public enum Patterns : uint
+  private Patterns m_Pattern;
+  private TrafficMode m_Mode;
+  public uint m_Timer;
+  public byte m_ManualSignalGroup;
+  public TrafficOptions m_Options;
+
+  public float m_PedestrianPhaseDurationMultiplier { get; private set; }
+
+  public int m_PedestrianPhaseGroupMask { get; private set; }
+
+  public void Serialize<TWriter>(TWriter writer) where TWriter : IWriter
+  {
+    writer.Write(TLEDataVersion.Current);
+    writer.Write((uint)m_Pattern);
+    writer.Write(m_PedestrianPhaseDurationMultiplier);
+    writer.Write(m_PedestrianPhaseGroupMask);
+    writer.Write(m_Timer);
+    writer.Write(m_ManualSignalGroup);
+    writer.Write((uint)m_Mode);
+    writer.Write((uint)m_Options);
+    
+  }
+
+  public void Deserialize<TReader>(TReader reader) where TReader : IReader
+  {
+    m_PedestrianPhaseDurationMultiplier = 1f;
+    m_PedestrianPhaseGroupMask = 0;
+    m_Timer = 0U;
+    m_ManualSignalGroup = 0;
+    m_Pattern = Patterns.Vanilla;
+    m_Mode = TrafficMode.Dynamic;
+    m_Options = TrafficOptions.SmartPhaseSelection;
+
+    reader.Read(out int version);
+    if (version <= TLEDataVersion.V1)
     {
-        Vanilla = 0,
-
-        SplitPhasing = 1,
-
-        ProtectedCentreTurn = 2,
-
-        SplitPhasingAdvancedObsolete = 3,
-
-        ModDefault = 4,
-
-        CustomPhase = 5,
-
-        ExclusivePedestrian = 1 << 16,
-
-        AlwaysGreenKerbsideTurn = 1 << 17,
-
-        CentreTurnGiveWay = 1 << 18,
+      for (int i = 1; i < 16; i++)
+      {
+        reader.Read(out uint pattern);
+      }
+      m_Pattern = Patterns.Vanilla;
     }
-
-    private int m_SchemaVersion;
-
-    // Schema 1
-    private const int DefaultSelectedPatternLength = 16;
-
-    // Schema 2
-    private Patterns m_Pattern;
-
-    // Schema 3
-    public float m_PedestrianPhaseDurationMultiplier { get; private set; }
-
-    public int m_PedestrianPhaseGroupMask { get; private set; }
-
-    // Schema 4
-    public uint m_Timer;
-
-    public byte m_ManualSignalGroup;
-
-    public void Serialize<TWriter>(TWriter writer) where TWriter : IWriter
+    else if (version <= TLEDataVersion.V2)
     {
-        m_SchemaVersion = 4;
-        writer.Write(uint.MaxValue);
-        writer.Write(m_SchemaVersion);
-        writer.Write((uint)m_Pattern);
-        writer.Write(m_PedestrianPhaseDurationMultiplier);
-        writer.Write(m_PedestrianPhaseGroupMask);
-        writer.Write(m_Timer);
-        writer.Write(m_ManualSignalGroup);
+      reader.Read(out uint pattern);
+      m_Pattern = (Patterns)pattern;
     }
-
-    public void Deserialize<TReader>(TReader reader) where TReader : IReader
+    else
     {
-        m_PedestrianPhaseDurationMultiplier = 1;
-        m_PedestrianPhaseGroupMask = 0;
-        reader.Read(out uint uint1);
-        if (uint1 == uint.MaxValue)
-        {
-            reader.Read(out m_SchemaVersion);
-        }
-        else
-        {
-            m_SchemaVersion = 1;
-        }
-        if (m_SchemaVersion == 1)
-        {
-            for (int i = 1; i < DefaultSelectedPatternLength; i++)
-            {
-                reader.Read(out uint pattern);
-            }
-            m_Pattern = Patterns.Vanilla;
-        }
-        if (m_SchemaVersion >= 2)
-        {
-            reader.Read(out uint pattern);
-            m_Pattern = (Patterns)pattern;
-        }
-        if (m_SchemaVersion >= 3)
-        {
-            reader.Read(out float pedestrianPhaseDurationMultiplier);
-            reader.Read(out int pedestrianPhaseGroupMask);
-            m_PedestrianPhaseDurationMultiplier = pedestrianPhaseDurationMultiplier;
-            m_PedestrianPhaseGroupMask = pedestrianPhaseGroupMask;
-        }
-        if (m_SchemaVersion >= 4)
-        {
-            reader.Read(out m_Timer);
-            reader.Read(out m_ManualSignalGroup);
-        }
-        if (GetPatternOnly() == Patterns.SplitPhasingAdvancedObsolete)
-        {
-            SetPatternOnly(Patterns.SplitPhasing);
-        }
-        m_ManualSignalGroup = 0;
-    }
+      reader.Read(out uint pattern);
+      m_Pattern = (Patterns)pattern;
 
-    public CustomTrafficLights()
-    {
-        m_SchemaVersion = 4;
-        m_Pattern = Patterns.Vanilla;
-        m_PedestrianPhaseDurationMultiplier = 1;
-        m_PedestrianPhaseGroupMask = 0;
-        m_Timer = 0;
-        m_ManualSignalGroup = 0;
-    }
+      reader.Read(out float pedestrianPhaseDurationMultiplier);
+      reader.Read(out int pedestrianPhaseGroupMask);
+      m_PedestrianPhaseDurationMultiplier = pedestrianPhaseDurationMultiplier;
+      m_PedestrianPhaseGroupMask = pedestrianPhaseGroupMask;
 
-    public CustomTrafficLights(Patterns pattern)
-    {
-        m_SchemaVersion = 4;
-        m_Pattern = pattern;
-        m_PedestrianPhaseDurationMultiplier = 1;
-        m_PedestrianPhaseGroupMask = 0;
-        m_Timer = 0;
-        m_ManualSignalGroup = 0;
-    }
+      if (version >= TLEDataVersion.V4)
+      {
+        reader.Read(out m_Timer);
+        reader.Read(out m_ManualSignalGroup);
+      }
 
-    public Patterns GetPattern()
+      if (version >= TLEDataVersion.V5)
+      {
+        reader.Read(out uint mode);
+        reader.Read(out uint options);
+        m_Mode = (TrafficMode)mode;
+        m_Options = (TrafficOptions)options;
+      }
+    }
+    m_ManualSignalGroup = 0;
+  }
+
+  public CustomTrafficLights()
+  {
+    m_Pattern = Patterns.Vanilla;
+    m_Mode = TrafficMode.Dynamic;
+    m_Options = TrafficOptions.SmartPhaseSelection;
+    m_PedestrianPhaseDurationMultiplier = 1f;
+    m_PedestrianPhaseGroupMask = 0;
+    m_Timer = 0U;
+    m_ManualSignalGroup = (byte) 0;
+  }
+
+  public CustomTrafficLights(Patterns pattern, TrafficMode mode = TrafficMode.Dynamic)
+  {
+    m_Pattern = pattern;
+    m_Mode = mode;
+    m_Options = TrafficOptions.SmartPhaseSelection;
+    m_PedestrianPhaseDurationMultiplier = 1f;
+    m_PedestrianPhaseGroupMask = 0;
+    m_Timer = 0U;
+    m_ManualSignalGroup = (byte) 0;
+  }
+
+  
+
+  public Patterns GetPattern()
     {
         return m_Pattern;
     }
@@ -145,14 +129,76 @@ public struct CustomTrafficLights : IComponentData, IQueryTypeParameter, ISerial
     {
         m_Pattern = (Patterns)(((uint)m_Pattern & 0xFFFF0000) | ((uint)pattern & 0xFFFF));
     }
-
-    public void SetPedestrianPhaseDurationMultiplier(float durationMultiplier)
+    public void SetModeOnly(TrafficMode mode)
     {
-        m_PedestrianPhaseDurationMultiplier = durationMultiplier;
+      m_Mode = (TrafficMode)(((uint)m_Mode & 0xFFFF0000) | ((uint)mode & 0xFFFF));
+    }
+    public void SetOptionsOnly(TrafficOptions options)
+    {
+      m_Options = (TrafficOptions)(((uint)m_Options & 0xFFFF0000) | ((uint)options & 0xFFFF));
+    }
+    public void SetMode(TrafficMode mode)
+    {
+        m_Mode = mode;
+    }
+    public void SetOptions(TrafficOptions options)
+    {
+        m_Options = options;
+    }
+    public TrafficMode GetMode()
+    {
+      return m_Mode;
+    }
+    public TrafficOptions GetOptions()
+    {
+      return m_Options;
+    }
+    public TrafficMode GetModeOnly()
+    {
+      return (TrafficMode)((uint)m_Mode & 0xFFFF);
+    }
+    public TrafficOptions GetOptionsOnly()
+    {
+      return (TrafficOptions)((uint)m_Options & 0xFFFF);
     }
 
-    public void SetPedestrianPhaseGroupMask(int groupMask)
-    {
-        m_PedestrianPhaseGroupMask = groupMask;
-    }
+  
+
+  public void SetPedestrianPhaseDurationMultiplier(float durationMultiplier)
+  {
+    m_PedestrianPhaseDurationMultiplier = durationMultiplier;
+  }
+
+  public void SetPedestrianPhaseGroupMask(int groupMask)
+  {
+    m_PedestrianPhaseGroupMask = groupMask;
+  }
+
+  
+
+  public enum TrafficMode : uint
+  {
+    Dynamic = 0,
+    FixedTimed = 1
+  }
+  
+  public enum Patterns : uint
+  {
+    Vanilla = 0,
+    SplitPhasing = 1,
+    ProtectedCentreTurn = 2,
+    SplitPhasingProtectedLeft = 3,
+    ModDefault = 4,
+    CustomPhase = 5,
+    FixedTimed = 6,
+    ExclusivePedestrian = 65536, 
+    AlwaysGreenKerbsideTurn = 131072, 
+    CentreTurnGiveWay = 262144, 
+    SmartPhaseSelection = 524288
+  }
+  public enum TrafficOptions : uint
+  {
+    None = 0,
+    SmartPhaseSelection = 1
+  }
 }

@@ -1,6 +1,7 @@
 using C2VM.TrafficLightsEnhancement.Components;
 using Colossal.UI.Binding;
 using Unity.Entities;
+using Unity.Mathematics;
 using static C2VM.TrafficLightsEnhancement.Systems.UI.UITypes;
 
 namespace C2VM.TrafficLightsEnhancement.Utils;
@@ -27,9 +28,24 @@ public partial struct NodeUtils
 
         public int m_TrackLaneRightCount;
 
+        public int m_BicycleLaneCount;
+
         public int m_PedestrianLaneCount;
 
         public SubLaneGroupMask m_SubLaneGroupMask;
+
+        
+        public int m_LaneIndex;
+
+        public int2 m_CarriagewayAndGroupIndex;
+
+        public float3 m_Direction;
+
+        public VehicleGroup m_VehicleGroup;
+
+        public TurnType m_TurnType;
+
+        public bool m_IsPublicOnly;
 
         public void Write(IJsonWriter writer)
         {
@@ -52,10 +68,26 @@ public partial struct NodeUtils
             writer.Write(m_TrackLaneStraightCount);
             writer.PropertyName("m_TrackLaneRightCount");
             writer.Write(m_TrackLaneRightCount);
+            writer.PropertyName("m_BicycleLaneCount");
+            writer.Write(m_BicycleLaneCount);
             writer.PropertyName("m_PedestrianLaneCount");
             writer.Write(m_PedestrianLaneCount);
             writer.PropertyName("m_SubLaneGroupMask");
             writer.Write(m_SubLaneGroupMask);
+            writer.PropertyName("m_LaneIndex");
+            writer.Write(m_LaneIndex);
+            writer.PropertyName("m_CarriagewayIndex");
+            writer.Write(m_CarriagewayAndGroupIndex.x);
+            writer.PropertyName("m_GroupIndex");
+            writer.Write(m_CarriagewayAndGroupIndex.y);
+            writer.PropertyName("m_Direction");
+            writer.Write(m_Direction);
+            writer.PropertyName("m_VehicleGroup");
+            writer.Write((int)m_VehicleGroup);
+            writer.PropertyName("m_TurnType");
+            writer.Write((int)m_TurnType);
+            writer.PropertyName("m_IsPublicOnly");
+            writer.Write(m_IsPublicOnly);
             writer.TypeEnd();
         }
     }
