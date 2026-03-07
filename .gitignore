@@ -478,3 +478,4 @@ $RECYCLE.BIN/
 *.lnk
 
 Managed/
+.worktrees/
