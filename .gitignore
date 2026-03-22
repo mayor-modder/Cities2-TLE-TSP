@@ -479,3 +479,5 @@ $RECYCLE.BIN/
 
 Managed/
 .worktrees/
+.codex/
+.venv-skill/
