@@ -63,6 +63,8 @@ public static class UITypes
         public string label;
 
         public string engineEventName;
+
+        public bool disabled;
     }
 
     public struct ItemButton

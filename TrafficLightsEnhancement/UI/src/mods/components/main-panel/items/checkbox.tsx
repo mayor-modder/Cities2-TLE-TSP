@@ -16,6 +16,7 @@ export interface MainPanelCheckboxProps {
   tooltip?: string;
   onClickOverride?: () => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function MainPanelCheckbox(props: MainPanelCheckboxProps) {
@@ -24,6 +25,9 @@ export default function MainPanelCheckbox(props: MainPanelCheckboxProps) {
   const triggerName = `TRIGGER:${props.triggerName}`;
 
   const clickHandler = () => {
+    if (props.disabled) {
+      return;
+    }
     if (props.onClickOverride) {
       props.onClickOverride();
       return;
@@ -32,8 +36,15 @@ export default function MainPanelCheckbox(props: MainPanelCheckboxProps) {
   };
 
   const content = (
-    <div className={props.className}>
-      <div className={styles.container} onClick={clickHandler}>
+    <div
+      className={props.className}
+      style={props.disabled ? { opacity: 0.5, cursor: "default" } : undefined}
+    >
+      <div
+        className={styles.container}
+        onClick={clickHandler}
+        style={props.disabled ? { pointerEvents: "none" } : undefined}
+      >
         <div className={styles.titleContainer}>
           <Checkbox isChecked={props.isChecked} />
           <div className={styles.label}>{getString(locale, props.label)}</div>

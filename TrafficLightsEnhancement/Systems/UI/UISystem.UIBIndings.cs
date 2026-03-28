@@ -322,12 +322,13 @@ public partial class UISystem
         };
         if (m_MainPanelState == MainPanelState.Main && m_SelectedEntity != Entity.Null)
         {
-            bool isGroupMember = EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
+            bool isGroupedIntersection = m_SelectedEntity != Entity.Null
+                && EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
             TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(m_SelectedEntity)
                 ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(m_SelectedEntity)
                 : new TransitSignalPrioritySettings();
             
-            if (!isGroupMember)
+            if (!isGroupedIntersection)
             {
                 menu.items.Add(new UITypes.ItemTitle{title = "TrafficSignal"});
                 bool isCustomPhaseMode = m_CustomTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase;
@@ -395,6 +396,10 @@ public partial class UISystem
 
             menu.items.Add(default(UITypes.ItemDivider));
             menu.items.Add(new UITypes.ItemTitle{title = "TransitSignalPriority"});
+            if (isGroupedIntersection)
+            {
+                menu.items.Add(new UITypes.ItemMessage{message = "TspUnavailableForTrafficGroup"});
+            }
             menu.items.Add(new UITypes.ItemCheckbox
             {
                 type = "checkbox",
@@ -402,7 +407,8 @@ public partial class UISystem
                 value = tspSettings.m_Enabled.ToString(),
                 isChecked = tspSettings.m_Enabled,
                 label = "EnableTransitSignalPriority",
-                engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption"
+                engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption",
+                disabled = isGroupedIntersection
             });
             if (tspSettings.m_Enabled)
             {
@@ -413,7 +419,8 @@ public partial class UISystem
                     value = tspSettings.m_AllowTrackRequests.ToString(),
                     isChecked = tspSettings.m_AllowTrackRequests,
                     label = "AllowTrackTransitRequests",
-                    engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption"
+                    engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption",
+                    disabled = isGroupedIntersection
                 });
                 menu.items.Add(new UITypes.ItemCheckbox
                 {
@@ -422,9 +429,10 @@ public partial class UISystem
                     value = tspSettings.m_AllowPublicCarRequests.ToString(),
                     isChecked = tspSettings.m_AllowPublicCarRequests,
                     label = "AllowBusLaneRequests",
-                    engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption"
+                    engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption",
+                    disabled = isGroupedIntersection
                 });
-                if (isGroupMember)
+                if (isGroupedIntersection)
                 {
                     menu.items.Add(new UITypes.ItemCheckbox
                     {
@@ -433,7 +441,8 @@ public partial class UISystem
                         value = tspSettings.m_AllowGroupPropagation.ToString(),
                         isChecked = tspSettings.m_AllowGroupPropagation,
                         label = "PropagateTransitRequestsToGroup",
-                        engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption"
+                        engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption",
+                        disabled = isGroupedIntersection
                     });
                 }
             }
@@ -864,6 +873,11 @@ public partial class UISystem
             option.key == "TspAllowPublicCarRequests" || option.key == "TspAllowGroupPropagation")
         {
             if (m_SelectedEntity == Entity.Null)
+            {
+                return;
+            }
+
+            if (EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity))
             {
                 return;
             }

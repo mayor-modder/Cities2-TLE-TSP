@@ -45,7 +45,8 @@ export interface MainPanelItemCheckbox {
   key: string,
   value: string,
   label: string,
-  engineEventName: string
+  engineEventName: string,
+  disabled?: boolean
 }
 
 export interface MainPanelItemButton {

@@ -1,4 +1,4 @@
-import React, { CSSProperties, useState, useRef, useEffect, useCallback } from "react";
+import React, { CSSProperties, useContext, useState, useRef, useEffect, useCallback } from "react";
 import Button from 'mods/components/common/button';
 import Checkbox from 'mods/components/common/checkbox';
 import { TextInput } from 'mods/components/common/TextInput';
@@ -21,7 +21,6 @@ import {
 	callSetMainPanelState,
 	callCopyPhasesToJunction,
 	callUpdateMemberPattern,
-	callSetTspPropagationEnabled,
 	edgeInfo
 } from '../../../../../bindings';
 import MainPanelRange from 'mods/components/main-panel/items/range';
@@ -32,6 +31,8 @@ import GroupItem from "../GroupItemComponent/group-item";
 import { MainPanelItemButton, MainPanelItemTitle } from "mods/general";
 import Title from "mods/components/main-panel/items/title";
 import TitleDim from "mods/components/main-panel/items/title-dim";
+import { LocaleContext } from 'mods/context';
+import { getString } from 'mods/localisations';
 import { Entity } from "cs2/bindings";
 import { FocusDisabled } from "cs2/input";
 
@@ -538,6 +539,7 @@ const MemberSignalEditor = ({
 };
 
 export default function TrafficGroupsMainPanel(props: { items: MainPanelItem[] }) {
+	const locale = useContext(LocaleContext);
 	const groups = props.items.filter(item => item.itemType === "trafficGroup") as MainPanelItemTrafficGroup[];
 	const currentGroup = groups.find(g => g.isCurrentJunctionInGroup);
 	
@@ -750,18 +752,15 @@ export default function TrafficGroupsMainPanel(props: { items: MainPanelItem[] }
 									<Checkbox isChecked={displayedGroup.greenWaveEnabled} />
 									<div className={styles.dimLabel}>Enable Green Wave</div>
 								</Row>
-								<Row hoverEffect={true} className={styles.hover} data={{
-									itemType: "checkbox",
-									type: "",
-									isChecked: displayedGroup.tspPropagationEnabled,
-									key: "TspPropagationEnabled",
-									value: "0",
-									label: "",
-									engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetTspPropagationEnabled"
-								}}>
-									<Checkbox isChecked={displayedGroup.tspPropagationEnabled} />
-									<div className={styles.dimLabel}>Allow Coordinated TSP</div>
+								<Row
+									hoverEffect={false}
+									className={styles.hover}
+									style={{ opacity: 0.5, cursor: "default" }}
+								>
+									<Checkbox isChecked={false} />
+									<div className={styles.dimLabel}>{getString(locale, "AllowCoordinatedTsp")}</div>
 								</Row>
+								<div className={styles.infoText}>{getString(locale, "TspUnavailableForTrafficGroup")}</div>
 
 							{displayedGroup.greenWaveEnabled && (
 								<>

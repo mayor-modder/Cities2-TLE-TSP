@@ -67,7 +67,13 @@ export default function Content(props: { items: MainPanelItem[], addMemberData?:
                     }
                     if (item.itemType == "checkbox") {
                         return (
-                            <Row key={idx} data={item} hoverEffect={true}>
+                            <Row
+                                key={idx}
+                                data={item}
+                                hoverEffect={!item.disabled}
+                                disableEngineCall={item.disabled}
+                                style={item.disabled ? { opacity: 0.5, cursor: "default" } : undefined}
+                            >
                                 <Checkbox {...item} />
                                 <div className={styles.contentLabel}>{getString(locale, item.label)}</div>
                             </Row>
