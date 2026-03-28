@@ -454,7 +454,7 @@ public partial class UISystem
                 menu.items.Add(default(UITypes.ItemDivider));
             }
             menu.items.Add(new UITypes.ItemButton{label = "TrafficGroups", key = "state", value = $"{(int)MainPanelState.TrafficGroups}", engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetMainPanelState"});
-            if (isGroupMember)
+            if (isGroupedIntersection)
             {
                 menu.items.Add(new UITypes.ItemButton{label = "Exit", key = "exit", value = "1", engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelExit"});
             }
