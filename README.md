@@ -14,7 +14,7 @@
 
 ## What This Fork Changes
 
-- Adds Transit Signal Priority settings, runtime request handling, and coordinated-group propagation on top of upstream TLE.
+- Adds Transit Signal Priority settings and runtime request handling on top of upstream TLE. This branch slice only keeps TSP active on standalone intersections.
 - Adds extracted pure TSP logic under `TrafficLightsEnhancement.Logic` with xUnit coverage in `TrafficLightsEnhancement.Tests`.
 - Adds a small UI cleanup by switching the main panel to a shared floating-button component and covering that behavior with a Node regression test.
 - Keeps the upstream TLE signal modes, custom phases, traffic groups, and green-wave systems as the base that TSP builds on. This README does not try to fully re-document those inherited features.
@@ -26,15 +26,14 @@
 - TSP is stored per junction in a dedicated serialized `TransitSignalPrioritySettings` component and defaults to off.
 - The current junction UI exposes `Enable Transit Signal Priority`, `Allow Tram and Track Requests`, and `Allow Bus Lane Requests`.
 - When a junction belongs to a traffic group, the junction UI also exposes `Propagate Requests to Coordinated Group`.
-- Traffic groups expose a separate `Allow Coordinated TSP` setting. Group propagation only occurs when the group setting and the per-junction propagation setting are both enabled.
+- In this branch slice, the traffic-group panel shows coordinated TSP as unavailable.
 - Transit Signal Priority is only available on standalone intersections.
-- Intersections that are part of a traffic group keep their saved TSP settings, but TSP stays inactive until they are removed from the traffic group.
+- Intersections that are part of a traffic group keep their saved TSP settings, but TSP stays inactive while grouped.
 - The runtime generates local TSP requests from eligible track lanes and public-only car lanes. In practice, the current bus/public-transit path is the public-only car-lane path.
 - Requests are mapped onto the junction's existing signal groups. This fork does not create a separate TSP-only phase plan or a second corridor editor.
 - Custom-phase junctions can either keep the current phase briefly when it already serves the request or bias the next-phase choice toward a phase that does.
 - Non-custom / built-in signal patterns also have an explicit signal-group override path for TSP; the request is not limited to the custom-phase branch.
 - Coordinated traffic groups can forward TSP requests from follower junctions to the leader when propagation is enabled.
-- When multiple follower requests exist, the group system chooses the strongest active request.
 - The serialized TSP settings include a request horizon and a maximum green extension. The current code defaults them to `120` ticks and `45` ticks respectively.
 
 ### How it works
@@ -48,7 +47,7 @@
 
 ### Known limits and uncertainty
 
-- We have verified the code paths for local request generation, custom-phase selection, built-in signal-group override, and coordinated-group propagation in this repository. We have not yet completed a full in-game validation matrix across every junction geometry, traffic pattern, and save state.
+- We have verified the code paths for local request generation, custom-phase selection, and built-in signal-group override in this repository. We have not yet completed a full in-game validation matrix across every junction geometry, traffic pattern, and save state, and this README should not be read as claiming coordinated/grouped TSP is active in this slice.
 - The current UI exposes on/off and source-selection toggles, but it does not expose tuning controls for the internal request-horizon and max-extension values.
 - The inherited [GUIDE.md](GUIDE.md) still describes the upstream TLE modes and workflow, but it does not fully document the TSP additions in this fork.
 - The older upstream README claimed compatibility with a specific game version and referenced specific release and translation workflows. We have not re-validated those claims for this fork, so we are not repeating them here.
