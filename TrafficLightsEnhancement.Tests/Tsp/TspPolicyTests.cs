@@ -34,6 +34,13 @@ public class TspPolicyTests
     }
 
     [Fact]
+    public void Default_disabled_settings_do_not_force_mod_state_creation()
+    {
+        TransitSignalPrioritySettings settings = new();
+        Assert.False(TspPolicy.HasPersistedUserValue(settings));
+    }
+
+    [Fact]
     public void Enabled_tsp_settings_require_persistence()
     {
         var settings = new TransitSignalPrioritySettings { m_Enabled = true };

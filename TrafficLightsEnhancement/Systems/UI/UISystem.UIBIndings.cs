@@ -897,6 +897,11 @@ public partial class UISystem
                 EntityManager.AddComponentData(m_SelectedEntity, settings);
             }
 
+            if (!EntityManager.HasComponent<CustomTrafficLights>(m_SelectedEntity))
+            {
+                EntityManager.AddComponentData(m_SelectedEntity, new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla));
+            }
+
             UpdateEntity();
             m_MainPanelBinding.Update();
             return;
