@@ -30,11 +30,6 @@ public static class TspPolicy
             return new TspAvailability(false, TspAvailabilityReason.Disabled);
         }
 
-        if (isGroupedIntersection)
-        {
-            return new TspAvailability(false, TspAvailabilityReason.GroupedIntersection);
-        }
-
         return new TspAvailability(true, TspAvailabilityReason.None);
     }
 

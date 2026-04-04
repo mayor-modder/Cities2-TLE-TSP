@@ -6,14 +6,14 @@ namespace TrafficLightsEnhancement.Tests.Tsp;
 public class TspPolicyTests
 {
     [Fact]
-    public void Grouped_intersection_is_not_runtime_eligible_even_when_tsp_is_enabled()
+    public void Grouped_intersection_is_runtime_eligible_when_tsp_is_enabled()
     {
         var availability = TspPolicy.GetAvailability(
             settings: new TransitSignalPrioritySettings { m_Enabled = true },
             isGroupedIntersection: true);
 
-        Assert.False(availability.IsRuntimeEligible);
-        Assert.Equal(TspAvailabilityReason.GroupedIntersection, availability.Reason);
+        Assert.True(availability.IsRuntimeEligible);
+        Assert.Equal(TspAvailabilityReason.None, availability.Reason);
     }
 
     [Fact]
@@ -58,6 +58,6 @@ public class TspPolicyTests
         var availability = TspPolicy.GetAvailability(settings, isGroupedIntersection: true);
 
         Assert.True(TspPolicy.HasPersistedUserValue(settings));
-        Assert.False(availability.IsRuntimeEligible);
+        Assert.True(availability.IsRuntimeEligible);
     }
 }
