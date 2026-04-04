@@ -235,6 +235,23 @@ public partial class TrafficGroupSystem : GameSystemBase
 		members.Dispose();
 	}
 
+	private void RefreshGroupTspState(Entity groupEntity)
+	{
+		if (groupEntity == Entity.Null || !EntityManager.HasComponent<TrafficGroup>(groupEntity))
+		{
+			return;
+		}
+
+		var group = EntityManager.GetComponentData<TrafficGroup>(groupEntity);
+		if (!group.m_IsCoordinated || !group.m_TspPropagationEnabled)
+		{
+			RemoveGroupTspState(groupEntity);
+			return;
+		}
+
+		UpdateGroupTspState(groupEntity);
+	}
+
 	private readonly struct GroupedTspRuntimeMember
 	{
 		public GroupedTspRuntimeMember(
@@ -390,6 +407,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 			var leaderLights = EntityManager.GetComponentData<TrafficLights>(leaderEntity);
 			PropagateLeaderPhaseChange(groupEntity, leaderLights.m_CurrentSignalGroup, leaderLights.m_State);
 		}
+		RefreshGroupTspState(groupEntity);
 		return true;
 	}
 
@@ -421,6 +439,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 		}
 
 		ReindexGroupMembers(groupEntity);
+		RefreshGroupTspState(groupEntity);
 
 		return true;
 	}
@@ -2601,7 +2620,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 		int memberCount = GetGroupMemberCount(groupEntity);
 		if (memberCount == 0)
 		{
-			
+			RemoveGroupTspState(groupEntity);
 			EntityManager.DestroyEntity(groupEntity);
 			return;
 		}
@@ -2615,6 +2634,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 		
 		ReindexGroupMembers(groupEntity);
+		RefreshGroupTspState(groupEntity);
 	}
 
 	
