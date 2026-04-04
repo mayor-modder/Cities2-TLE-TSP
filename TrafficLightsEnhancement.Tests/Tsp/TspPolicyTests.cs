@@ -34,6 +34,15 @@ public class TspPolicyTests
     }
 
     [Fact]
+    public void Disabled_tsp_settings_are_not_runtime_eligible()
+    {
+        var availability = TspPolicy.GetAvailability(new TransitSignalPrioritySettings(), isGroupedIntersection: false);
+
+        Assert.False(availability.IsRuntimeEligible);
+        Assert.Equal(TspAvailabilityReason.Disabled, availability.Reason);
+    }
+
+    [Fact]
     public void Disabled_settings_with_custom_request_behavior_require_persistence()
     {
         var settings = new TransitSignalPrioritySettings

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 namespace TrafficLightsEnhancement.Logic.Tsp;
 
@@ -88,6 +87,8 @@ public readonly struct GroupedTspAssignment
 
 public static class GroupedTspPropagation
 {
+    // Contract: members must already be ordered from upstream to downstream.
+    // DistanceFromPrevious is interpreted relative to the caller-provided sequence.
     public static IReadOnlyList<GroupedTspAssignment> BuildAssignments(
         IReadOnlyList<GroupedTspMember> members,
         IReadOnlyList<GroupedTspCandidate> candidates,
@@ -98,15 +99,14 @@ public static class GroupedTspPropagation
             return new List<GroupedTspAssignment>();
         }
 
-        var orderedMembers = members.OrderBy(member => member.MemberIndex).ToArray();
         var assignmentsByMember = new Dictionary<int, GroupedTspAssignment>();
 
         foreach (var candidate in candidates)
         {
             int originPosition = -1;
-            for (int i = 0; i < orderedMembers.Length; i++)
+            for (int i = 0; i < members.Count; i++)
             {
-                if (orderedMembers[i].MemberIndex == candidate.OriginMemberIndex)
+                if (members[i].MemberIndex == candidate.OriginMemberIndex)
                 {
                     originPosition = i;
                     break;
@@ -119,16 +119,16 @@ public static class GroupedTspPropagation
             }
 
             float cumulativeDistance = 0f;
-            for (int i = originPosition + 1; i < orderedMembers.Length; i++)
+            for (int i = originPosition + 1; i < members.Count; i++)
             {
-                cumulativeDistance += orderedMembers[i].DistanceFromPrevious;
+                cumulativeDistance += members[i].DistanceFromPrevious;
                 if (cumulativeDistance > maxPropagationDistance)
                 {
                     break;
                 }
 
                 var assignment = new GroupedTspAssignment(
-                    memberIndex: orderedMembers[i].MemberIndex,
+                    memberIndex: members[i].MemberIndex,
                     originMemberIndex: candidate.OriginMemberIndex,
                     targetSignalGroup: candidate.TargetSignalGroup,
                     source: candidate.Source,
@@ -149,7 +149,16 @@ public static class GroupedTspPropagation
             }
         }
 
-        return assignmentsByMember.Values.OrderBy(assignment => assignment.MemberIndex).ToArray();
+        var assignments = new List<GroupedTspAssignment>(assignmentsByMember.Count);
+        for (int i = 0; i < members.Count; i++)
+        {
+            if (assignmentsByMember.TryGetValue(members[i].MemberIndex, out var assignment))
+            {
+                assignments.Add(assignment);
+            }
+        }
+
+        return assignments;
     }
 
     private static int CompareRequests(GroupedTspAssignment left, GroupedTspAssignment right)

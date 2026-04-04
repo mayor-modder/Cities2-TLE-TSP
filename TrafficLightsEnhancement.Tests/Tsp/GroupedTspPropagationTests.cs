@@ -56,6 +56,42 @@ public class GroupedTspPropagationTests
     }
 
     [Fact]
+    public void Build_assignments_respect_the_caller_provided_member_order()
+    {
+        var members = new[]
+        {
+            new GroupedTspMember(memberIndex: 10, distanceFromPrevious: 0f),
+            new GroupedTspMember(memberIndex: 5, distanceFromPrevious: 40f),
+            new GroupedTspMember(memberIndex: 20, distanceFromPrevious: 30f),
+        };
+
+        var candidates = new[]
+        {
+            new GroupedTspCandidate(
+                originMemberIndex: 10,
+                targetSignalGroup: 7,
+                source: TspSource.Track,
+                strength: 1f,
+                expiryTimer: 12,
+                extendCurrentPhase: true),
+        };
+
+        var assignments = GroupedTspPropagation.BuildAssignments(members, candidates, maxPropagationDistance: 70f);
+
+        Assert.Collection(assignments,
+            assignment =>
+            {
+                Assert.Equal(5, assignment.MemberIndex);
+                Assert.Equal(40f, assignment.DistanceFromOrigin);
+            },
+            assignment =>
+            {
+                Assert.Equal(20, assignment.MemberIndex);
+                Assert.Equal(70f, assignment.DistanceFromOrigin);
+            });
+    }
+
+    [Fact]
     public void Build_assignments_never_reach_upstream_members()
     {
         var members = new[]
