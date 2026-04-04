@@ -753,14 +753,25 @@ export default function TrafficGroupsMainPanel(props: { items: MainPanelItem[] }
 									<div className={styles.dimLabel}>Enable Green Wave</div>
 								</Row>
 								<Row
-									hoverEffect={false}
+									hoverEffect={true}
 									className={styles.hover}
-									style={{ opacity: 0.5, cursor: "default" }}
+									data={{
+										itemType: "checkbox",
+										type: "",
+										isChecked: displayedGroup.tspPropagationEnabled,
+										key: "GroupTspPropagationEnabled",
+										value: displayedGroup.tspPropagationEnabled ? "1" : "0",
+										label: "",
+										groupIndex: displayedGroup.groupIndex,
+										groupVersion: displayedGroup.groupVersion,
+										enabled: !displayedGroup.tspPropagationEnabled,
+										engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetTspPropagationEnabled"
+									} as any}
 								>
-									<Checkbox isChecked={false} />
+									<Checkbox isChecked={displayedGroup.tspPropagationEnabled} />
 									<div className={styles.dimLabel}>{getString(locale, "AllowCoordinatedTsp")}</div>
 								</Row>
-								<div className={styles.infoText}>{getString(locale, "TspUnavailableForTrafficGroup")}</div>
+								<div className={styles.infoText}>{getString(locale, "PropagateTransitRequestsToGroupHelp")}</div>
 
 							{displayedGroup.greenWaveEnabled && (
 								<>
