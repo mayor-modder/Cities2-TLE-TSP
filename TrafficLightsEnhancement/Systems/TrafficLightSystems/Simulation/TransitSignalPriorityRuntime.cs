@@ -23,7 +23,6 @@ public static class TransitSignalPriorityRuntime
             return false;
         }
 
-        bool isGroupedIntersection = job.m_ExtraTypeHandle.m_TrafficGroupMember.HasComponent(junctionEntity);
         var availability = TspPolicy.GetAvailability(
             new global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings
             {
@@ -34,7 +33,7 @@ public static class TransitSignalPriorityRuntime
                 m_RequestHorizonTicks = settings.m_RequestHorizonTicks,
                 m_MaxGreenExtensionTicks = settings.m_MaxGreenExtensionTicks,
             },
-            isGroupedIntersection);
+            isGroupedIntersection: false);
 
         if (!availability.IsRuntimeEligible)
         {
@@ -178,7 +177,7 @@ public static class TransitSignalPriorityRuntime
         };
     }
 
-    public static bool TryGetCoordinatedGroupRequest(
+    public static bool TryGetGroupedPropagatedRequest(
         PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
         Entity junctionEntity,
         TrafficLights trafficLights,
@@ -186,47 +185,40 @@ public static class TransitSignalPriorityRuntime
     {
         request = default;
 
-        if (job.m_ExtraTypeHandle.m_TrafficGroupMember.HasComponent(junctionEntity))
+        if (!job.m_ExtraTypeHandle.m_GroupedTransitSignalPriorityRequest.TryGetComponent(junctionEntity, out var groupedRequest))
         {
             return false;
         }
 
-        if (!job.m_ExtraTypeHandle.m_TrafficGroupMember.TryGetComponent(junctionEntity, out var member))
-        {
-            return false;
-        }
-
-        if (!member.m_IsGroupLeader || member.m_GroupEntity == Entity.Null)
-        {
-            return false;
-        }
-
-        if (!job.m_ExtraTypeHandle.m_TrafficGroup.TryGetComponent(member.m_GroupEntity, out var group) || !group.m_IsCoordinated)
-        {
-            return false;
-        }
-
-        if (!job.m_ExtraTypeHandle.m_TrafficGroupTspState.TryGetComponent(member.m_GroupEntity, out var groupState))
-        {
-            return false;
-        }
-
-        if (groupState.m_TargetSignalGroup == 0 || groupState.m_Strength <= 0f)
+        if (groupedRequest.m_TargetSignalGroup == 0 || groupedRequest.m_Strength <= 0f)
         {
             return false;
         }
 
         request = new TransitSignalPriorityRequest
         {
-            m_TargetSignalGroup = groupState.m_TargetSignalGroup,
-            m_SourceType = groupState.m_SourceType,
-            m_Strength = groupState.m_Strength,
-            m_ExpiryTimer = groupState.m_ExpiryTimer,
-            m_ExtendCurrentPhase = groupState.m_ExtendCurrentPhase
+            m_TargetSignalGroup = groupedRequest.m_TargetSignalGroup,
+            m_SourceType = groupedRequest.m_SourceType,
+            m_Strength = groupedRequest.m_Strength,
+            m_ExpiryTimer = groupedRequest.m_ExpiryTimer,
+            m_ExtendCurrentPhase = groupedRequest.m_ExtendCurrentPhase
                 && trafficLights.m_CurrentSignalGroup > 0
-                && trafficLights.m_CurrentSignalGroup == groupState.m_TargetSignalGroup,
+                && trafficLights.m_CurrentSignalGroup == groupedRequest.m_TargetSignalGroup,
         };
         return true;
+    }
+
+    public static TransitSignalPriorityRequest SelectPreferredRequest(
+        TransitSignalPriorityRequest activeRequest,
+        TransitSignalPriorityRequest candidateRequest,
+        bool preferActiveOnTie)
+    {
+        if (candidateRequest.m_Strength > activeRequest.m_Strength)
+        {
+            return candidateRequest;
+        }
+
+        return preferActiveOnTie ? activeRequest : candidateRequest;
     }
 
     private static bool IsPublicOnlyCarLane(PatchedTrafficLightSystem.UpdateTrafficLightsJob job, Entity subLaneEntity)

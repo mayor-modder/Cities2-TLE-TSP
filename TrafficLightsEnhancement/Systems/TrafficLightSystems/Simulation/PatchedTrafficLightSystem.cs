@@ -141,7 +141,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 CustomTrafficLights customTrafficLights = i < customTrafficLightsArray.Length ? customTrafficLightsArray[i] : new CustomTrafficLights();
                 Entity currentEntity = nativeArray[i];
                 bool hasTspRequest = false;
-                bool tspRequestFromCoordinatedGroup = false;
+                TransitSignalPriorityRequestOrigin tspRequestOrigin = TransitSignalPriorityRequestOrigin.Local;
                 TransitSignalPriorityRequest activeTspRequest = default;
                 C2VM.TrafficLightsEnhancement.Components.TransitSignalPrioritySettings activeTspSettings = new();
 
@@ -164,13 +164,31 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     m_CommandBuffer.RemoveComponent<TransitSignalPriorityRequest>(unfilteredChunkIndex, currentEntity);
                 }
 
-                if (TspRuntime.TryGetCoordinatedGroupRequest(this, currentEntity, trafficLights, out var groupTspRequest)
-                    && (!hasTspRequest
-                        || groupTspRequest.m_Strength > activeTspRequest.m_Strength))
+                if (TspRuntime.TryGetGroupedPropagatedRequest(this, currentEntity, trafficLights, out var groupedTspRequest))
                 {
-                    hasTspRequest = true;
-                    activeTspRequest = groupTspRequest;
-                    tspRequestFromCoordinatedGroup = true;
+                    if (!hasTspRequest)
+                    {
+                        hasTspRequest = true;
+                        activeTspRequest = groupedTspRequest;
+                        tspRequestOrigin = TransitSignalPriorityRequestOrigin.GroupedPropagation;
+                    }
+                    else
+                    {
+                        TransitSignalPriorityRequest preferredRequest = TspRuntime.SelectPreferredRequest(
+                            activeTspRequest,
+                            groupedTspRequest,
+                            preferActiveOnTie: true);
+
+                        if (preferredRequest.m_TargetSignalGroup != activeTspRequest.m_TargetSignalGroup
+                            || preferredRequest.m_SourceType != activeTspRequest.m_SourceType
+                            || preferredRequest.m_Strength != activeTspRequest.m_Strength
+                            || preferredRequest.m_ExpiryTimer != activeTspRequest.m_ExpiryTimer
+                            || preferredRequest.m_ExtendCurrentPhase != activeTspRequest.m_ExtendCurrentPhase)
+                        {
+                            activeTspRequest = preferredRequest;
+                            tspRequestOrigin = TransitSignalPriorityRequestOrigin.GroupedPropagation;
+                        }
+                    }
                 }
 
                 if ((customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase) && i < customPhaseDataBufferAccessor.Length && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0)
@@ -211,7 +229,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                                     : (byte)0,
                                 m_SourceType = activeTspRequest.m_SourceType,
                                 m_Reason = (byte)tspSelection.Reason,
-                                m_FromCoordinatedGroup = tspRequestFromCoordinatedGroup,
+                                m_RequestOrigin = (byte)tspRequestOrigin,
                             };
 
                             if (m_ExtraTypeHandle.m_TransitSignalPriorityDecisionTrace.HasComponent(currentEntity))
@@ -253,7 +271,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                             trafficLights,
                             activeTspRequest,
                             tspSelection,
-                            tspRequestFromCoordinatedGroup);
+                            tspRequestOrigin);
                     }
 
                     if (trafficLightStateUpdated)
@@ -334,7 +352,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             TrafficLights trafficLights,
             TransitSignalPriorityRequest activeTspRequest,
             TspOverrideSelection tspSelection,
-            bool tspRequestFromCoordinatedGroup)
+            TransitSignalPriorityRequestOrigin tspRequestOrigin)
         {
             var trace = new TransitSignalPriorityDecisionTrace
             {
@@ -347,7 +365,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     : (byte)0,
                 m_SourceType = activeTspRequest.m_SourceType,
                 m_Reason = (byte)tspSelection.Reason,
-                m_FromCoordinatedGroup = tspRequestFromCoordinatedGroup,
+                m_RequestOrigin = (byte)tspRequestOrigin,
             };
 
             if (m_ExtraTypeHandle.m_TransitSignalPriorityDecisionTrace.HasComponent(currentEntity))

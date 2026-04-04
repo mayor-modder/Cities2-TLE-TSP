@@ -88,6 +88,45 @@ public class TspDecisionEngineTests
     }
 
     [Fact]
+    public void Grouped_enabled_intersection_is_runtime_eligible_for_local_request()
+    {
+        var availability = TspPolicy.GetAvailability(
+            settings: new TransitSignalPrioritySettings { m_Enabled = true },
+            isGroupedIntersection: true);
+
+        Assert.True(availability.IsRuntimeEligible);
+        Assert.Equal(TspAvailabilityReason.None, availability.Reason);
+    }
+
+    [Fact]
+    public void Stronger_grouped_request_overrides_weaker_local_request()
+    {
+        var selected = TspDecisionEngine.CombineRequests(new[]
+        {
+            new TspRequest(TspSource.PublicCar, 0.5f, extensionEligible: false),
+            new TspRequest(TspSource.Track, 1f, extensionEligible: true),
+        });
+
+        Assert.Equal(TspSource.Track, selected.Source);
+        Assert.Equal(1f, selected.Strength);
+        Assert.True(selected.ExtensionEligible);
+    }
+
+    [Fact]
+    public void Equal_strength_grouped_request_keeps_existing_local_request()
+    {
+        var selected = TspDecisionEngine.CombineRequests(new[]
+        {
+            new TspRequest(TspSource.PublicCar, 1f, extensionEligible: false),
+            new TspRequest(TspSource.Track, 1f, extensionEligible: true),
+        });
+
+        Assert.Equal(TspSource.PublicCar, selected.Source);
+        Assert.Equal(1f, selected.Strength);
+        Assert.False(selected.ExtensionEligible);
+    }
+
+    [Fact]
     public void Override_selection_reports_target_phase_when_request_changes_choice()
     {
         var overrideSelection = TspOverrideEngine.ApplyRequestOverride(
