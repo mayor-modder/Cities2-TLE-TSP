@@ -29,6 +29,82 @@ public class TspEarlyDetectionTests
     }
 
     [Fact]
+    public void Tram_detection_requires_being_close_to_the_end_of_the_upstream_lane()
+    {
+        bool triggered = EarlyApproachDetection.IsEligibleTramApproachState(
+            frontMatchesApproachLane: false,
+            frontMatchesUpstreamLane: true,
+            frontCurvePosition: 0.6f,
+            rearMatchesApproachLane: false,
+            rearMatchesUpstreamLane: false,
+            rearCurvePosition: 0f,
+            isVehicleMoving: true,
+            approachLaneThreshold: 0.2f,
+            upstreamLaneThreshold: 0.9f);
+
+        Assert.False(triggered);
+    }
+
+    [Fact]
+    public void Tram_detection_can_trigger_early_on_the_actual_approach_lane()
+    {
+        bool triggered = EarlyApproachDetection.IsEligibleTramApproachState(
+            frontMatchesApproachLane: true,
+            frontMatchesUpstreamLane: false,
+            frontCurvePosition: 0.25f,
+            rearMatchesApproachLane: false,
+            rearMatchesUpstreamLane: false,
+            rearCurvePosition: 0f,
+            isVehicleMoving: true,
+            approachLaneThreshold: 0.2f,
+            upstreamLaneThreshold: 0.9f);
+
+        Assert.True(triggered);
+    }
+
+    [Fact]
+    public void Indexed_track_detection_prefers_approach_lane_before_upstream_lane()
+    {
+        var match = EarlyApproachDetection.EvaluateIndexedTrackTramSamples(
+            hasApproachSample: true,
+            approachCurvePosition: 0.35f,
+            hasUpstreamSample: true,
+            upstreamCurvePosition: 0.95f,
+            approachLaneThreshold: 0.2f,
+            upstreamLaneThreshold: 0.9f);
+
+        Assert.Equal(IndexedTrackProbeMatch.MatchOnApproachLane, match);
+    }
+
+    [Fact]
+    public void Indexed_track_detection_reports_below_threshold_when_samples_exist_but_are_too_early()
+    {
+        var match = EarlyApproachDetection.EvaluateIndexedTrackTramSamples(
+            hasApproachSample: true,
+            approachCurvePosition: 0.1f,
+            hasUpstreamSample: true,
+            upstreamCurvePosition: 0.6f,
+            approachLaneThreshold: 0.2f,
+            upstreamLaneThreshold: 0.9f);
+
+        Assert.Equal(IndexedTrackProbeMatch.BelowThreshold, match);
+    }
+
+    [Fact]
+    public void Indexed_track_detection_reports_no_samples_when_index_is_empty()
+    {
+        var match = EarlyApproachDetection.EvaluateIndexedTrackTramSamples(
+            hasApproachSample: false,
+            approachCurvePosition: 0f,
+            hasUpstreamSample: false,
+            upstreamCurvePosition: 0f,
+            approachLaneThreshold: 0.2f,
+            upstreamLaneThreshold: 0.9f);
+
+        Assert.Equal(IndexedTrackProbeMatch.NoTramSamples, match);
+    }
+
+    [Fact]
     public void Moving_vehicle_without_stop_suppression_triggers_early_detection()
     {
         bool triggered = EarlyApproachDetection.IsMovingEligibleApproachState(
