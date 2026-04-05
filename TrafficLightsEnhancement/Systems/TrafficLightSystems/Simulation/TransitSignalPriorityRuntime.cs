@@ -30,6 +30,9 @@ public static class TransitSignalPriorityRuntime
         public LaneSignal LaneSignal;
         public byte TargetSignalGroup;
         public TransitSignalPriorityApproachLaneRole ApproachLaneRole;
+        public TransitSignalPriorityTrackProbeResult TrackSignaledLaneProbe;
+        public TransitSignalPriorityTrackProbeResult TrackApproachLaneProbe;
+        public TransitSignalPriorityTrackProbeResult TrackUpstreamLaneProbe;
     }
 
     private readonly struct TrackProbeSnapshot
@@ -221,16 +224,6 @@ public static class TransitSignalPriorityRuntime
                 earlyRequest = detectedEarlyRequest;
             }
 
-            if (isTramTrackLane
-                && debugInfo.TrackSignaledLaneProbe == TransitSignalPriorityTrackProbeResult.None
-                && debugInfo.TrackApproachLaneProbe == TransitSignalPriorityTrackProbeResult.None
-                && debugInfo.TrackUpstreamLaneProbe == TransitSignalPriorityTrackProbeResult.None)
-            {
-                debugInfo.TrackSignaledLaneProbe = trackSignaledLaneProbe;
-                debugInfo.TrackApproachLaneProbe = trackApproachLaneProbe;
-                debugInfo.TrackUpstreamLaneProbe = trackUpstreamLaneProbe;
-            }
-
             TspRequest? petitionerRequest = null;
             if (TryBuildPetitionerRequestForLane(laneSignal, logicRequest, out var detectedPetitionerRequest))
             {
@@ -259,6 +252,9 @@ public static class TransitSignalPriorityRuntime
                     LaneSignal = laneSignal,
                     TargetSignalGroup = targetSignalGroup,
                     ApproachLaneRole = detectedLaneRole,
+                    TrackSignaledLaneProbe = trackSignaledLaneProbe,
+                    TrackApproachLaneProbe = trackApproachLaneProbe,
+                    TrackUpstreamLaneProbe = trackUpstreamLaneProbe,
                 };
             }
 
@@ -297,9 +293,6 @@ public static class TransitSignalPriorityRuntime
             trafficLights.m_CurrentSignalGroup,
             selectedCandidate.Value.TargetSignalGroup,
             selectedCandidate.Value.LaneSignal);
-        TransitSignalPriorityTrackProbeResult preservedTrackSignaledLaneProbe = debugInfo.TrackSignaledLaneProbe;
-        TransitSignalPriorityTrackProbeResult preservedTrackApproachLaneProbe = debugInfo.TrackApproachLaneProbe;
-        TransitSignalPriorityTrackProbeResult preservedTrackUpstreamLaneProbe = debugInfo.TrackUpstreamLaneProbe;
 
         debugInfo = new FreshRequestDebugInfo
         {
@@ -311,9 +304,15 @@ public static class TransitSignalPriorityRuntime
                 : TransitSignalPriorityApproachLaneRole.None,
             HasEarlyCandidate = scanState.EarlyRequest.HasValue,
             HasPetitionerCandidate = scanState.PetitionerRequest.HasValue,
-            TrackSignaledLaneProbe = preservedTrackSignaledLaneProbe,
-            TrackApproachLaneProbe = preservedTrackApproachLaneProbe,
-            TrackUpstreamLaneProbe = preservedTrackUpstreamLaneProbe,
+            TrackSignaledLaneProbe = scanState.EarlyRequest.HasValue
+                ? selectedCandidate.Value.TrackSignaledLaneProbe
+                : TransitSignalPriorityTrackProbeResult.None,
+            TrackApproachLaneProbe = scanState.EarlyRequest.HasValue
+                ? selectedCandidate.Value.TrackApproachLaneProbe
+                : TransitSignalPriorityTrackProbeResult.None,
+            TrackUpstreamLaneProbe = scanState.EarlyRequest.HasValue
+                ? selectedCandidate.Value.TrackUpstreamLaneProbe
+                : TransitSignalPriorityTrackProbeResult.None,
         };
         return true;
     }
