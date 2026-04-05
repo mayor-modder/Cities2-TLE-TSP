@@ -17,10 +17,10 @@ internal static class TramApproachIndex
         ExtraTypeHandle extraTypeHandle,
         Allocator allocator)
     {
-        int capacity = math.max(1, railTransitQuery.CalculateEntityCount() * 2);
+        using NativeArray<Entity> railTransitEntities = railTransitQuery.ToEntityArray(Allocator.Temp);
+        int capacity = math.max(1, railTransitEntities.Length * 2);
         var index = new NativeParallelHashMap<Entity, float>(capacity, allocator);
 
-        using NativeArray<Entity> railTransitEntities = railTransitQuery.ToEntityArray(Allocator.Temp);
         for (int i = 0; i < railTransitEntities.Length; i++)
         {
             Entity vehicleEntity = railTransitEntities[i];
