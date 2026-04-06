@@ -17,52 +17,6 @@ public class TspEarlyDetectionTests
     }
 
     [Fact]
-    public void Tram_detection_matches_immediate_upstream_lane()
-    {
-        bool matched = EarlyApproachDetection.IsEligibleTramApproachLane(
-            currentLane: 10,
-            approachLane: 20,
-            upstreamLane: 10,
-            nullLane: 0);
-
-        Assert.True(matched);
-    }
-
-    [Fact]
-    public void Tram_detection_requires_being_close_to_the_end_of_the_upstream_lane()
-    {
-        bool triggered = EarlyApproachDetection.IsEligibleTramApproachState(
-            frontMatchesApproachLane: false,
-            frontMatchesUpstreamLane: true,
-            frontCurvePosition: 0.6f,
-            rearMatchesApproachLane: false,
-            rearMatchesUpstreamLane: false,
-            rearCurvePosition: 0f,
-            isVehicleMoving: true,
-            approachLaneThreshold: 0.2f,
-            upstreamLaneThreshold: 0.9f);
-
-        Assert.False(triggered);
-    }
-
-    [Fact]
-    public void Tram_detection_can_trigger_early_on_the_actual_approach_lane()
-    {
-        bool triggered = EarlyApproachDetection.IsEligibleTramApproachState(
-            frontMatchesApproachLane: true,
-            frontMatchesUpstreamLane: false,
-            frontCurvePosition: 0.25f,
-            rearMatchesApproachLane: false,
-            rearMatchesUpstreamLane: false,
-            rearCurvePosition: 0f,
-            isVehicleMoving: true,
-            approachLaneThreshold: 0.2f,
-            upstreamLaneThreshold: 0.9f);
-
-        Assert.True(triggered);
-    }
-
-    [Fact]
     public void Indexed_track_detection_prefers_approach_lane_before_upstream_lane()
     {
         var match = EarlyApproachDetection.EvaluateIndexedTrackTramSamples(

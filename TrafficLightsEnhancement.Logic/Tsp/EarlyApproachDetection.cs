@@ -91,58 +91,6 @@ public static class EarlyApproachDetection
             && !isSuppressed;
     }
 
-    public static bool IsEligibleTramApproachLane<TEntity>(
-        TEntity currentLane,
-        TEntity approachLane,
-        TEntity upstreamLane,
-        TEntity nullLane)
-        where TEntity : struct, IEquatable<TEntity>
-    {
-        return currentLane.Equals(approachLane)
-            || (!upstreamLane.Equals(nullLane) && currentLane.Equals(upstreamLane));
-    }
-
-    public static bool IsEligibleTramApproachState(
-        bool frontMatchesApproachLane,
-        bool frontMatchesUpstreamLane,
-        float frontCurvePosition,
-        bool rearMatchesApproachLane,
-        bool rearMatchesUpstreamLane,
-        float rearCurvePosition,
-        bool isVehicleMoving,
-        float approachLaneThreshold,
-        float upstreamLaneThreshold)
-    {
-        if (!isVehicleMoving)
-        {
-            return false;
-        }
-
-        return HasReachedEligibleTramApproachThreshold(
-                frontMatchesApproachLane,
-                frontMatchesUpstreamLane,
-                frontCurvePosition,
-                approachLaneThreshold,
-                upstreamLaneThreshold)
-            || HasReachedEligibleTramApproachThreshold(
-                rearMatchesApproachLane,
-                rearMatchesUpstreamLane,
-                rearCurvePosition,
-                approachLaneThreshold,
-                upstreamLaneThreshold);
-    }
-
-    public static bool HasReachedEligibleTramApproachThreshold(
-        bool matchesApproachLane,
-        bool matchesUpstreamLane,
-        float curvePosition,
-        float approachLaneThreshold,
-        float upstreamLaneThreshold)
-    {
-        return (matchesApproachLane && curvePosition >= approachLaneThreshold)
-            || (matchesUpstreamLane && curvePosition >= upstreamLaneThreshold);
-    }
-
     public static IndexedTrackProbeMatch EvaluateIndexedTrackTramSamples(
         bool hasApproachSample,
         float approachCurvePosition,
@@ -171,6 +119,7 @@ public static class EarlyApproachDetection
 
     public static bool ShouldEvaluateRoadTransitEarlyDetection(bool isPublicCarLane)
     {
+        // Road transit early detection is intentionally disabled in this tram-only slice.
         return false;
     }
 
