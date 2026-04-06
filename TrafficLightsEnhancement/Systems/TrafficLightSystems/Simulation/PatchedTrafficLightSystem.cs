@@ -10,6 +10,7 @@ using Game.Net;
 using Game.Objects;
 using Game.Prefabs;
 using Game.Tools;
+using Game.Vehicles;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
@@ -101,6 +102,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         [NativeDisableParallelForRestriction]
         public ComponentLookup<PointOfInterest> m_PointOfInterestData;
 
+        [ReadOnly]
+        public NativeParallelHashMap<Entity, float>.ReadOnly m_TramApproachIndex;
+
         public EntityCommandBuffer.ParallelWriter m_CommandBuffer;
 
         public ExtraTypeHandle m_ExtraTypeHandle;
@@ -143,12 +147,16 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 bool hasTspRequest = false;
                 TransitSignalPriorityRequestOrigin tspRequestOrigin = TransitSignalPriorityRequestOrigin.Local;
                 TransitSignalPriorityRequest activeTspRequest = default;
+                TransitSignalPriorityRuntimeDebugInfo localTspDebugInfo = default;
+                bool hasLocalTspDebugInfo = false;
                 C2VM.TrafficLightsEnhancement.Components.TransitSignalPrioritySettings activeTspSettings = new();
 
-                if (TspRuntime.TryResolveActiveLocalRequest(this, currentEntity, subLanes, trafficLights, out var tspRequest, out var tspSettings))
+                if (TspRuntime.TryResolveActiveLocalRequest(this, currentEntity, subLanes, trafficLights, out var tspRequest, out var tspSettings, out var resolvedLocalDebugInfo))
                 {
                     hasTspRequest = true;
                     activeTspRequest = tspRequest;
+                    localTspDebugInfo = resolvedLocalDebugInfo;
+                    hasLocalTspDebugInfo = true;
                     activeTspSettings = tspSettings;
                     if (m_ExtraTypeHandle.m_TransitSignalPriorityRequest.HasComponent(currentEntity))
                     {
@@ -194,6 +202,50 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                             tspRequestOrigin = TransitSignalPriorityRequestOrigin.GroupedPropagation;
                         }
                     }
+                }
+
+                TransitSignalPriorityRuntimeDebugInfo activeTspDebugInfo = default;
+                bool hasActiveTspDebugInfo = false;
+                if (hasTspRequest)
+                {
+                    if (tspRequestOrigin == TransitSignalPriorityRequestOrigin.GroupedPropagation)
+                    {
+                        activeTspDebugInfo = new TransitSignalPriorityRuntimeDebugInfo
+                        {
+                            m_RequestKind = (byte)TransitSignalPriorityRequestKind.GroupedPropagation,
+                            m_ApproachLaneRole = (byte)TransitSignalPriorityApproachLaneRole.None,
+                            m_SourceType = activeTspRequest.m_SourceType,
+                            m_TargetSignalGroup = activeTspRequest.m_TargetSignalGroup,
+                            m_Strength = activeTspRequest.m_Strength,
+                            m_ExpiryTimer = activeTspRequest.m_ExpiryTimer,
+                            m_ExtendCurrentPhase = activeTspRequest.m_ExtendCurrentPhase,
+                            m_HasEarlyCandidate = false,
+                            m_HasPetitionerCandidate = false,
+                            m_HadExistingRequest = false,
+                        };
+                        hasActiveTspDebugInfo = true;
+                    }
+                    else if (hasLocalTspDebugInfo)
+                    {
+                        activeTspDebugInfo = localTspDebugInfo;
+                        hasActiveTspDebugInfo = true;
+                    }
+                }
+
+                if (hasActiveTspDebugInfo)
+                {
+                    if (m_ExtraTypeHandle.m_TransitSignalPriorityRuntimeDebugInfo.HasComponent(currentEntity))
+                    {
+                        m_CommandBuffer.SetComponent(unfilteredChunkIndex, currentEntity, activeTspDebugInfo);
+                    }
+                    else
+                    {
+                        m_CommandBuffer.AddComponent(unfilteredChunkIndex, currentEntity, activeTspDebugInfo);
+                    }
+                }
+                else if (m_ExtraTypeHandle.m_TransitSignalPriorityRuntimeDebugInfo.HasComponent(currentEntity))
+                {
+                    m_CommandBuffer.RemoveComponent<TransitSignalPriorityRuntimeDebugInfo>(unfilteredChunkIndex, currentEntity);
                 }
 
                 if ((customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase) && i < customPhaseDataBufferAccessor.Length && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0)
@@ -1081,6 +1133,8 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
     private EntityQuery m_TrafficLightQuery;
 
+    private EntityQuery m_RailTransitQuery;
+
     private TypeHandle __TypeHandle;
 
     private ExtraTypeHandle m_ExtraTypeHandle;
@@ -1100,6 +1154,13 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         m_EndFrameBarrier = base.World.GetOrCreateSystemManaged<EndFrameBarrier>();
         m_TimeSystem = base.World.GetOrCreateSystemManaged<TimeSystem>();
         m_TrafficLightQuery = GetEntityQuery(ComponentType.ReadWrite<TrafficLights>(), ComponentType.ReadOnly<UpdateFrame>(), ComponentType.Exclude<Deleted>(), ComponentType.Exclude<Destroyed>(), ComponentType.Exclude<Temp>());
+        m_RailTransitQuery = GetEntityQuery(
+            ComponentType.ReadOnly<Game.Vehicles.PublicTransport>(),
+            ComponentType.ReadOnly<TrainNavigation>(),
+            ComponentType.ReadOnly<TrainCurrentLane>(),
+            ComponentType.Exclude<Deleted>(),
+            ComponentType.Exclude<Destroyed>(),
+            ComponentType.Exclude<Temp>());
         RequireForUpdate(m_TrafficLightQuery);
     }
 
@@ -1108,6 +1169,11 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
     {
         m_TrafficLightQuery.ResetFilter();
         m_TrafficLightQuery.SetSharedComponentFilter(new UpdateFrame(SimulationUtils.GetUpdateFrameWithInterval(m_SimulationSystem.frameIndex, (uint)GetUpdateInterval(SystemUpdatePhase.GameSimulation), 16)));
+        var updatedExtraTypeHandle = m_ExtraTypeHandle.Update(ref base.CheckedStateRef);
+        var tramApproachIndex = TramApproachIndex.Build(
+            m_RailTransitQuery,
+            updatedExtraTypeHandle,
+            Allocator.TempJob);
         JobHandle dependency = JobChunkExtensions.ScheduleParallel(new UpdateTrafficLightsJob
         {
             m_EntityType = InternalCompilerInterface.GetEntityTypeHandle(ref __TypeHandle.__Unity_Entities_Entity_TypeHandle, ref base.CheckedStateRef),
@@ -1133,11 +1199,12 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             m_LaneSignalData = InternalCompilerInterface.GetComponentLookup(ref __TypeHandle.__Game_Net_LaneSignal_RW_ComponentLookup, ref base.CheckedStateRef),
             m_TrafficLightData = InternalCompilerInterface.GetComponentLookup(ref __TypeHandle.__Game_Objects_TrafficLight_RW_ComponentLookup, ref base.CheckedStateRef),
             m_PointOfInterestData = InternalCompilerInterface.GetComponentLookup(ref __TypeHandle.__Game_Common_PointOfInterest_RW_ComponentLookup, ref base.CheckedStateRef),
+            m_TramApproachIndex = tramApproachIndex.AsReadOnly(),
             m_CommandBuffer = m_EndFrameBarrier.CreateCommandBuffer().AsParallelWriter(),
-            m_ExtraTypeHandle = m_ExtraTypeHandle.Update(ref base.CheckedStateRef),
+            m_ExtraTypeHandle = updatedExtraTypeHandle,
             m_ExtraData = new ExtraData(this)
         }, m_TrafficLightQuery, base.Dependency);
-        base.Dependency = dependency;
+        base.Dependency = tramApproachIndex.Dispose(dependency);
         m_EndFrameBarrier.AddJobHandleForProducer(base.Dependency);
     }
 

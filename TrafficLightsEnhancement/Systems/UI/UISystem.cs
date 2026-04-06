@@ -299,7 +299,7 @@ public partial class UISystem: ExtendedUISystemBase
             m_AllowTrackRequests = settings.m_AllowTrackRequests,
             m_AllowPublicCarRequests = settings.m_AllowPublicCarRequests,
             m_AllowGroupPropagation = settings.m_AllowGroupPropagation,
-            m_RequestHorizonTicks = settings.m_RequestHorizonTicks,
+            m_RequestHorizonTicks = global::TrafficLightsEnhancement.Logic.Tsp.TspPolicy.GetEffectiveRequestHorizonTicks(settings.m_RequestHorizonTicks),
             m_MaxGreenExtensionTicks = settings.m_MaxGreenExtensionTicks,
         };
     }

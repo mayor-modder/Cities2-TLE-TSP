@@ -2,6 +2,9 @@ namespace TrafficLightsEnhancement.Logic.Tsp;
 
 public struct TransitSignalPrioritySettings
 {
+    public const ushort DefaultRequestHorizonTicks = 10;
+    public const ushort LegacyDefaultRequestHorizonTicks = 120;
+
     public bool m_Enabled;
     public bool m_AllowTrackRequests;
     public bool m_AllowPublicCarRequests;
@@ -15,7 +18,7 @@ public struct TransitSignalPrioritySettings
         m_AllowTrackRequests = true;
         m_AllowPublicCarRequests = true;
         m_AllowGroupPropagation = true;
-        m_RequestHorizonTicks = 120;
+        m_RequestHorizonTicks = DefaultRequestHorizonTicks;
         m_MaxGreenExtensionTicks = 45;
     }
 }

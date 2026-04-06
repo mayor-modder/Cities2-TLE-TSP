@@ -82,6 +82,8 @@ public struct ExtraTypeHandle
 
     public ComponentLookup<TransitSignalPriorityRequest> m_TransitSignalPriorityRequest;
 
+    public ComponentLookup<TransitSignalPriorityRuntimeDebugInfo> m_TransitSignalPriorityRuntimeDebugInfo;
+
     [ReadOnly]
     public ComponentLookup<GroupedTransitSignalPriorityRequest> m_GroupedTransitSignalPriorityRequest;
 
@@ -127,6 +129,7 @@ public struct ExtraTypeHandle
         m_CustomTrafficLightsLookup = state.GetComponentLookup<CustomTrafficLights>(isReadOnly: true);
         m_TransitSignalPrioritySettings = state.GetComponentLookup<TransitSignalPrioritySettings>(isReadOnly: false);
         m_TransitSignalPriorityRequest = state.GetComponentLookup<TransitSignalPriorityRequest>(isReadOnly: false);
+        m_TransitSignalPriorityRuntimeDebugInfo = state.GetComponentLookup<TransitSignalPriorityRuntimeDebugInfo>(isReadOnly: false);
         m_GroupedTransitSignalPriorityRequest = state.GetComponentLookup<GroupedTransitSignalPriorityRequest>(isReadOnly: true);
         m_TransitSignalPrioritySettingsLookup = state.GetComponentLookup<TransitSignalPrioritySettings>(isReadOnly: true);
         m_TrafficGroupTspState = state.GetComponentLookup<TrafficGroupTspState>(isReadOnly: true);
@@ -162,6 +165,7 @@ public struct ExtraTypeHandle
         m_CustomTrafficLightsLookup.Update(ref state);
         m_TransitSignalPrioritySettings.Update(ref state);
         m_TransitSignalPriorityRequest.Update(ref state);
+        m_TransitSignalPriorityRuntimeDebugInfo.Update(ref state);
         m_GroupedTransitSignalPriorityRequest.Update(ref state);
         m_TransitSignalPrioritySettingsLookup.Update(ref state);
         m_TrafficGroupTspState.Update(ref state);

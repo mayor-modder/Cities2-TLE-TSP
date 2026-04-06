@@ -3,27 +3,55 @@ using Game.Net;
 using Game.Prefabs;
 using Game.Vehicles;
 using TrafficLightsEnhancement.Logic.Tsp;
+using Unity.Collections;
 using Unity.Entities;
 using NetCarLaneFlags = Game.Net.CarLaneFlags;
 using NetSubLane = Game.Net.SubLane;
-using VehicleCarLaneFlags = Game.Vehicles.CarLaneFlags;
 
 namespace C2VM.TrafficLightsEnhancement.Systems.TrafficLightSystems.Simulation;
 
 public static class TransitSignalPriorityRuntime
 {
+    private struct FreshRequestDebugInfo
+    {
+        public TransitSignalPriorityRequestKind RequestKind;
+        public TransitSignalPriorityApproachLaneRole ApproachLaneRole;
+        public bool HasEarlyCandidate;
+        public bool HasPetitionerCandidate;
+        public TransitSignalPriorityTrackProbeResult TrackSignaledLaneProbe;
+        public TransitSignalPriorityTrackProbeResult TrackApproachLaneProbe;
+        public TransitSignalPriorityTrackProbeResult TrackUpstreamLaneProbe;
+    }
+
     private struct TransitApproachCandidate
     {
         public TspRequest Request;
         public LaneSignal LaneSignal;
         public byte TargetSignalGroup;
+        public TransitSignalPriorityApproachLaneRole ApproachLaneRole;
+        public TransitSignalPriorityTrackProbeResult TrackSignaledLaneProbe;
+        public TransitSignalPriorityTrackProbeResult TrackApproachLaneProbe;
+        public TransitSignalPriorityTrackProbeResult TrackUpstreamLaneProbe;
     }
 
-    private const float MovingTrainSpeedThreshold = 0.5f;
-    private const float BusApproachCurveThreshold = 0.35f;
-    private const VehicleCarLaneFlags BusStoppedLaneFlags =
-        VehicleCarLaneFlags.IsBlocked
-        | VehicleCarLaneFlags.EndReached;
+    private readonly struct TrackProbeSnapshot
+    {
+        public TrackProbeSnapshot(bool hasSample, float curvePosition, TransitSignalPriorityTrackProbeResult result)
+        {
+            HasSample = hasSample;
+            CurvePosition = curvePosition;
+            Result = result;
+        }
+
+        public bool HasSample { get; }
+
+        public float CurvePosition { get; }
+
+        public TransitSignalPriorityTrackProbeResult Result { get; }
+    }
+
+    private const float TramApproachLaneCurveThreshold = 0.2f;
+    private const float TramUpstreamLaneCurveThreshold = 0.9f;
 
     public static bool TryResolveActiveLocalRequest(
         PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
@@ -31,15 +59,19 @@ public static class TransitSignalPriorityRuntime
         DynamicBuffer<NetSubLane> subLanes,
         TrafficLights trafficLights,
         out TransitSignalPriorityRequest request,
-        out Components.TransitSignalPrioritySettings settings)
+        out Components.TransitSignalPrioritySettings settings,
+        out TransitSignalPriorityRuntimeDebugInfo debugInfo)
     {
         request = default;
         settings = default;
+        debugInfo = default;
 
         if (!job.m_ExtraTypeHandle.m_TransitSignalPrioritySettingsLookup.TryGetComponent(junctionEntity, out settings) || !settings.m_Enabled)
         {
             return false;
         }
+
+        ushort effectiveRequestHorizonTicks = TspPolicy.GetEffectiveRequestHorizonTicks(settings.m_RequestHorizonTicks);
 
         var availability = TspPolicy.GetAvailability(
             new global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings
@@ -48,7 +80,7 @@ public static class TransitSignalPriorityRuntime
                 m_AllowTrackRequests = settings.m_AllowTrackRequests,
                 m_AllowPublicCarRequests = settings.m_AllowPublicCarRequests,
                 m_AllowGroupPropagation = settings.m_AllowGroupPropagation,
-                m_RequestHorizonTicks = settings.m_RequestHorizonTicks,
+                m_RequestHorizonTicks = effectiveRequestHorizonTicks,
                 m_MaxGreenExtensionTicks = settings.m_MaxGreenExtensionTicks,
             },
             isGroupedIntersection: false);
@@ -59,7 +91,8 @@ public static class TransitSignalPriorityRuntime
         }
 
         TransitSignalPriorityRequest freshRequest = default;
-        bool hasFreshRequest = TryBuildFreshRequest(job, subLanes, trafficLights, settings, out freshRequest);
+        FreshRequestDebugInfo freshDebugInfo = default;
+        bool hasFreshRequest = TryBuildFreshRequest(job, subLanes, trafficLights, settings, effectiveRequestHorizonTicks, out freshRequest, out freshDebugInfo);
 
         TransitSignalPriorityRequest priorRequest = default;
         bool hasExistingRequest = job.m_ExtraTypeHandle.m_TransitSignalPriorityRequest.TryGetComponent(junctionEntity, out priorRequest)
@@ -72,7 +105,7 @@ public static class TransitSignalPriorityRuntime
         if (!TspPreemptionPolicy.TryRefreshOrLatchRequest(
                 freshSignalRequest,
                 existingRequest,
-                settings.m_RequestHorizonTicks,
+                effectiveRequestHorizonTicks,
                 trafficLights.m_CurrentSignalGroup,
                 out var activeRequest))
         {
@@ -80,6 +113,22 @@ public static class TransitSignalPriorityRuntime
         }
 
         request = FromSignalRequest(activeRequest);
+        debugInfo = new TransitSignalPriorityRuntimeDebugInfo
+        {
+            m_RequestKind = (byte)(hasFreshRequest ? freshDebugInfo.RequestKind : TransitSignalPriorityRequestKind.LatchedExisting),
+            m_ApproachLaneRole = (byte)(hasFreshRequest ? freshDebugInfo.ApproachLaneRole : TransitSignalPriorityApproachLaneRole.None),
+            m_SourceType = request.m_SourceType,
+            m_TargetSignalGroup = request.m_TargetSignalGroup,
+            m_Strength = request.m_Strength,
+            m_ExpiryTimer = request.m_ExpiryTimer,
+            m_ExtendCurrentPhase = request.m_ExtendCurrentPhase,
+            m_HasEarlyCandidate = freshDebugInfo.HasEarlyCandidate,
+            m_HasPetitionerCandidate = freshDebugInfo.HasPetitionerCandidate,
+            m_HadExistingRequest = hasExistingRequest,
+            m_TrackSignaledLaneProbe = (byte)freshDebugInfo.TrackSignaledLaneProbe,
+            m_TrackApproachLaneProbe = (byte)freshDebugInfo.TrackApproachLaneProbe,
+            m_TrackUpstreamLaneProbe = (byte)freshDebugInfo.TrackUpstreamLaneProbe,
+        };
         return true;
     }
 
@@ -111,9 +160,12 @@ public static class TransitSignalPriorityRuntime
         DynamicBuffer<NetSubLane> subLanes,
         TrafficLights trafficLights,
         Components.TransitSignalPrioritySettings settings,
-        out TransitSignalPriorityRequest request)
+        ushort effectiveRequestHorizonTicks,
+        out TransitSignalPriorityRequest request,
+        out FreshRequestDebugInfo debugInfo)
     {
         request = default;
+        debugInfo = default;
 
         var logicSettings = new global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings
         {
@@ -121,7 +173,7 @@ public static class TransitSignalPriorityRuntime
             m_AllowTrackRequests = settings.m_AllowTrackRequests,
             m_AllowPublicCarRequests = settings.m_AllowPublicCarRequests,
             m_AllowGroupPropagation = settings.m_AllowGroupPropagation,
-            m_RequestHorizonTicks = settings.m_RequestHorizonTicks,
+            m_RequestHorizonTicks = effectiveRequestHorizonTicks,
             m_MaxGreenExtensionTicks = settings.m_MaxGreenExtensionTicks,
         };
 
@@ -153,11 +205,16 @@ public static class TransitSignalPriorityRuntime
             TspRequest? earlyRequest = null;
             if (TryBuildEarlyApproachRequestForLane(
                     job,
+                    subLaneEntity,
                     approachLaneEntity,
                     isTramTrackLane,
                     isPublicCarLane,
                     logicRequest,
-                    out var detectedEarlyRequest))
+                    out var detectedEarlyRequest,
+                    out var detectedLaneRole,
+                    out var trackSignaledLaneProbe,
+                    out var trackApproachLaneProbe,
+                    out var trackUpstreamLaneProbe))
             {
                 earlyRequest = detectedEarlyRequest;
             }
@@ -189,6 +246,10 @@ public static class TransitSignalPriorityRuntime
                     Request = earlyRequest.Value,
                     LaneSignal = laneSignal,
                     TargetSignalGroup = targetSignalGroup,
+                    ApproachLaneRole = detectedLaneRole,
+                    TrackSignaledLaneProbe = trackSignaledLaneProbe,
+                    TrackApproachLaneProbe = trackApproachLaneProbe,
+                    TrackUpstreamLaneProbe = trackUpstreamLaneProbe,
                 };
             }
 
@@ -199,6 +260,9 @@ public static class TransitSignalPriorityRuntime
                     Request = petitionerRequest.Value,
                     LaneSignal = laneSignal,
                     TargetSignalGroup = targetSignalGroup,
+                    TrackSignaledLaneProbe = trackSignaledLaneProbe,
+                    TrackApproachLaneProbe = trackApproachLaneProbe,
+                    TrackUpstreamLaneProbe = trackUpstreamLaneProbe,
                 };
             }
         }
@@ -221,12 +285,33 @@ public static class TransitSignalPriorityRuntime
             return false;
         }
 
+        IndexedTrackProbeDiagnostics reportedTrackProbeDiagnostics = EarlyApproachDetection.SelectReportedTrackProbeDiagnostics(
+            selectedEarlyRequest: scanState.EarlyRequest.HasValue,
+            earlyDiagnostics: ToIndexedTrackProbeDiagnostics(earlyCandidate),
+            selectedPetitionerRequest: !scanState.EarlyRequest.HasValue && scanState.PetitionerRequest.HasValue,
+            petitionerDiagnostics: ToIndexedTrackProbeDiagnostics(petitionerCandidate));
+
         request = CreateRequest(
             selectedCandidate.Value.Request,
-            settings.m_RequestHorizonTicks,
+            effectiveRequestHorizonTicks,
             trafficLights.m_CurrentSignalGroup,
             selectedCandidate.Value.TargetSignalGroup,
             selectedCandidate.Value.LaneSignal);
+
+        debugInfo = new FreshRequestDebugInfo
+        {
+            RequestKind = scanState.EarlyRequest.HasValue
+                ? TransitSignalPriorityRequestKind.FreshEarly
+                : TransitSignalPriorityRequestKind.FreshPetitioner,
+            ApproachLaneRole = scanState.EarlyRequest.HasValue
+                ? selectedCandidate.Value.ApproachLaneRole
+                : TransitSignalPriorityApproachLaneRole.None,
+            HasEarlyCandidate = scanState.EarlyRequest.HasValue,
+            HasPetitionerCandidate = scanState.PetitionerRequest.HasValue,
+            TrackSignaledLaneProbe = ToTrackProbeResult(reportedTrackProbeDiagnostics.SignaledLane),
+            TrackApproachLaneProbe = ToTrackProbeResult(reportedTrackProbeDiagnostics.ApproachLane),
+            TrackUpstreamLaneProbe = ToTrackProbeResult(reportedTrackProbeDiagnostics.UpstreamLane),
+        };
         return true;
     }
 
@@ -245,39 +330,40 @@ public static class TransitSignalPriorityRuntime
 
     private static bool TryBuildEarlyApproachRequestForLane(
         PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
+        Entity signaledLaneEntity,
         Entity approachLaneEntity,
         bool isTramTrackLane,
         bool isPublicCarLane,
         TspRequest laneRequest,
-        out TspRequest request)
+        out TspRequest request,
+        out TransitSignalPriorityApproachLaneRole laneRole,
+        out TransitSignalPriorityTrackProbeResult trackSignaledLaneProbe,
+        out TransitSignalPriorityTrackProbeResult trackApproachLaneProbe,
+        out TransitSignalPriorityTrackProbeResult trackUpstreamLaneProbe)
     {
         request = default;
+        laneRole = TransitSignalPriorityApproachLaneRole.None;
+        trackSignaledLaneProbe = TransitSignalPriorityTrackProbeResult.None;
+        trackApproachLaneProbe = TransitSignalPriorityTrackProbeResult.None;
+        trackUpstreamLaneProbe = TransitSignalPriorityTrackProbeResult.None;
 
         if (isTramTrackLane)
         {
-            return TryBuildEarlyApproachRequestForTrackLane(job, approachLaneEntity, laneRequest, out request);
+            return TryBuildEarlyApproachRequestForTrackLane(
+                job,
+                signaledLaneEntity,
+                approachLaneEntity,
+                laneRequest,
+                out request,
+                out laneRole,
+                out trackSignaledLaneProbe,
+                out trackApproachLaneProbe,
+                out trackUpstreamLaneProbe);
         }
 
-        if (!job.m_LaneObjects.TryGetBuffer(approachLaneEntity, out var laneObjects) || laneObjects.Length == 0)
+        if (!EarlyApproachDetection.ShouldEvaluateRoadTransitEarlyDetection(isPublicCarLane))
         {
             return false;
-        }
-
-        for (int i = 0; i < laneObjects.Length; i++)
-        {
-            if (TryGetMovingTransitApproachRequest(
-                    job,
-                    approachLaneEntity,
-                    approachLaneEntity,
-                    Entity.Null,
-                    laneObjects[i],
-                    isTramTrackLane: false,
-                    isPublicCarLane,
-                    laneRequest,
-                    out request))
-            {
-                return true;
-            }
         }
 
         return false;
@@ -291,42 +377,6 @@ public static class TransitSignalPriorityRuntime
         request = default;
 
         if (laneSignal.m_Petitioner == Entity.Null)
-        {
-            return false;
-        }
-
-        request = laneRequest;
-        return true;
-    }
-
-    private static bool TryGetMovingTransitApproachRequest(
-        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
-        Entity scanLaneEntity,
-        Entity approachLaneEntity,
-        Entity upstreamLaneEntity,
-        LaneObject laneObject,
-        bool isTramTrackLane,
-        bool isPublicCarLane,
-        TspRequest laneRequest,
-        out TspRequest request)
-    {
-        request = default;
-
-        Entity vehicleEntity = laneObject.m_LaneObject;
-        if (!job.m_ExtraTypeHandle.m_PublicTransport.TryGetComponent(vehicleEntity, out var publicTransport))
-        {
-            return false;
-        }
-
-        TransitApproachSuppressionFlags suppressionFlags = GetSuppressionFlags(publicTransport.m_State);
-        bool isVehicleMoving = isTramTrackLane
-            ? IsMovingTrackVehicle(job, vehicleEntity, approachLaneEntity, upstreamLaneEntity)
-            : isPublicCarLane && IsMovingPublicTransportRoadVehicle(job, vehicleEntity, scanLaneEntity, laneObject, suppressionFlags);
-
-        if (!EarlyApproachDetection.IsMovingEligibleApproachState(
-                isEligibleLane: isTramTrackLane || isPublicCarLane,
-                isVehicleMoving,
-                suppressionFlags))
         {
             return false;
         }
@@ -355,90 +405,96 @@ public static class TransitSignalPriorityRuntime
         return (trackLaneData.m_TrackTypes & TrackTypes.Tram) != 0;
     }
 
-    private static bool IsMovingTrackVehicle(
-        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
-        Entity vehicleEntity,
-        Entity approachLaneEntity,
-        Entity upstreamLaneEntity)
-    {
-        return job.m_ExtraTypeHandle.m_TrainCurrentLane.TryGetComponent(vehicleEntity, out var trainCurrentLane)
-            && job.m_ExtraTypeHandle.m_TrainNavigation.TryGetComponent(vehicleEntity, out var trainNavigation)
-            && (EarlyApproachDetection.IsEligibleTramApproachLane(
-                    trainCurrentLane.m_Front.m_Lane,
-                    approachLaneEntity,
-                    upstreamLaneEntity,
-                    Entity.Null)
-                || EarlyApproachDetection.IsEligibleTramApproachLane(
-                    trainCurrentLane.m_Rear.m_Lane,
-                    approachLaneEntity,
-                    upstreamLaneEntity,
-                    Entity.Null))
-            && trainNavigation.m_Speed > MovingTrainSpeedThreshold;
-    }
-
     private static bool TryBuildEarlyApproachRequestForTrackLane(
         PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
+        Entity signaledLaneEntity,
         Entity approachLaneEntity,
         TspRequest laneRequest,
-        out TspRequest request)
+        out TspRequest request,
+        out TransitSignalPriorityApproachLaneRole laneRole,
+        out TransitSignalPriorityTrackProbeResult signaledLaneProbe,
+        out TransitSignalPriorityTrackProbeResult approachLaneProbe,
+        out TransitSignalPriorityTrackProbeResult upstreamLaneProbe)
     {
         request = default;
+        laneRole = TransitSignalPriorityApproachLaneRole.None;
+        signaledLaneProbe = TransitSignalPriorityTrackProbeResult.None;
+        approachLaneProbe = TransitSignalPriorityTrackProbeResult.None;
+        upstreamLaneProbe = TransitSignalPriorityTrackProbeResult.None;
+        TrackProbeSnapshot signaledProbe = ProbeIndexedTrackLane(
+            job.m_TramApproachIndex,
+            signaledLaneEntity,
+            TramApproachLaneCurveThreshold,
+            isUpstreamLane: false);
+        signaledLaneProbe = signaledProbe.Result;
 
-        if (TryBuildEarlyApproachRequestFromTrackLane(
-                job,
-                scanLaneEntity: approachLaneEntity,
+        TrackProbeSnapshot approachProbe = signaledLaneEntity == approachLaneEntity
+            ? signaledProbe
+            : ProbeIndexedTrackLane(
+                job.m_TramApproachIndex,
                 approachLaneEntity,
-                upstreamLaneEntity: Entity.Null,
-                laneRequest,
-                out request))
-        {
-            return true;
-        }
+                TramApproachLaneCurveThreshold,
+                isUpstreamLane: false);
+
+        approachLaneProbe = approachProbe.Result;
 
         Entity upstreamLaneEntity = TryResolveImmediateUpstreamTramLane(job, approachLaneEntity);
-        return upstreamLaneEntity != Entity.Null
-            && TryBuildEarlyApproachRequestFromTrackLane(
-                job,
-                scanLaneEntity: upstreamLaneEntity,
-                approachLaneEntity,
+        TrackProbeSnapshot upstreamProbe = upstreamLaneEntity == Entity.Null
+            ? default
+            : ProbeIndexedTrackLane(
+                job.m_TramApproachIndex,
                 upstreamLaneEntity,
-                laneRequest,
-                out request);
+                TramUpstreamLaneCurveThreshold,
+                isUpstreamLane: true);
+        upstreamLaneProbe = upstreamProbe.Result;
+
+        IndexedTrackProbeMatch indexedMatch = EarlyApproachDetection.EvaluateIndexedTrackTramSamples(
+            approachProbe.HasSample,
+            approachProbe.CurvePosition,
+            upstreamProbe.HasSample,
+            upstreamProbe.CurvePosition,
+            TramApproachLaneCurveThreshold,
+            TramUpstreamLaneCurveThreshold);
+
+        switch (indexedMatch)
+        {
+            case IndexedTrackProbeMatch.MatchOnApproachLane:
+                request = laneRequest;
+                laneRole = TransitSignalPriorityApproachLaneRole.ApproachLane;
+                return true;
+
+            case IndexedTrackProbeMatch.MatchOnUpstreamLane:
+                request = laneRequest;
+                laneRole = TransitSignalPriorityApproachLaneRole.UpstreamLane;
+                return true;
+
+            default:
+                return false;
+        }
     }
 
-    private static bool TryBuildEarlyApproachRequestFromTrackLane(
-        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
-        Entity scanLaneEntity,
-        Entity approachLaneEntity,
-        Entity upstreamLaneEntity,
-        TspRequest laneRequest,
-        out TspRequest request)
+    private static TrackProbeSnapshot ProbeIndexedTrackLane(
+        NativeParallelHashMap<Entity, float>.ReadOnly tramApproachIndex,
+        Entity laneEntity,
+        float threshold,
+        bool isUpstreamLane)
     {
-        request = default;
-
-        if (!job.m_LaneObjects.TryGetBuffer(scanLaneEntity, out var laneObjects) || laneObjects.Length == 0)
+        if (laneEntity == Entity.Null || !tramApproachIndex.TryGetValue(laneEntity, out float curvePosition))
         {
-            return false;
+            return new TrackProbeSnapshot(false, 0f, TransitSignalPriorityTrackProbeResult.NoTramSamples);
         }
 
-        for (int i = 0; i < laneObjects.Length; i++)
+        if (curvePosition < threshold)
         {
-            if (TryGetMovingTransitApproachRequest(
-                    job,
-                    scanLaneEntity,
-                    approachLaneEntity,
-                    upstreamLaneEntity,
-                    laneObjects[i],
-                    isTramTrackLane: true,
-                    isPublicCarLane: false,
-                    laneRequest,
-                    out request))
-            {
-                return true;
-            }
+            return new TrackProbeSnapshot(true, curvePosition, TransitSignalPriorityTrackProbeResult.BelowThreshold);
         }
 
-        return false;
+        return new TrackProbeSnapshot(
+            true,
+            curvePosition,
+            isUpstreamLane
+                ? TransitSignalPriorityTrackProbeResult.MatchOnUpstreamLane
+                : TransitSignalPriorityTrackProbeResult.MatchOnApproachLane);
     }
 
     private static Entity TryResolveImmediateUpstreamTramLane(
@@ -471,54 +527,22 @@ public static class TransitSignalPriorityRuntime
         return Entity.Null;
     }
 
-    private static bool IsMovingPublicTransportRoadVehicle(
-        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
-        Entity vehicleEntity,
-        Entity subLaneEntity,
-        LaneObject laneObject,
-        TransitApproachSuppressionFlags suppressionFlags)
+    private static IndexedTrackProbeDiagnostics ToIndexedTrackProbeDiagnostics(TransitApproachCandidate? candidate)
     {
-        if (!job.m_ExtraTypeHandle.m_CarCurrentLane.TryGetComponent(vehicleEntity, out var currentLane)
-            || currentLane.m_Lane != subLaneEntity
-            || (currentLane.m_LaneFlags & BusStoppedLaneFlags) != 0)
+        if (!candidate.HasValue)
         {
-            return false;
+            return default;
         }
 
-        float approachPosition = laneObject.m_CurvePosition.x;
-        if (currentLane.m_CurvePosition.x > approachPosition)
-        {
-            approachPosition = currentLane.m_CurvePosition.x;
-        }
-
-        return EarlyApproachDetection.IsEligibleRoadTransitApproachState(
-            isEligibleLane: true,
-            hasReachedApproachThreshold: approachPosition >= BusApproachCurveThreshold,
-            isBlocked: (currentLane.m_LaneFlags & VehicleCarLaneFlags.IsBlocked) != 0,
-            hasReachedLaneEnd: (currentLane.m_LaneFlags & VehicleCarLaneFlags.EndReached) != 0,
-            suppressionFlags: suppressionFlags);
+        return new IndexedTrackProbeDiagnostics(
+            (IndexedTrackProbeMatch)candidate.Value.TrackSignaledLaneProbe,
+            (IndexedTrackProbeMatch)candidate.Value.TrackApproachLaneProbe,
+            (IndexedTrackProbeMatch)candidate.Value.TrackUpstreamLaneProbe);
     }
 
-    private static TransitApproachSuppressionFlags GetSuppressionFlags(PublicTransportFlags state)
+    private static TransitSignalPriorityTrackProbeResult ToTrackProbeResult(IndexedTrackProbeMatch match)
     {
-        TransitApproachSuppressionFlags flags = TransitApproachSuppressionFlags.None;
-
-        if ((state & PublicTransportFlags.Boarding) != 0)
-        {
-            flags |= TransitApproachSuppressionFlags.Boarding;
-        }
-
-        if ((state & PublicTransportFlags.Arriving) != 0)
-        {
-            flags |= TransitApproachSuppressionFlags.Arriving;
-        }
-
-        if ((state & PublicTransportFlags.RequireStop) != 0)
-        {
-            flags |= TransitApproachSuppressionFlags.RequireStop;
-        }
-
-        return flags;
+        return (TransitSignalPriorityTrackProbeResult)match;
     }
 
     private static TransitSignalPriorityRequest CreateRequest(

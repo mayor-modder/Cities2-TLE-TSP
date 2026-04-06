@@ -63,18 +63,29 @@ public partial class TransitSignalPriorityDiagnosticsSystem : GameSystemBase
             }
 
             TransitSignalPriorityRequest request = EntityManager.GetComponentData<TransitSignalPriorityRequest>(entity);
+            TransitSignalPriorityRuntimeDebugInfo runtimeDebugInfo = EntityManager.HasComponent<TransitSignalPriorityRuntimeDebugInfo>(entity)
+                ? EntityManager.GetComponentData<TransitSignalPriorityRuntimeDebugInfo>(entity)
+                : default;
             bool requestChanged =
                 !previousState.m_HadRequest ||
                 previousState.m_TargetSignalGroup != request.m_TargetSignalGroup ||
                 previousState.m_SourceType != request.m_SourceType ||
                 previousState.m_Strength != request.m_Strength ||
-                previousState.m_ExtendCurrentPhase != request.m_ExtendCurrentPhase;
+                previousState.m_ExtendCurrentPhase != request.m_ExtendCurrentPhase ||
+                previousState.m_RequestKind != runtimeDebugInfo.m_RequestKind ||
+                previousState.m_ApproachLaneRole != runtimeDebugInfo.m_ApproachLaneRole ||
+                previousState.m_HasEarlyCandidate != runtimeDebugInfo.m_HasEarlyCandidate ||
+                previousState.m_HasPetitionerCandidate != runtimeDebugInfo.m_HasPetitionerCandidate ||
+                previousState.m_HadExistingRequest != runtimeDebugInfo.m_HadExistingRequest ||
+                previousState.m_TrackSignaledLaneProbe != runtimeDebugInfo.m_TrackSignaledLaneProbe ||
+                previousState.m_TrackApproachLaneProbe != runtimeDebugInfo.m_TrackApproachLaneProbe ||
+                previousState.m_TrackUpstreamLaneProbe != runtimeDebugInfo.m_TrackUpstreamLaneProbe;
 
             if (requestChanged)
             {
                 string action = previousState.m_HadRequest ? "updated" : "started";
                 m_Log.Info(
-                    $"[TSP] Junction {FormatEntity(entity)} request {action}: source={FormatSource(request.m_SourceType)} target={request.m_TargetSignalGroup} extend={request.m_ExtendCurrentPhase} strength={request.m_Strength:0.##}");
+                    $"[TSP] Junction {FormatEntity(entity)} request {action}: source={FormatSource(request.m_SourceType)} target={request.m_TargetSignalGroup} extend={request.m_ExtendCurrentPhase} strength={request.m_Strength:0.##} origin={FormatRequestKind(runtimeDebugInfo.m_RequestKind)} laneRole={FormatApproachLaneRole(runtimeDebugInfo.m_ApproachLaneRole)} earlyCandidate={runtimeDebugInfo.m_HasEarlyCandidate} petitionerCandidate={runtimeDebugInfo.m_HasPetitionerCandidate} hadExisting={runtimeDebugInfo.m_HadExistingRequest} trackSignalProbe={FormatTrackProbe(runtimeDebugInfo.m_TrackSignaledLaneProbe)} trackApproachProbe={FormatTrackProbe(runtimeDebugInfo.m_TrackApproachLaneProbe)} trackUpstreamProbe={FormatTrackProbe(runtimeDebugInfo.m_TrackUpstreamLaneProbe)} expiry={runtimeDebugInfo.m_ExpiryTimer}");
             }
 
             var nextState = new TransitSignalPriorityDebugState
@@ -84,6 +95,14 @@ public partial class TransitSignalPriorityDiagnosticsSystem : GameSystemBase
                 m_SourceType = request.m_SourceType,
                 m_Strength = request.m_Strength,
                 m_ExtendCurrentPhase = request.m_ExtendCurrentPhase,
+                m_RequestKind = runtimeDebugInfo.m_RequestKind,
+                m_ApproachLaneRole = runtimeDebugInfo.m_ApproachLaneRole,
+                m_HasEarlyCandidate = runtimeDebugInfo.m_HasEarlyCandidate,
+                m_HasPetitionerCandidate = runtimeDebugInfo.m_HasPetitionerCandidate,
+                m_HadExistingRequest = runtimeDebugInfo.m_HadExistingRequest,
+                m_TrackSignaledLaneProbe = runtimeDebugInfo.m_TrackSignaledLaneProbe,
+                m_TrackApproachLaneProbe = runtimeDebugInfo.m_TrackApproachLaneProbe,
+                m_TrackUpstreamLaneProbe = runtimeDebugInfo.m_TrackUpstreamLaneProbe,
             };
 
             if (hasDebugState)
@@ -215,6 +234,40 @@ public partial class TransitSignalPriorityDiagnosticsSystem : GameSystemBase
         {
             TransitSignalPriorityRequestOrigin.GroupedPropagation => "grouped-propagation",
             _ => "local",
+        };
+    }
+
+    private static string FormatRequestKind(byte requestKind)
+    {
+        return (TransitSignalPriorityRequestKind)requestKind switch
+        {
+            TransitSignalPriorityRequestKind.FreshEarly => "fresh-early",
+            TransitSignalPriorityRequestKind.FreshPetitioner => "fresh-petitioner",
+            TransitSignalPriorityRequestKind.LatchedExisting => "latched-existing",
+            TransitSignalPriorityRequestKind.GroupedPropagation => "grouped-propagation",
+            _ => "unknown",
+        };
+    }
+
+    private static string FormatApproachLaneRole(byte laneRole)
+    {
+        return (TransitSignalPriorityApproachLaneRole)laneRole switch
+        {
+            TransitSignalPriorityApproachLaneRole.ApproachLane => "approach",
+            TransitSignalPriorityApproachLaneRole.UpstreamLane => "upstream",
+            _ => "none",
+        };
+    }
+
+    private static string FormatTrackProbe(byte probe)
+    {
+        return (TransitSignalPriorityTrackProbeResult)probe switch
+        {
+            TransitSignalPriorityTrackProbeResult.NoTramSamples => "no-tram-samples",
+            TransitSignalPriorityTrackProbeResult.BelowThreshold => "below-threshold",
+            TransitSignalPriorityTrackProbeResult.MatchOnApproachLane => "match-approach",
+            TransitSignalPriorityTrackProbeResult.MatchOnUpstreamLane => "match-upstream",
+            _ => "none",
         };
     }
 

@@ -18,7 +18,7 @@ public struct TransitSignalPrioritySettings : IComponentData, ISerializable
         m_AllowTrackRequests = true;
         m_AllowPublicCarRequests = true;
         m_AllowGroupPropagation = true;
-        m_RequestHorizonTicks = 120;
+        m_RequestHorizonTicks = global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings.DefaultRequestHorizonTicks;
         m_MaxGreenExtensionTicks = 45;
     }
 
@@ -49,5 +49,7 @@ public struct TransitSignalPrioritySettings : IComponentData, ISerializable
         reader.Read(out m_AllowGroupPropagation);
         reader.Read(out m_RequestHorizonTicks);
         reader.Read(out m_MaxGreenExtensionTicks);
+
+        m_RequestHorizonTicks = global::TrafficLightsEnhancement.Logic.Tsp.TspPolicy.GetEffectiveRequestHorizonTicks(m_RequestHorizonTicks);
     }
 }

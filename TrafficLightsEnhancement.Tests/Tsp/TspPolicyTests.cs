@@ -70,4 +70,20 @@ public class TspPolicyTests
         Assert.True(availability.IsRuntimeEligible);
         Assert.Equal(TspAvailabilityReason.None, availability.Reason);
     }
+
+    [Fact]
+    public void Legacy_default_request_horizon_is_normalized_to_short_runtime_value()
+    {
+        Assert.Equal(
+            10,
+            TspPolicy.GetEffectiveRequestHorizonTicks(120));
+    }
+
+    [Fact]
+    public void Custom_request_horizon_is_preserved_when_not_using_legacy_default()
+    {
+        Assert.Equal(
+            8,
+            TspPolicy.GetEffectiveRequestHorizonTicks(8));
+    }
 }

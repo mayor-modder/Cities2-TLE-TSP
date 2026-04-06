@@ -307,6 +307,73 @@ public partial class UISystem
         return request.m_TargetSignalGroup > 0 && request.m_Strength > 0f;
     }
 
+    private string? GetTransitSignalPriorityDebugSource(Entity junctionEntity)
+    {
+        if (!EntityManager.TryGetComponent(junctionEntity, out TransitSignalPriorityRuntimeDebugInfo debugInfo)
+            || debugInfo.m_RequestKind == (byte)TransitSignalPriorityRequestKind.None)
+        {
+            return null;
+        }
+
+        string source = ((TransitSignalPriorityRequestKind)debugInfo.m_RequestKind) switch
+        {
+            TransitSignalPriorityRequestKind.FreshEarly => "Fresh early request",
+            TransitSignalPriorityRequestKind.FreshPetitioner => "Fresh petitioner request",
+            TransitSignalPriorityRequestKind.LatchedExisting => "Latched existing request",
+            TransitSignalPriorityRequestKind.GroupedPropagation => "Grouped propagation",
+            _ => "Unknown",
+        };
+
+        if ((TransitSignalPriorityRequestKind)debugInfo.m_RequestKind == TransitSignalPriorityRequestKind.FreshEarly)
+        {
+            source += ((TransitSignalPriorityApproachLaneRole)debugInfo.m_ApproachLaneRole) switch
+            {
+                TransitSignalPriorityApproachLaneRole.ApproachLane => " (approach lane)",
+                TransitSignalPriorityApproachLaneRole.UpstreamLane => " (upstream lane)",
+                _ => string.Empty,
+            };
+        }
+
+        return source;
+    }
+
+    private string? GetTransitSignalPriorityDebugState(Entity junctionEntity)
+    {
+        if (!EntityManager.TryGetComponent(junctionEntity, out TransitSignalPriorityRuntimeDebugInfo debugInfo)
+            || debugInfo.m_RequestKind == (byte)TransitSignalPriorityRequestKind.None)
+        {
+            return null;
+        }
+
+        string state = $"early={FormatDebugFlag(debugInfo.m_HasEarlyCandidate)}, petitioner={FormatDebugFlag(debugInfo.m_HasPetitionerCandidate)}, prior={FormatDebugFlag(debugInfo.m_HadExistingRequest)}, expiry={debugInfo.m_ExpiryTimer}, extend={FormatDebugFlag(debugInfo.m_ExtendCurrentPhase)}";
+
+        if (debugInfo.m_TrackSignaledLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.m_TrackApproachLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.m_TrackUpstreamLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None)
+        {
+            state += $", track[signal={FormatTrackProbe(debugInfo.m_TrackSignaledLaneProbe)}, approach={FormatTrackProbe(debugInfo.m_TrackApproachLaneProbe)}, upstream={FormatTrackProbe(debugInfo.m_TrackUpstreamLaneProbe)}]";
+        }
+
+        return state;
+    }
+
+    private static string FormatDebugFlag(bool value)
+    {
+        return value ? "yes" : "no";
+    }
+
+    private static string FormatTrackProbe(byte value)
+    {
+        return ((TransitSignalPriorityTrackProbeResult)value) switch
+        {
+            TransitSignalPriorityTrackProbeResult.NoTramSamples => "no-tram-samples",
+            TransitSignalPriorityTrackProbeResult.BelowThreshold => "below-threshold",
+            TransitSignalPriorityTrackProbeResult.MatchOnApproachLane => "match-approach",
+            TransitSignalPriorityTrackProbeResult.MatchOnUpstreamLane => "match-upstream",
+            _ => "none",
+        };
+    }
+
     private bool IsTrafficTypeActive(Entity junctionEntity, int phaseIndex, string trafficType)
     {
         if (junctionEntity == Entity.Null || !EntityManager.Exists(junctionEntity))
@@ -525,6 +592,16 @@ public partial class UISystem
             if (!string.IsNullOrEmpty(tspStatus.TargetSignalGroup))
             {
                 menu.items.Add(new UITypes.ItemTitle{title = "Target Group", secondaryText = tspStatus.TargetSignalGroup});
+            }
+            string? tspDebugSource = GetTransitSignalPriorityDebugSource(m_SelectedEntity);
+            if (!string.IsNullOrEmpty(tspDebugSource))
+            {
+                menu.items.Add(new UITypes.ItemTitle{title = "Debug Source", secondaryText = tspDebugSource});
+            }
+            string? tspDebugState = GetTransitSignalPriorityDebugState(m_SelectedEntity);
+            if (!string.IsNullOrEmpty(tspDebugState))
+            {
+                menu.items.Add(new UITypes.ItemTitle{title = "Debug State", secondaryText = tspDebugState});
             }
             menu.items.Add(default(UITypes.ItemDivider));
             if (EntityManager.HasBuffer<C2VM.CommonLibraries.LaneSystem.CustomLaneDirection>(m_SelectedEntity))

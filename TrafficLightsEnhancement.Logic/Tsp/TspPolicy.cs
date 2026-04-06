@@ -21,6 +21,13 @@ public readonly struct TspAvailability
 
 public static class TspPolicy
 {
+    public static ushort GetEffectiveRequestHorizonTicks(ushort configuredRequestHorizonTicks)
+    {
+        return configuredRequestHorizonTicks == TransitSignalPrioritySettings.LegacyDefaultRequestHorizonTicks
+            ? TransitSignalPrioritySettings.DefaultRequestHorizonTicks
+            : configuredRequestHorizonTicks;
+    }
+
     public static TspAvailability GetAvailability(
         TransitSignalPrioritySettings settings,
         bool isGroupedIntersection)
@@ -40,7 +47,7 @@ public static class TspPolicy
             || settings.m_AllowTrackRequests != defaults.m_AllowTrackRequests
             || settings.m_AllowPublicCarRequests != defaults.m_AllowPublicCarRequests
             || settings.m_AllowGroupPropagation != defaults.m_AllowGroupPropagation
-            || settings.m_RequestHorizonTicks != defaults.m_RequestHorizonTicks
+            || GetEffectiveRequestHorizonTicks(settings.m_RequestHorizonTicks) != defaults.m_RequestHorizonTicks
             || settings.m_MaxGreenExtensionTicks != defaults.m_MaxGreenExtensionTicks;
     }
 }

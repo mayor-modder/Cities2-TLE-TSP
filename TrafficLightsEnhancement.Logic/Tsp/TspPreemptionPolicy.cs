@@ -44,6 +44,17 @@ public static class TspPreemptionPolicy
         if (existingRequest.HasValue && existingRequest.Value.ExpiryTimer > 1)
         {
             TspSignalRequest existing = existingRequest.Value;
+            bool isStaleSameGroupExtension =
+                existing.ExtendCurrentPhase
+                && currentSignalGroup > 0
+                && existing.TargetSignalGroup == currentSignalGroup;
+
+            if (isStaleSameGroupExtension)
+            {
+                request = default;
+                return false;
+            }
+
             uint nextExpiry = existing.ExpiryTimer - 1;
 
             request = new TspSignalRequest(
