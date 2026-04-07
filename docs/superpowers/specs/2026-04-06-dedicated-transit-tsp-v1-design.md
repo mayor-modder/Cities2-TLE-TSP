@@ -100,7 +100,7 @@ The feature stays under one Transit Signal Priority section with:
 - `Allow Tram and Track Requests`
 - `Allow Bus Lane Requests`
 
-The master TSP toggle remains default-off. When TSP is enabled, tram and bus source toggles default to enabled. Users may disable either source independently per junction.
+The master TSP toggle remains default-off. Newly created or previously unset TSP settings start with both tram and bus source toggles enabled. Re-enabling the master TSP toggle must not silently reset a user-disabled source toggle. Users may disable either source independently per junction.
 
 ## Cleanup Direction
 
@@ -136,6 +136,7 @@ Grouped-junction end state for this phase:
 - Active grouped request generation and grouped propagation paths should be hard-disabled or removed from the live runtime in this phase unless a specific piece is still required by the dedicated tram/bus path.
 - Grouped-TSP tests should be updated to match that end state instead of preserving runtime eligibility as an active expectation.
 - If any grouped code is worth keeping for future work, preserve it on a backup branch rather than as live ambiguity in the shipped path.
+- The existing grouped-propagation setting remains serialized for compatibility in this phase, but it becomes inactive in the live v1 runtime and should be removed from the active UI surface if that can be done without introducing migration risk.
 
 ## Bus v1 Design Boundary
 
