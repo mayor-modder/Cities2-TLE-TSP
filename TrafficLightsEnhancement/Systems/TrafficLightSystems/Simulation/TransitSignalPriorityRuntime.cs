@@ -158,55 +158,28 @@ public static class TransitSignalPriorityRuntime
                 trafficLights.m_CurrentSignalGroup,
                 out var activeRequest))
         {
+            if (HasVisibleDiagnostics(freshDebugInfo))
+            {
+                debugInfo = BuildRuntimeDebugInfo(
+                    request: default,
+                    hasExistingRequest,
+                    freshDebugInfo,
+                    job.m_TramApproachIndexLaneCount,
+                    requestKind: TransitSignalPriorityRequestKind.None,
+                    approachLaneRole: TransitSignalPriorityApproachLaneRole.None);
+            }
+
             return false;
         }
 
         request = FromSignalRequest(activeRequest);
-        debugInfo = new TransitSignalPriorityRuntimeDebugInfo
-        {
-            m_RequestKind = (byte)(hasFreshRequest ? freshDebugInfo.RequestKind : TransitSignalPriorityRequestKind.LatchedExisting),
-            m_ApproachLaneRole = (byte)(hasFreshRequest ? freshDebugInfo.ApproachLaneRole : TransitSignalPriorityApproachLaneRole.None),
-            m_SourceType = request.m_SourceType,
-            m_TargetSignalGroup = request.m_TargetSignalGroup,
-            m_Strength = request.m_Strength,
-            m_ExpiryTimer = request.m_ExpiryTimer,
-            m_ExtendCurrentPhase = request.m_ExtendCurrentPhase,
-            m_HasEarlyCandidate = freshDebugInfo.HasEarlyCandidate,
-            m_HasPetitionerCandidate = freshDebugInfo.HasPetitionerCandidate,
-            m_HadExistingRequest = hasExistingRequest,
-            m_BusEarlyProbeResult = (byte)freshDebugInfo.BusDebugInfo.EarlyProbeResult,
-            m_BusPetitionerProbeResult = (byte)freshDebugInfo.BusDebugInfo.PetitionerProbeResult,
-            m_BusSuppressionFlags = (byte)freshDebugInfo.BusDebugInfo.SuppressionFlags,
-            m_BusLaneObjectCount = freshDebugInfo.BusDebugInfo.LaneObjectCount,
-            m_BusPublicTransportObjectCount = freshDebugInfo.BusDebugInfo.PublicTransportObjectCount,
-            m_BusCurrentLaneFlags = freshDebugInfo.BusDebugInfo.CurrentLaneFlags,
-            m_BusSignaledLaneEntity = freshDebugInfo.BusDebugInfo.SignaledLaneEntity,
-            m_BusApproachLaneEntity = freshDebugInfo.BusDebugInfo.ApproachLaneEntity,
-            m_BusCurrentLaneEntity = freshDebugInfo.BusDebugInfo.CurrentLaneEntity,
-            m_BusMatchedVehicleEntity = freshDebugInfo.BusDebugInfo.MatchedVehicleEntity,
-            m_BusPetitionerEntity = freshDebugInfo.BusDebugInfo.PetitionerEntity,
-            m_TrackSignaledLaneProbe = (byte)freshDebugInfo.TrackSignaledLaneProbe,
-            m_TrackApproachLaneProbe = (byte)freshDebugInfo.TrackApproachLaneProbe,
-            m_TrackUpstreamLaneProbe = (byte)freshDebugInfo.TrackUpstreamLaneProbe,
-            m_TramApproachIndexLaneCount = job.m_TramApproachIndexLaneCount,
-            m_TrackSignaledLaneEntity = freshDebugInfo.TrackLaneDebugInfo.SignaledLaneEntity,
-            m_TrackApproachLaneEntity = freshDebugInfo.TrackLaneDebugInfo.ApproachLaneEntity,
-            m_TrackUpstreamLaneEntity = freshDebugInfo.TrackLaneDebugInfo.UpstreamLaneEntity,
-            m_TrackSignaledLaneOwnerEntity = freshDebugInfo.TrackLaneDebugInfo.SignaledLaneOwnerEntity,
-            m_TrackApproachLaneOwnerEntity = freshDebugInfo.TrackLaneDebugInfo.ApproachLaneOwnerEntity,
-            m_TrackUpstreamLaneOwnerEntity = freshDebugInfo.TrackLaneDebugInfo.UpstreamLaneOwnerEntity,
-            m_TrackSignaledSiblingSampleCount = freshDebugInfo.TrackLaneDebugInfo.SignaledSiblingSampleCount,
-            m_TrackApproachSiblingSampleCount = freshDebugInfo.TrackLaneDebugInfo.ApproachSiblingSampleCount,
-            m_TrackUpstreamSiblingSampleCount = freshDebugInfo.TrackLaneDebugInfo.UpstreamSiblingSampleCount,
-            m_TrackSignaledLaneIsMaster = freshDebugInfo.TrackLaneDebugInfo.SignaledLaneIsMaster,
-            m_TrackApproachLaneIsMaster = freshDebugInfo.TrackLaneDebugInfo.ApproachLaneIsMaster,
-            m_TrackUpstreamLaneIsMaster = freshDebugInfo.TrackLaneDebugInfo.UpstreamLaneIsMaster,
-            m_FallbackConnectedEdgeCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.ConnectedEdgeCount,
-            m_FallbackTramSublaneCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.TramSublaneCount,
-            m_FallbackPathNodeMatchCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.PathNodeMatchCount,
-            m_FallbackIndexHitCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.IndexHitCount,
-            m_FallbackBestCurvePosition = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.BestCurvePosition,
-        };
+        debugInfo = BuildRuntimeDebugInfo(
+            request,
+            hasExistingRequest,
+            freshDebugInfo,
+            job.m_TramApproachIndexLaneCount,
+            requestKind: hasFreshRequest ? freshDebugInfo.RequestKind : TransitSignalPriorityRequestKind.LatchedExisting,
+            approachLaneRole: hasFreshRequest ? freshDebugInfo.ApproachLaneRole : TransitSignalPriorityApproachLaneRole.None);
         return true;
     }
 
@@ -267,6 +240,8 @@ public static class TransitSignalPriorityRuntime
         TransitApproachScanState scanState = default;
         TransitApproachCandidate? earlyCandidate = null;
         TransitApproachCandidate? petitionerCandidate = null;
+        BusProbeDebugInfo observedBusDebugInfo = default;
+        bool hasObservedBusDebugInfo = false;
 
         foreach (var subLane in subLanes)
         {
@@ -349,6 +324,12 @@ public static class TransitSignalPriorityRuntime
                 petitionerRequest = detectedPetitionerRequest;
             }
 
+            if (!hasObservedBusDebugInfo && HasVisibleBusProbeDiagnostics(busDebugInfo))
+            {
+                observedBusDebugInfo = busDebugInfo;
+                hasObservedBusDebugInfo = true;
+            }
+
             if (!earlyRequest.HasValue && !petitionerRequest.HasValue)
             {
                 continue;
@@ -401,6 +382,10 @@ public static class TransitSignalPriorityRuntime
 
         if (!selectedRequest.HasValue)
         {
+            debugInfo = new FreshRequestDebugInfo
+            {
+                BusDebugInfo = hasObservedBusDebugInfo ? observedBusDebugInfo : default,
+            };
             return false;
         }
 
@@ -958,6 +943,107 @@ public static class TransitSignalPriorityRuntime
 
         request = laneRequest;
         return true;
+    }
+
+    public static bool HasVisibleDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)
+    {
+        return debugInfo.m_RequestKind != (byte)TransitSignalPriorityRequestKind.None
+            || HasVisibleBusProbeDiagnostics(debugInfo)
+            || HasVisibleTrackDiagnostics(debugInfo);
+    }
+
+    private static bool HasVisibleDiagnostics(FreshRequestDebugInfo debugInfo)
+    {
+        return HasVisibleBusProbeDiagnostics(debugInfo.BusDebugInfo)
+            || debugInfo.TrackSignaledLaneProbe != TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.TrackApproachLaneProbe != TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.TrackUpstreamLaneProbe != TransitSignalPriorityTrackProbeResult.None;
+    }
+
+    private static TransitSignalPriorityRuntimeDebugInfo BuildRuntimeDebugInfo(
+        TransitSignalPriorityRequest request,
+        bool hasExistingRequest,
+        FreshRequestDebugInfo freshDebugInfo,
+        int tramApproachIndexLaneCount,
+        TransitSignalPriorityRequestKind requestKind,
+        TransitSignalPriorityApproachLaneRole approachLaneRole)
+    {
+        return new TransitSignalPriorityRuntimeDebugInfo
+        {
+            m_RequestKind = (byte)requestKind,
+            m_ApproachLaneRole = (byte)approachLaneRole,
+            m_SourceType = request.m_SourceType,
+            m_TargetSignalGroup = request.m_TargetSignalGroup,
+            m_Strength = request.m_Strength,
+            m_ExpiryTimer = request.m_ExpiryTimer,
+            m_ExtendCurrentPhase = request.m_ExtendCurrentPhase,
+            m_HasEarlyCandidate = freshDebugInfo.HasEarlyCandidate,
+            m_HasPetitionerCandidate = freshDebugInfo.HasPetitionerCandidate,
+            m_HadExistingRequest = hasExistingRequest,
+            m_BusEarlyProbeResult = (byte)freshDebugInfo.BusDebugInfo.EarlyProbeResult,
+            m_BusPetitionerProbeResult = (byte)freshDebugInfo.BusDebugInfo.PetitionerProbeResult,
+            m_BusSuppressionFlags = (byte)freshDebugInfo.BusDebugInfo.SuppressionFlags,
+            m_BusLaneObjectCount = freshDebugInfo.BusDebugInfo.LaneObjectCount,
+            m_BusPublicTransportObjectCount = freshDebugInfo.BusDebugInfo.PublicTransportObjectCount,
+            m_BusCurrentLaneFlags = freshDebugInfo.BusDebugInfo.CurrentLaneFlags,
+            m_BusSignaledLaneEntity = freshDebugInfo.BusDebugInfo.SignaledLaneEntity,
+            m_BusApproachLaneEntity = freshDebugInfo.BusDebugInfo.ApproachLaneEntity,
+            m_BusCurrentLaneEntity = freshDebugInfo.BusDebugInfo.CurrentLaneEntity,
+            m_BusMatchedVehicleEntity = freshDebugInfo.BusDebugInfo.MatchedVehicleEntity,
+            m_BusPetitionerEntity = freshDebugInfo.BusDebugInfo.PetitionerEntity,
+            m_TrackSignaledLaneProbe = (byte)freshDebugInfo.TrackSignaledLaneProbe,
+            m_TrackApproachLaneProbe = (byte)freshDebugInfo.TrackApproachLaneProbe,
+            m_TrackUpstreamLaneProbe = (byte)freshDebugInfo.TrackUpstreamLaneProbe,
+            m_TramApproachIndexLaneCount = tramApproachIndexLaneCount,
+            m_TrackSignaledLaneEntity = freshDebugInfo.TrackLaneDebugInfo.SignaledLaneEntity,
+            m_TrackApproachLaneEntity = freshDebugInfo.TrackLaneDebugInfo.ApproachLaneEntity,
+            m_TrackUpstreamLaneEntity = freshDebugInfo.TrackLaneDebugInfo.UpstreamLaneEntity,
+            m_TrackSignaledLaneOwnerEntity = freshDebugInfo.TrackLaneDebugInfo.SignaledLaneOwnerEntity,
+            m_TrackApproachLaneOwnerEntity = freshDebugInfo.TrackLaneDebugInfo.ApproachLaneOwnerEntity,
+            m_TrackUpstreamLaneOwnerEntity = freshDebugInfo.TrackLaneDebugInfo.UpstreamLaneOwnerEntity,
+            m_TrackSignaledSiblingSampleCount = freshDebugInfo.TrackLaneDebugInfo.SignaledSiblingSampleCount,
+            m_TrackApproachSiblingSampleCount = freshDebugInfo.TrackLaneDebugInfo.ApproachSiblingSampleCount,
+            m_TrackUpstreamSiblingSampleCount = freshDebugInfo.TrackLaneDebugInfo.UpstreamSiblingSampleCount,
+            m_TrackSignaledLaneIsMaster = freshDebugInfo.TrackLaneDebugInfo.SignaledLaneIsMaster,
+            m_TrackApproachLaneIsMaster = freshDebugInfo.TrackLaneDebugInfo.ApproachLaneIsMaster,
+            m_TrackUpstreamLaneIsMaster = freshDebugInfo.TrackLaneDebugInfo.UpstreamLaneIsMaster,
+            m_FallbackConnectedEdgeCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.ConnectedEdgeCount,
+            m_FallbackTramSublaneCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.TramSublaneCount,
+            m_FallbackPathNodeMatchCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.PathNodeMatchCount,
+            m_FallbackIndexHitCount = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.IndexHitCount,
+            m_FallbackBestCurvePosition = freshDebugInfo.TrackLaneDebugInfo.FallbackDiagnostics.BestCurvePosition,
+        };
+    }
+
+    private static bool HasVisibleBusProbeDiagnostics(BusProbeDebugInfo debugInfo)
+    {
+        return debugInfo.EarlyProbeResult != BusEarlyProbeResult.None
+            || debugInfo.PetitionerProbeResult != BusPetitionerProbeResult.None
+            || debugInfo.SuppressionFlags != TransitApproachSuppressionFlags.None
+            || debugInfo.LaneObjectCount > 0
+            || debugInfo.PublicTransportObjectCount > 0
+            || debugInfo.CurrentLaneFlags != 0
+            || debugInfo.CurrentLaneEntity != Entity.Null
+            || debugInfo.MatchedVehicleEntity != Entity.Null;
+    }
+
+    private static bool HasVisibleBusProbeDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)
+    {
+        return debugInfo.m_BusEarlyProbeResult != (byte)BusEarlyProbeResult.None
+            || debugInfo.m_BusPetitionerProbeResult != (byte)BusPetitionerProbeResult.None
+            || debugInfo.m_BusSuppressionFlags != (byte)TransitApproachSuppressionFlags.None
+            || debugInfo.m_BusLaneObjectCount > 0
+            || debugInfo.m_BusPublicTransportObjectCount > 0
+            || debugInfo.m_BusCurrentLaneFlags != 0
+            || debugInfo.m_BusCurrentLaneEntity != Entity.Null
+            || debugInfo.m_BusMatchedVehicleEntity != Entity.Null;
+    }
+
+    private static bool HasVisibleTrackDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)
+    {
+        return debugInfo.m_TrackSignaledLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.m_TrackApproachLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.m_TrackUpstreamLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None;
     }
 
     private static TransitApproachSuppressionFlags GetSuppressionFlags(PublicTransportFlags state)

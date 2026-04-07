@@ -318,7 +318,7 @@ public partial class UISystem
     private string? GetTransitSignalPriorityDebugState(Entity junctionEntity)
     {
         if (!EntityManager.TryGetComponent(junctionEntity, out TransitSignalPriorityRuntimeDebugInfo debugInfo)
-            || debugInfo.m_RequestKind == (byte)TransitSignalPriorityRequestKind.None)
+            || !HasVisibleTransitSignalPriorityDiagnostics(debugInfo))
         {
             return null;
         }
@@ -334,15 +334,34 @@ public partial class UISystem
             state += $"\nfallback[edges={debugInfo.m_FallbackConnectedEdgeCount}, tram-sublanes={debugInfo.m_FallbackTramSublaneCount}, pathnode-match={debugInfo.m_FallbackPathNodeMatchCount}, index-hit={debugInfo.m_FallbackIndexHitCount}, curve={debugInfo.m_FallbackBestCurvePosition:F3}]";
         }
 
-        if ((LogicTsp.TspSource)debugInfo.m_SourceType == LogicTsp.TspSource.PublicCar
-            || debugInfo.m_BusEarlyProbeResult != (byte)LogicTsp.BusEarlyProbeResult.None
-            || debugInfo.m_BusPetitionerProbeResult != (byte)LogicTsp.BusPetitionerProbeResult.None)
+        if (HasVisibleBusDiagnostics(debugInfo))
         {
             state += $"\nbus[early={FormatBusEarlyProbe(debugInfo.m_BusEarlyProbeResult)}, petitioner={FormatBusPetitionerProbe(debugInfo.m_BusPetitionerProbeResult)}, suppression={(LogicTsp.TransitApproachSuppressionFlags)debugInfo.m_BusSuppressionFlags}, laneObjects={debugInfo.m_BusLaneObjectCount}, publicTransportObjects={debugInfo.m_BusPublicTransportObjectCount}, laneFlags={debugInfo.m_BusCurrentLaneFlags}]";
             state += $"\nentities[s={FormatEntity(debugInfo.m_BusSignaledLaneEntity)}, a={FormatEntity(debugInfo.m_BusApproachLaneEntity)}, c={FormatEntity(debugInfo.m_BusCurrentLaneEntity)}, vehicle={FormatEntity(debugInfo.m_BusMatchedVehicleEntity)}, petitioner={FormatEntity(debugInfo.m_BusPetitionerEntity)}]";
         }
 
         return state;
+    }
+
+    private static bool HasVisibleTransitSignalPriorityDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)
+    {
+        return debugInfo.m_RequestKind != (byte)TransitSignalPriorityRequestKind.None
+            || HasVisibleBusDiagnostics(debugInfo)
+            || debugInfo.m_TrackSignaledLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.m_TrackApproachLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None
+            || debugInfo.m_TrackUpstreamLaneProbe != (byte)TransitSignalPriorityTrackProbeResult.None;
+    }
+
+    private static bool HasVisibleBusDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)
+    {
+        return debugInfo.m_BusEarlyProbeResult != (byte)LogicTsp.BusEarlyProbeResult.None
+            || debugInfo.m_BusPetitionerProbeResult != (byte)LogicTsp.BusPetitionerProbeResult.None
+            || debugInfo.m_BusSuppressionFlags != (byte)LogicTsp.TransitApproachSuppressionFlags.None
+            || debugInfo.m_BusLaneObjectCount > 0
+            || debugInfo.m_BusPublicTransportObjectCount > 0
+            || debugInfo.m_BusCurrentLaneFlags != 0
+            || debugInfo.m_BusCurrentLaneEntity != Entity.Null
+            || debugInfo.m_BusMatchedVehicleEntity != Entity.Null;
     }
 
     private static string FormatDebugFlag(bool value)

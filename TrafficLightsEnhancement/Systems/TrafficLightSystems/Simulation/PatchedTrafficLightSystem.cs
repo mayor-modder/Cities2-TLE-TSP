@@ -170,9 +170,15 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         m_CommandBuffer.AddComponent(unfilteredChunkIndex, currentEntity, tspRequest);
                     }
                 }
-                else if (m_ExtraTypeHandle.m_TransitSignalPriorityRequest.HasComponent(currentEntity))
+                else
                 {
-                    m_CommandBuffer.RemoveComponent<TransitSignalPriorityRequest>(unfilteredChunkIndex, currentEntity);
+                    localTspDebugInfo = resolvedLocalDebugInfo;
+                    hasLocalTspDebugInfo = TspRuntime.HasVisibleDiagnostics(resolvedLocalDebugInfo);
+
+                    if (m_ExtraTypeHandle.m_TransitSignalPriorityRequest.HasComponent(currentEntity))
+                    {
+                        m_CommandBuffer.RemoveComponent<TransitSignalPriorityRequest>(unfilteredChunkIndex, currentEntity);
+                    }
                 }
 
                 TransitSignalPriorityRuntimeDebugInfo activeTspDebugInfo = default;
