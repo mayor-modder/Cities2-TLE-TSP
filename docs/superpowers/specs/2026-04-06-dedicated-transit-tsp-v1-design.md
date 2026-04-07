@@ -10,7 +10,7 @@ It supports:
 - Trams on tram/track lanes
 - Actual buses on bus-only lanes
 
-Both sources share the same request lifecycle and the same aggressive built-in signal preemption behavior that now works for trams. The feature remains a single Transit Signal Priority capability in the UI, with separate per-junction toggles for tram requests and bus requests. Both toggles default to enabled.
+Both sources share the same request lifecycle and the same aggressive built-in signal preemption behavior that now works for trams. The feature remains a single Transit Signal Priority capability in the UI, with separate per-junction toggles for tram requests and bus requests. The master TSP toggle stays default-off. Once TSP is enabled, both source toggles default to enabled.
 
 ## Goals
 
@@ -45,6 +45,13 @@ Known acceptable limitation for v1:
 
 - If a bus is blocked behind other vehicles and cannot reach the detection zone, it may fail to trigger priority. This is acceptable for the first release.
 
+Explicit bus v1 request boundary:
+
+- Bus v1 may ship without a true road-lane early-detection path.
+- The minimum accepted bus trigger is petitioner-based request generation on bus-only lanes, plus validation that the requesting vehicle is an actual bus.
+- If a dedicated-lane early-detection path for buses proves straightforward, it is a bonus rather than a release requirement.
+- Bus v1 is successful if validated bus requests can still produce useful aggressive preemption at representative bus-only-lane junctions.
+
 ## Architecture
 
 ### 1. Lane Eligibility
@@ -67,6 +74,12 @@ Requests are created only when the runtime can validate the correct transit sour
 
 This replaces the earlier broad `PublicCar` meaning with a narrower, vehicle-validated bus model.
 
+Compatibility rule for v1:
+
+- Persisted field names, runtime enum names, and serialized identifiers such as `m_AllowPublicCarRequests` and `TspSource.PublicCar` stay unchanged in this phase.
+- v1 changes behavior and meaning, not storage names.
+- Renaming or migrating those identifiers is explicitly deferred until after the dedicated tram/bus path is stable.
+
 ### 3. Shared Request Lifecycle
 
 Once validated, tram and bus requests use the same lifecycle:
@@ -87,7 +100,7 @@ The feature stays under one Transit Signal Priority section with:
 - `Allow Tram and Track Requests`
 - `Allow Bus Lane Requests`
 
-When TSP is enabled, tram and bus source toggles default to enabled. Users may disable either source independently per junction.
+The master TSP toggle remains default-off. When TSP is enabled, tram and bus source toggles default to enabled. Users may disable either source independently per junction.
 
 ## Cleanup Direction
 
@@ -117,6 +130,13 @@ This especially applies to:
 - Non-dedicated road-transit priority ideas
 - Any old code paths that cannot be justified by the dedicated tram/bus v1 model
 
+Grouped-junction end state for this phase:
+
+- Grouped and propagated TSP behavior is not part of dedicated transit v1.
+- Active grouped request generation and grouped propagation paths should be hard-disabled or removed from the live runtime in this phase unless a specific piece is still required by the dedicated tram/bus path.
+- Grouped-TSP tests should be updated to match that end state instead of preserving runtime eligibility as an active expectation.
+- If any grouped code is worth keeping for future work, preserve it on a backup branch rather than as live ambiguity in the shipped path.
+
 ## Bus v1 Design Boundary
 
 Bus support in v1 should mirror the tram experience as closely as practical without inventing new complexity.
@@ -126,6 +146,7 @@ Behavior:
 - Actual bus on a bus-only lane can request priority
 - That request can use the same practical preemption path as trams
 - Non-bus vehicles on the same lane must not request priority
+- Petitioner-based validated bus requests are sufficient for v1 even if buses do not yet have a dedicated early-detection path
 
 Implementation bias:
 
@@ -142,6 +163,8 @@ Required verification for the feature work that follows this spec:
 - Cargo or other non-bus vehicles in a bus-only lane do not trigger priority
 - TSP settings still expose one feature with separate tram and bus toggles
 - No removed code paths were still required by the dedicated tram/bus model
+- Settings compatibility is preserved even though `PublicCar` behavior is narrowed to actual buses on bus-only lanes
+- Grouped propagation is no longer treated as an active runtime path for this release
 
 ## Risks
 
