@@ -308,7 +308,7 @@ public static class TransitSignalPriorityRuntime
                     Entity.Null);
                 busDebugInfo.ApproachLaneEntity = roadTransitProbeLaneEntity;
                 TspRequest busProbeRequest = new(source: TspSource.PublicCar, strength: 1f, extensionEligible: true);
-                TryBuildEarlyApproachRequestForLane(
+                if (TryBuildEarlyApproachRequestForLane(
                     job,
                     subLaneEntity,
                     roadTransitProbeLaneEntity,
@@ -321,7 +321,19 @@ public static class TransitSignalPriorityRuntime
                     out _,
                     out _,
                     out _,
-                    ref busDebugInfo);
+                    ref busDebugInfo)
+                    && global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPriorityRuntime.TryBuildRequestForLane(
+                        logicSettings,
+                        isTrackLane: false,
+                        isPublicCarLane: true,
+                        hasValidatedBusOccupant: true,
+                        out var validatedBusEarlyRequest))
+                {
+                    earlyRequest = validatedBusEarlyRequest;
+                    detectedLaneRole = roadTransitProbeLaneEntity == approachLaneEntity
+                        ? TransitSignalPriorityApproachLaneRole.ApproachLane
+                        : TransitSignalPriorityApproachLaneRole.UpstreamLane;
+                }
             }
 
             TspRequest? petitionerRequest = null;

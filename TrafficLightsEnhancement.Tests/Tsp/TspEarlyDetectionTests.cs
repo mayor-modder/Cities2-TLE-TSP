@@ -414,7 +414,7 @@ public class TspEarlyDetectionTests
         bool recursive = EarlyApproachDetection.ShouldResolveSourceLaneRecursively(
             isTrackLane: true,
             isPedestrianCrosswalk: false,
-            isPublicOnlyRoadLane: false);
+            isRoadVehicleLane: false);
 
         Assert.True(recursive);
     }
@@ -425,29 +425,29 @@ public class TspEarlyDetectionTests
         bool recursive = EarlyApproachDetection.ShouldResolveSourceLaneRecursively(
             isTrackLane: false,
             isPedestrianCrosswalk: true,
-            isPublicOnlyRoadLane: false);
+            isRoadVehicleLane: false);
 
         Assert.True(recursive);
     }
 
     [Fact]
-    public void Public_only_road_lane_source_resolution_uses_recursive_lookup()
+    public void Road_vehicle_lane_source_resolution_uses_recursive_lookup()
     {
         bool recursive = EarlyApproachDetection.ShouldResolveSourceLaneRecursively(
             isTrackLane: false,
             isPedestrianCrosswalk: false,
-            isPublicOnlyRoadLane: true);
+            isRoadVehicleLane: true);
 
         Assert.True(recursive);
     }
 
     [Fact]
-    public void Ordinary_road_lane_source_resolution_stays_non_recursive()
+    public void Non_track_non_crosswalk_non_car_lane_source_resolution_stays_non_recursive()
     {
         bool recursive = EarlyApproachDetection.ShouldResolveSourceLaneRecursively(
             isTrackLane: false,
             isPedestrianCrosswalk: false,
-            isPublicOnlyRoadLane: false);
+            isRoadVehicleLane: false);
 
         Assert.False(recursive);
     }
@@ -458,7 +458,7 @@ public class TspEarlyDetectionTests
         bool recursive = EarlyApproachDetection.ShouldResolveSourceLaneRecursively(
             isTrackLane: true,
             isPedestrianCrosswalk: true,
-            isPublicOnlyRoadLane: false);
+            isRoadVehicleLane: false);
 
         Assert.True(recursive);
     }

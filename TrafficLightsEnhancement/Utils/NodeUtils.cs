@@ -72,15 +72,14 @@ public partial struct NodeUtils
                 pedestrianLaneLookup.TryGetComponent(nodeSubLane.m_SubLane, out var nodePedestrianLane);
                 bool isEdgeInfoCrosswalk = (nodePedestrianLane.m_Flags & PedestrianLaneFlags.Crosswalk) != 0;
                 bool isEdgeInfoTrackLane = trackLaneLookup.HasComponent(nodeSubLane.m_SubLane);
-                bool isEdgeInfoPublicOnlyRoadLane = carLaneLookup.TryGetComponent(nodeSubLane.m_SubLane, out var edgeInfoNodeCarLane)
-                    && (edgeInfoNodeCarLane.m_Flags & CarLaneFlags.PublicOnly) != 0;
+                bool isEdgeInfoRoadVehicleLane = carLaneLookup.HasComponent(nodeSubLane.m_SubLane);
                 LaneConnection laneConnection = GetLaneConnectionFromNodeSubLane(
                     nodeSubLane.m_SubLane,
                     laneConnectionMap,
                     EarlyApproachDetection.ShouldResolveSourceLaneRecursively(
                         isEdgeInfoTrackLane,
                         isEdgeInfoCrosswalk,
-                        isEdgeInfoPublicOnlyRoadLane));
+                        isEdgeInfoRoadVehicleLane));
                 if (laneConnection.m_SourceEdge == edgeEntity)
                 {
                     if (!masterLaneLookup.HasComponent(nodeSubLane.m_SubLane) && laneConnection.m_SourceSubLane != Entity.Null)

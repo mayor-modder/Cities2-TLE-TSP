@@ -275,9 +275,9 @@ public static class EarlyApproachDetection
     public static bool ShouldResolveSourceLaneRecursively(
         bool isTrackLane,
         bool isPedestrianCrosswalk,
-        bool isPublicOnlyRoadLane)
+        bool isRoadVehicleLane)
     {
-        return isTrackLane || isPedestrianCrosswalk || isPublicOnlyRoadLane;
+        return isTrackLane || isPedestrianCrosswalk || isRoadVehicleLane;
     }
 
     public static bool IsConnectedUpstreamEdgeCandidate(

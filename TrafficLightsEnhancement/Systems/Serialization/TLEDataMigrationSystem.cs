@@ -164,6 +164,9 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
             }*/
 
+            EntityQuery trafficLightsQuery = EntityManager.CreateEntityQuery(ComponentType.ReadOnly<TrafficLights>());
+            EntityManager.AddComponent<Updated>(trafficLightsQuery);
+
             Mod.m_Log.Info($"{nameof(TLEDataMigrationSystem)} {(regularValidationOnly ? "validating" : "migrating")} data version {_version} done. Found {affectedCount} affected entities, {customTrafficLightsCount} CustomTrafficLights, {subLaneGroupMaskCount} SubLaneGroupMask entities of {totalEntities} total");
         }
 
