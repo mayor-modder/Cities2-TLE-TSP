@@ -6,6 +6,24 @@ namespace TrafficLightsEnhancement.Tests.Tsp;
 public class TspDecisionEngineTests
 {
     [Fact]
+    public void Bus_petitioner_validation_requires_public_transport_vehicle_and_matching_lane()
+    {
+        Assert.False(TransitSignalPriorityRuntime.IsValidatedBusPetitionerCandidate(
+            isPublicOnlyLane: true,
+            petitionerEntityExists: true,
+            petitionerHasPublicTransport: false,
+            petitionerFrontLaneMatches: true,
+            petitionerRearLaneMatches: false));
+
+        Assert.True(TransitSignalPriorityRuntime.IsValidatedBusPetitionerCandidate(
+            isPublicOnlyLane: true,
+            petitionerEntityExists: true,
+            petitionerHasPublicTransport: true,
+            petitionerFrontLaneMatches: true,
+            petitionerRearLaneMatches: false));
+    }
+
+    [Fact]
     public void Track_request_prefers_serving_phase()
     {
         var phases = new[]

@@ -30,4 +30,17 @@ public static class TransitSignalPriorityRuntime
 
         return false;
     }
+
+    public static bool IsValidatedBusPetitionerCandidate(
+        bool isPublicOnlyLane,
+        bool petitionerEntityExists,
+        bool petitionerHasPublicTransport,
+        bool petitionerFrontLaneMatches,
+        bool petitionerRearLaneMatches)
+    {
+        return isPublicOnlyLane
+            && petitionerEntityExists
+            && petitionerHasPublicTransport
+            && (petitionerFrontLaneMatches || petitionerRearLaneMatches);
+    }
 }

@@ -249,24 +249,21 @@ public static class TransitSignalPriorityRuntime
             bool isTramTrackLane = IsTramTrackLane(job, approachLaneEntity);
             bool isPublicCarLane = IsPublicOnlyCarLane(job, approachLaneEntity);
 
-            if (!global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPriorityRuntime.TryBuildRequestForLane(
-                    logicSettings,
-                    isTramTrackLane,
-                    isPublicCarLane,
-                    hasValidatedBusOccupant: false,
-                    out var logicRequest))
-            {
-                continue;
-            }
-
             TspRequest? earlyRequest = null;
-            if (TryBuildEarlyApproachRequestForLane(
+            if (isTramTrackLane
+                && global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPriorityRuntime.TryBuildRequestForLane(
+                    logicSettings,
+                    isTrackLane: true,
+                    isPublicCarLane: false,
+                    hasValidatedBusOccupant: false,
+                    out var trackLaneRequest)
+                && TryBuildEarlyApproachRequestForLane(
                     job,
                     subLaneEntity,
                     approachLaneEntity,
                     isTramTrackLane,
                     isPublicCarLane,
-                    logicRequest,
+                    trackLaneRequest,
                     out var detectedEarlyRequest,
                     out var detectedLaneRole,
                     out var trackSignaledLaneProbe,
@@ -278,7 +275,14 @@ public static class TransitSignalPriorityRuntime
             }
 
             TspRequest? petitionerRequest = null;
-            if (TryBuildPetitionerRequestForLane(laneSignal, logicRequest, out var detectedPetitionerRequest))
+            if (TryBuildPetitionerRequestForLane(
+                    job,
+                    laneSignal,
+                    approachLaneEntity,
+                    isTramTrackLane,
+                    isPublicCarLane,
+                    logicSettings,
+                    out var detectedPetitionerRequest))
             {
                 petitionerRequest = detectedPetitionerRequest;
             }
@@ -425,28 +429,37 @@ public static class TransitSignalPriorityRuntime
                 out trackDebugInfo);
         }
 
-        if (!EarlyApproachDetection.ShouldEvaluateRoadTransitEarlyDetection(isPublicCarLane))
-        {
-            return false;
-        }
-
         return false;
     }
 
     private static bool TryBuildPetitionerRequestForLane(
+        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
         LaneSignal laneSignal,
-        TspRequest laneRequest,
+        Entity approachLaneEntity,
+        bool isTrackLane,
+        bool isPublicCarLane,
+        TransitSignalPrioritySettings logicSettings,
         out TspRequest request)
     {
         request = default;
 
-        if (laneSignal.m_Petitioner == Entity.Null)
+        bool hasValidatedBusPetitioner = HasValidatedBusPetitioner(
+            job,
+            laneSignal.m_Petitioner,
+            approachLaneEntity,
+            isPublicCarLane);
+
+        if (!global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPriorityRuntime.TryBuildRequestForLane(
+                logicSettings,
+                isTrackLane,
+                isPublicCarLane,
+                hasValidatedBusPetitioner,
+                out request))
         {
             return false;
         }
 
-        request = laneRequest;
-        return true;
+        return laneSignal.m_Petitioner != Entity.Null;
     }
 
     private static bool IsTramTrackLane(PatchedTrafficLightSystem.UpdateTrafficLightsJob job, Entity approachLaneEntity)
@@ -776,6 +789,28 @@ public static class TransitSignalPriorityRuntime
         }
 
         return Entity.Null;
+    }
+
+    private static bool HasValidatedBusPetitioner(
+        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
+        Entity petitionerEntity,
+        Entity approachLaneEntity,
+        bool isPublicCarLane)
+    {
+        if (petitionerEntity == Entity.Null)
+        {
+            return false;
+        }
+
+        bool hasPublicTransport = job.m_ExtraTypeHandle.m_PublicTransport.HasComponent(petitionerEntity);
+        bool hasCarLane = job.m_ExtraTypeHandle.m_CarCurrentLane.TryGetComponent(petitionerEntity, out var carCurrentLane);
+
+        return global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPriorityRuntime.IsValidatedBusPetitionerCandidate(
+            isPublicOnlyLane: isPublicCarLane,
+            petitionerEntityExists: true,
+            petitionerHasPublicTransport: hasPublicTransport,
+            petitionerFrontLaneMatches: hasCarLane && carCurrentLane.m_Front.m_Lane == approachLaneEntity,
+            petitionerRearLaneMatches: hasCarLane && carCurrentLane.m_Rear.m_Lane == approachLaneEntity);
     }
 
     private static IndexedTrackProbeDiagnostics ToIndexedTrackProbeDiagnostics(TransitApproachCandidate? candidate)
