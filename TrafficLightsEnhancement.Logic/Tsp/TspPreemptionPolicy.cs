@@ -41,31 +41,6 @@ public static class TspPreemptionPolicy
             return true;
         }
 
-        if (existingRequest.HasValue && existingRequest.Value.ExpiryTimer > 1)
-        {
-            TspSignalRequest existing = existingRequest.Value;
-            bool isStaleSameGroupExtension =
-                existing.ExtendCurrentPhase
-                && currentSignalGroup > 0
-                && existing.TargetSignalGroup == currentSignalGroup;
-
-            if (isStaleSameGroupExtension)
-            {
-                request = default;
-                return false;
-            }
-
-            uint nextExpiry = existing.ExpiryTimer - 1;
-
-            request = new TspSignalRequest(
-                existing.TargetSignalGroup,
-                existing.Source,
-                existing.Strength,
-                nextExpiry,
-                existing.ExtendCurrentPhase);
-            return true;
-        }
-
         request = default;
         return false;
     }
@@ -93,5 +68,14 @@ public static class TspPreemptionPolicy
             && request.ExpiryTimer > 0
             ? 1
             : defaultMinimumGreenTicks;
+    }
+
+    public static bool ShouldAggressivelyPreemptToConflictingGroup(
+        byte currentSignalGroup,
+        TspSignalRequest request)
+    {
+        return request.TargetSignalGroup > 0
+            && request.TargetSignalGroup != currentSignalGroup
+            && request.ExpiryTimer > 0;
     }
 }

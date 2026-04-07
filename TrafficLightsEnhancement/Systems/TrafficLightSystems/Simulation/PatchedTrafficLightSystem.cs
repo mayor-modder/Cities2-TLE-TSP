@@ -105,6 +105,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         [ReadOnly]
         public NativeParallelHashMap<Entity, float>.ReadOnly m_TramApproachIndex;
 
+        [ReadOnly]
+        public int m_TramApproachIndexLaneCount;
+
         public EntityCommandBuffer.ParallelWriter m_CommandBuffer;
 
         public ExtraTypeHandle m_ExtraTypeHandle;
@@ -505,6 +508,18 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         int nextSignalGroup2 = GetNextSignalGroup(laneSignals, trafficLights, trafficLights.m_Timer >= num2, out canExtend2, ref customTrafficLights, hasTspRequest, tspRequest, out tspSelection);
                         if (nextSignalGroup2 != trafficLights.m_CurrentSignalGroup)
                         {
+                            if (hasTspRequest
+                                && moveableBridgeData.m_MovingTime == 0f
+                                && nextSignalGroup2 == tspRequest.m_TargetSignalGroup
+                                && TspRuntime.ShouldAggressivelyPreemptToTargetGroup(trafficLights, tspRequest))
+                            {
+                                trafficLights.m_State = Game.Net.TrafficLightState.Beginning;
+                                trafficLights.m_CurrentSignalGroup = 0;
+                                trafficLights.m_NextSignalGroup = (byte)nextSignalGroup2;
+                                trafficLights.m_Timer = 0;
+                                return true;
+                            }
+
                             trafficLights.m_State = (canExtend2 ? Game.Net.TrafficLightState.Extending : Game.Net.TrafficLightState.Ending);
                             trafficLights.m_NextSignalGroup = (byte)nextSignalGroup2;
                             trafficLights.m_Timer = 0;
@@ -535,6 +550,18 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         }
                         else
                         {
+                            if (hasTspRequest
+                                && moveableBridgeData.m_MovingTime == 0f
+                                && nextSignalGroup4 == tspRequest.m_TargetSignalGroup
+                                && TspRuntime.ShouldAggressivelyPreemptToTargetGroup(trafficLights, tspRequest))
+                            {
+                                trafficLights.m_State = Game.Net.TrafficLightState.Beginning;
+                                trafficLights.m_CurrentSignalGroup = 0;
+                                trafficLights.m_NextSignalGroup = (byte)nextSignalGroup4;
+                                trafficLights.m_Timer = 0;
+                                return true;
+                            }
+
                             trafficLights.m_State = (canExtend4 ? Game.Net.TrafficLightState.Extended : Game.Net.TrafficLightState.Ending);
                         }
 
@@ -568,6 +595,18 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                         if (trafficLights.m_Timer >= 4 || !canExtend3)
                         {
+                            if (hasTspRequest
+                                && moveableBridgeData.m_MovingTime == 0f
+                                && nextSignalGroup3 == tspRequest.m_TargetSignalGroup
+                                && TspRuntime.ShouldAggressivelyPreemptToTargetGroup(trafficLights, tspRequest))
+                            {
+                                trafficLights.m_State = Game.Net.TrafficLightState.Beginning;
+                                trafficLights.m_CurrentSignalGroup = 0;
+                                trafficLights.m_NextSignalGroup = (byte)nextSignalGroup3;
+                                trafficLights.m_Timer = 0;
+                                return true;
+                            }
+
                             trafficLights.m_State = Game.Net.TrafficLightState.Ending;
                             trafficLights.m_NextSignalGroup = (byte)nextSignalGroup3;
                             trafficLights.m_Timer = 0;
@@ -580,7 +619,10 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     break;
                 case Game.Net.TrafficLightState.Ending:
                     {
-                        if (++trafficLights.m_Timer < 2)
+                        // When TSP has already selected a conflicting target group, shorten the
+                        // yellow/clearance walk by one update so the requested tram phase begins sooner.
+                        int endingDuration = hasTspRequest ? 1 : 2;
+                        if (++trafficLights.m_Timer < endingDuration)
                         {
                             break;
                         }
@@ -597,6 +639,14 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                             {
                                 trafficLights.m_CurrentSignalGroup = trafficLights.m_NextSignalGroup;
                             }
+                            else if (hasTspRequest
+                                && moveableBridgeData.m_MovingTime == 0f
+                                && nextSignalGroup5 == tspRequest.m_TargetSignalGroup
+                                && TspRuntime.ShouldAggressivelyPreemptToTargetGroup(trafficLights, tspRequest))
+                            {
+                                trafficLights.m_State = Game.Net.TrafficLightState.Beginning;
+                                trafficLights.m_CurrentSignalGroup = 0;
+                            }
                             else
                             {
                                 trafficLights.m_State = Game.Net.TrafficLightState.Changing;
@@ -606,7 +656,16 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         }
                         else
                         {
-                            trafficLights.m_State = Game.Net.TrafficLightState.Changing;
+                            trafficLights.m_State = hasTspRequest
+                                && moveableBridgeData.m_MovingTime == 0f
+                                && nextSignalGroup5 == tspRequest.m_TargetSignalGroup
+                                && TspRuntime.ShouldAggressivelyPreemptToTargetGroup(trafficLights, tspRequest)
+                                ? Game.Net.TrafficLightState.Beginning
+                                : Game.Net.TrafficLightState.Changing;
+                            if (trafficLights.m_State == Game.Net.TrafficLightState.Beginning)
+                            {
+                                trafficLights.m_CurrentSignalGroup = 0;
+                            }
                         }
 
                         trafficLights.m_Timer = 0;
@@ -632,6 +691,14 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                             {
                                 trafficLights.m_CurrentSignalGroup = trafficLights.m_NextSignalGroup;
                                 trafficLights.m_State = Game.Net.TrafficLightState.Ending;
+                            }
+                            else if (hasTspRequest
+                                && moveableBridgeData.m_MovingTime == 0f
+                                && nextSignalGroup == tspRequest.m_TargetSignalGroup
+                                && TspRuntime.ShouldAggressivelyPreemptToTargetGroup(trafficLights, tspRequest))
+                            {
+                                trafficLights.m_State = Game.Net.TrafficLightState.Beginning;
+                                trafficLights.m_CurrentSignalGroup = 0;
                             }
                             else if (moveableBridgeData.m_MovingTime == 0f)
                             {
@@ -1174,6 +1241,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             m_RailTransitQuery,
             updatedExtraTypeHandle,
             Allocator.TempJob);
+        int tramApproachIndexLaneCount = tramApproachIndex.Count();
         JobHandle dependency = JobChunkExtensions.ScheduleParallel(new UpdateTrafficLightsJob
         {
             m_EntityType = InternalCompilerInterface.GetEntityTypeHandle(ref __TypeHandle.__Unity_Entities_Entity_TypeHandle, ref base.CheckedStateRef),
@@ -1200,6 +1268,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             m_TrafficLightData = InternalCompilerInterface.GetComponentLookup(ref __TypeHandle.__Game_Objects_TrafficLight_RW_ComponentLookup, ref base.CheckedStateRef),
             m_PointOfInterestData = InternalCompilerInterface.GetComponentLookup(ref __TypeHandle.__Game_Common_PointOfInterest_RW_ComponentLookup, ref base.CheckedStateRef),
             m_TramApproachIndex = tramApproachIndex.AsReadOnly(),
+            m_TramApproachIndexLaneCount = tramApproachIndexLaneCount,
             m_CommandBuffer = m_EndFrameBarrier.CreateCommandBuffer().AsParallelWriter(),
             m_ExtraTypeHandle = updatedExtraTypeHandle,
             m_ExtraData = new ExtraData(this)

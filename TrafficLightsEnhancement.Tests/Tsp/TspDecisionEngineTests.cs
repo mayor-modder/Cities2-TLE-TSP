@@ -206,7 +206,7 @@ public class TspDecisionEngineTests
     }
 
     [Fact]
-    public void Existing_signal_request_stays_active_while_expiry_remains()
+    public void Existing_signal_request_clears_immediately_without_fresh_refresh()
     {
         bool active = TspPreemptionPolicy.TryRefreshOrLatchRequest(
             freshRequest: null,
@@ -215,39 +215,8 @@ public class TspDecisionEngineTests
             currentSignalGroup: 1,
             out var request);
 
-        Assert.True(active);
-        Assert.Equal(2u, request.ExpiryTimer);
-        Assert.False(request.ExtendCurrentPhase);
-    }
-
-    [Fact]
-    public void Existing_signal_request_keeps_full_horizon_until_target_group_is_active()
-    {
-        bool active = TspPreemptionPolicy.TryRefreshOrLatchRequest(
-            freshRequest: null,
-            existingRequest: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 120, extendCurrentPhase: false),
-            requestHorizonTicks: 120,
-            currentSignalGroup: 1,
-            out var request);
-
-        Assert.True(active);
-        Assert.Equal(119u, request.ExpiryTimer);
-        Assert.False(request.ExtendCurrentPhase);
-    }
-
-    [Fact]
-    public void Stale_signal_request_counts_down_normally_when_target_group_is_current_group()
-    {
-        bool active = TspPreemptionPolicy.TryRefreshOrLatchRequest(
-            freshRequest: null,
-            existingRequest: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 120, extendCurrentPhase: false),
-            requestHorizonTicks: 120,
-            currentSignalGroup: 2,
-            out var request);
-
-        Assert.True(active);
-        Assert.Equal(119u, request.ExpiryTimer);
-        Assert.False(request.ExtendCurrentPhase);
+        Assert.False(active);
+        Assert.Equal(default, request);
     }
 
     [Fact]
@@ -310,5 +279,25 @@ public class TspDecisionEngineTests
                 defaultMinimumGreenTicks: 2,
                 currentSignalGroup: 2,
                 request: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 10, extendCurrentPhase: true)));
+    }
+
+    [Fact]
+    public void Conflicting_transit_request_allows_aggressive_preemption()
+    {
+        Assert.True(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 1,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 10, extendCurrentPhase: false)));
+    }
+
+    [Fact]
+    public void Same_group_or_expired_request_does_not_allow_aggressive_preemption()
+    {
+        Assert.False(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 2,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 10, extendCurrentPhase: true)));
+
+        Assert.False(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 1,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 0, extendCurrentPhase: false)));
     }
 }
