@@ -162,7 +162,6 @@ public partial class TransitSignalPriorityDiagnosticsSystem : GameSystemBase
     {
         return (TransitSignalPriorityRequestOrigin)requestOrigin switch
         {
-            TransitSignalPriorityRequestOrigin.GroupedPropagation => "grouped-propagation",
             _ => "local",
         };
     }
@@ -174,7 +173,6 @@ public partial class TransitSignalPriorityDiagnosticsSystem : GameSystemBase
             TransitSignalPriorityRequestKind.FreshEarly => "fresh-early",
             TransitSignalPriorityRequestKind.FreshPetitioner => "fresh-petitioner",
             TransitSignalPriorityRequestKind.LatchedExisting => "latched-existing",
-            TransitSignalPriorityRequestKind.GroupedPropagation => "grouped-propagation",
             _ => "unknown",
         };
     }

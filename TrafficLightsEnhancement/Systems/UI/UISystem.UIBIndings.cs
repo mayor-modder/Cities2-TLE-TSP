@@ -299,7 +299,6 @@ public partial class UISystem
             TransitSignalPriorityRequestKind.FreshEarly => "Fresh early request",
             TransitSignalPriorityRequestKind.FreshPetitioner => "Fresh petitioner request",
             TransitSignalPriorityRequestKind.LatchedExisting => "Latched existing request",
-            TransitSignalPriorityRequestKind.GroupedPropagation => "Grouped propagation",
             _ => "Unknown",
         };
 
@@ -567,18 +566,6 @@ public partial class UISystem
                     label = "AllowBusLaneRequests",
                     engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption",
                 });
-                if (isGroupedIntersection)
-                {
-                    menu.items.Add(new UITypes.ItemCheckbox
-                    {
-                        type = "checkbox",
-                        key = "TspAllowGroupPropagation",
-                        value = tspSettings.m_AllowGroupPropagation.ToString(),
-                        isChecked = tspSettings.m_AllowGroupPropagation,
-                        label = "PropagateTransitRequestsToGroup",
-                        engineEventName = "C2VM.TrafficLightsEnhancement.TRIGGER:CallMainPanelUpdateOption",
-                    });
-                }
             }
             var tspStatus = GetTransitSignalPriorityStatus(m_SelectedEntity, tspSettings.m_Enabled);
             menu.items.Add(new UITypes.ItemTitle{title = "Status", secondaryText = tspStatus.Status});
@@ -1023,7 +1010,7 @@ public partial class UISystem
     {
         UITypes.ItemCheckbox option = JsonConvert.DeserializeObject<UITypes.ItemCheckbox>(input);
         if (option.key == "TspEnabled" || option.key == "TspAllowTrackRequests" ||
-            option.key == "TspAllowPublicCarRequests" || option.key == "TspAllowGroupPropagation")
+            option.key == "TspAllowPublicCarRequests")
         {
             if (m_SelectedEntity == Entity.Null)
             {
@@ -1044,9 +1031,6 @@ public partial class UISystem
                     break;
                 case "TspAllowPublicCarRequests":
                     settings.m_AllowPublicCarRequests = !settings.m_AllowPublicCarRequests;
-                    break;
-                case "TspAllowGroupPropagation":
-                    settings.m_AllowGroupPropagation = !settings.m_AllowGroupPropagation;
                     break;
             }
 
