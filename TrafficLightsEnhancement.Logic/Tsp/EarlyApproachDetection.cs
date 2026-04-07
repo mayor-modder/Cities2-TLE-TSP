@@ -54,6 +54,17 @@ public enum BusEarlyProbeResult : byte
     Match = 6,
 }
 
+public enum BusUpstreamDiscovery : byte
+{
+    None = 0,
+    NoOwner = 1,
+    NoLaneData = 2,
+    SiblingMatch = 3,
+    ConnectedEdgeMatch = 4,
+    BothMatch = 5,
+    NoCandidates = 6,
+}
+
 public enum BusPetitionerProbeResult : byte
 {
     None = 0,

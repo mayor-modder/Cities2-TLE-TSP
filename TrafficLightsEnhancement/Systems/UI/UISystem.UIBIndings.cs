@@ -336,8 +336,9 @@ public partial class UISystem
 
         if (HasVisibleBusDiagnostics(debugInfo))
         {
-            state += $"\nbus[early={FormatBusEarlyProbe(debugInfo.m_BusEarlyProbeResult)}, petitioner={FormatBusPetitionerProbe(debugInfo.m_BusPetitionerProbeResult)}, suppression={(LogicTsp.TransitApproachSuppressionFlags)debugInfo.m_BusSuppressionFlags}, laneObjects={debugInfo.m_BusLaneObjectCount}, publicTransportObjects={debugInfo.m_BusPublicTransportObjectCount}, laneFlags={debugInfo.m_BusCurrentLaneFlags}]";
+            state += $"\nbus[early={FormatBusEarlyProbe(debugInfo.m_BusEarlyProbeResult)}, petitioner={FormatBusPetitionerProbe(debugInfo.m_BusPetitionerProbeResult)}, upstream={FormatBusUpstreamDiscovery(debugInfo.m_BusUpstreamDiscovery)}, suppression={(LogicTsp.TransitApproachSuppressionFlags)debugInfo.m_BusSuppressionFlags}, laneObjects={debugInfo.m_BusLaneObjectCount}, publicTransportObjects={debugInfo.m_BusPublicTransportObjectCount}, laneFlags={debugInfo.m_BusCurrentLaneFlags}]";
             state += $"\nentities[s={FormatEntity(debugInfo.m_BusSignaledLaneEntity)}, a={FormatEntity(debugInfo.m_BusApproachLaneEntity)}, c={FormatEntity(debugInfo.m_BusCurrentLaneEntity)}, vehicle={FormatEntity(debugInfo.m_BusMatchedVehicleEntity)}, petitioner={FormatEntity(debugInfo.m_BusPetitionerEntity)}]";
+            state += $"\nupstream[sibling={FormatEntity(debugInfo.m_BusUpstreamSiblingEntity)}, connected={FormatEntity(debugInfo.m_BusUpstreamConnectedEdgeEntity)}, siblingLanes={debugInfo.m_BusUpstreamSiblingSubLaneCount}, connectedEdges={debugInfo.m_BusUpstreamConnectedEdgeCount}, busCandidates={debugInfo.m_BusUpstreamBusLaneCandidateCount}]";
         }
 
         return state;
@@ -361,7 +362,8 @@ public partial class UISystem
             || debugInfo.m_BusPublicTransportObjectCount > 0
             || debugInfo.m_BusCurrentLaneFlags != 0
             || debugInfo.m_BusCurrentLaneEntity != Entity.Null
-            || debugInfo.m_BusMatchedVehicleEntity != Entity.Null;
+            || debugInfo.m_BusMatchedVehicleEntity != Entity.Null
+            || debugInfo.m_BusUpstreamDiscovery != (byte)LogicTsp.BusUpstreamDiscovery.None;
     }
 
     private static string FormatDebugFlag(bool value)
@@ -404,6 +406,20 @@ public partial class UISystem
             LogicTsp.BusPetitionerProbeResult.NotPublicTransport => "not-public-transport",
             LogicTsp.BusPetitionerProbeResult.LaneMismatch => "lane-mismatch",
             LogicTsp.BusPetitionerProbeResult.Match => "match",
+            _ => "none",
+        };
+    }
+
+    private static string FormatBusUpstreamDiscovery(byte value)
+    {
+        return ((LogicTsp.BusUpstreamDiscovery)value) switch
+        {
+            LogicTsp.BusUpstreamDiscovery.NoOwner => "no-owner",
+            LogicTsp.BusUpstreamDiscovery.NoLaneData => "no-lane-data",
+            LogicTsp.BusUpstreamDiscovery.SiblingMatch => "sibling-match",
+            LogicTsp.BusUpstreamDiscovery.ConnectedEdgeMatch => "connected-edge-match",
+            LogicTsp.BusUpstreamDiscovery.BothMatch => "both-match",
+            LogicTsp.BusUpstreamDiscovery.NoCandidates => "no-candidates",
             _ => "none",
         };
     }

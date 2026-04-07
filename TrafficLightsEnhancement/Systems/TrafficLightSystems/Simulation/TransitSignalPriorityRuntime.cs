@@ -53,6 +53,12 @@ public static class TransitSignalPriorityRuntime
         public Entity CurrentLaneEntity;
         public Entity MatchedVehicleEntity;
         public Entity PetitionerEntity;
+        public BusUpstreamDiscovery UpstreamDiscovery;
+        public Entity UpstreamSiblingEntity;
+        public Entity UpstreamConnectedEdgeEntity;
+        public byte UpstreamSiblingSubLaneCount;
+        public byte UpstreamConnectedEdgeCount;
+        public byte UpstreamBusLaneCandidateCount;
     }
 
     private struct ConnectedEdgeFallbackDiagnostics
@@ -293,6 +299,7 @@ public static class TransitSignalPriorityRuntime
             }
             else if (isPublicCarLane)
             {
+                TryDiscoverUpstreamBusLane(job, approachLaneEntity, ref busDebugInfo);
                 TspRequest busProbeRequest = new(source: TspSource.PublicCar, strength: 1f, extensionEligible: true);
                 TryBuildEarlyApproachRequestForLane(
                     job,
@@ -859,6 +866,129 @@ public static class TransitSignalPriorityRuntime
         return Entity.Null;
     }
 
+    private static void TryDiscoverUpstreamBusLane(
+        PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
+        Entity approachLaneEntity,
+        ref BusProbeDebugInfo busDebugInfo)
+    {
+        if (!job.m_OwnerData.TryGetComponent(approachLaneEntity, out var approachOwner))
+        {
+            busDebugInfo.UpstreamDiscovery = BusUpstreamDiscovery.NoOwner;
+            return;
+        }
+
+        if (!job.m_LaneData.TryGetComponent(approachLaneEntity, out var approachLane))
+        {
+            busDebugInfo.UpstreamDiscovery = BusUpstreamDiscovery.NoLaneData;
+            return;
+        }
+
+        // Strategy 1: Sibling sublanes of the same owner (mirrors TryResolveImmediateUpstreamTramLane).
+        Entity siblingCandidate = Entity.Null;
+        if (job.m_SubLanes.TryGetBuffer(approachOwner.m_Owner, out var ownerSubLanes))
+        {
+            busDebugInfo.UpstreamSiblingSubLaneCount = (byte)System.Math.Min(ownerSubLanes.Length, 255);
+            for (int i = 0; i < ownerSubLanes.Length; i++)
+            {
+                Entity candidateEntity = ownerSubLanes[i].m_SubLane;
+                if (candidateEntity == approachLaneEntity
+                    || !IsPublicOnlyCarLane(job, candidateEntity)
+                    || !job.m_LaneData.TryGetComponent(candidateEntity, out var candidateLane))
+                {
+                    continue;
+                }
+
+                if (candidateLane.m_EndNode.Equals(approachLane.m_StartNode))
+                {
+                    siblingCandidate = candidateEntity;
+                    busDebugInfo.UpstreamBusLaneCandidateCount++;
+                    break;
+                }
+            }
+        }
+
+        busDebugInfo.UpstreamSiblingEntity = siblingCandidate;
+
+        // Strategy 2: Connected edges of the junction node.
+        // The approach lane is owned by a junction node (or an edge owned by the node).
+        // Walk connected edges to find upstream road edges with PublicOnly car lanes.
+        Entity connectedEdgeCandidate = Entity.Null;
+        Entity junctionEntity = approachOwner.m_Owner;
+
+        // If the owner is an edge rather than a node, step up one more level.
+        if (!job.m_ConnectedEdges.TryGetBuffer(junctionEntity, out var connectedEdges))
+        {
+            if (job.m_OwnerData.TryGetComponent(junctionEntity, out var edgeOwner))
+            {
+                junctionEntity = edgeOwner.m_Owner;
+                job.m_ConnectedEdges.TryGetBuffer(junctionEntity, out connectedEdges);
+            }
+        }
+
+        if (connectedEdges.IsCreated && connectedEdges.Length > 0)
+        {
+            busDebugInfo.UpstreamConnectedEdgeCount = (byte)System.Math.Min(connectedEdges.Length, 255);
+            Entity ownerEdgeEntity = approachOwner.m_Owner;
+
+            for (int i = 0; i < connectedEdges.Length; i++)
+            {
+                Entity edgeEntity = connectedEdges[i].m_Edge;
+                if (edgeEntity == ownerEdgeEntity
+                    || !job.m_SubLanes.TryGetBuffer(edgeEntity, out var edgeSubLanes))
+                {
+                    continue;
+                }
+
+                for (int j = 0; j < edgeSubLanes.Length; j++)
+                {
+                    Entity candidateEntity = edgeSubLanes[j].m_SubLane;
+                    if (!IsPublicOnlyCarLane(job, candidateEntity)
+                        || !job.m_LaneData.TryGetComponent(candidateEntity, out var candidateLane))
+                    {
+                        continue;
+                    }
+
+                    // Check connectivity: candidate lane ends where approach lane starts.
+                    // Try direct node equality first, then owner-index equality as fallback.
+                    bool connected = candidateLane.m_EndNode.Equals(approachLane.m_StartNode)
+                        || candidateLane.m_EndNode.GetOwnerIndex() == approachLane.m_StartNode.GetOwnerIndex();
+
+                    if (connected)
+                    {
+                        connectedEdgeCandidate = candidateEntity;
+                        busDebugInfo.UpstreamBusLaneCandidateCount++;
+                        break;
+                    }
+                }
+
+                if (connectedEdgeCandidate != Entity.Null)
+                {
+                    break;
+                }
+            }
+        }
+
+        busDebugInfo.UpstreamConnectedEdgeEntity = connectedEdgeCandidate;
+
+        // Classify result.
+        if (siblingCandidate != Entity.Null && connectedEdgeCandidate != Entity.Null)
+        {
+            busDebugInfo.UpstreamDiscovery = BusUpstreamDiscovery.BothMatch;
+        }
+        else if (siblingCandidate != Entity.Null)
+        {
+            busDebugInfo.UpstreamDiscovery = BusUpstreamDiscovery.SiblingMatch;
+        }
+        else if (connectedEdgeCandidate != Entity.Null)
+        {
+            busDebugInfo.UpstreamDiscovery = BusUpstreamDiscovery.ConnectedEdgeMatch;
+        }
+        else
+        {
+            busDebugInfo.UpstreamDiscovery = BusUpstreamDiscovery.NoCandidates;
+        }
+    }
+
     private static bool TryBuildEarlyApproachRequestForPublicCarLane(
         PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
         Entity signaledLaneEntity,
@@ -991,6 +1121,12 @@ public static class TransitSignalPriorityRuntime
             m_BusCurrentLaneEntity = freshDebugInfo.BusDebugInfo.CurrentLaneEntity,
             m_BusMatchedVehicleEntity = freshDebugInfo.BusDebugInfo.MatchedVehicleEntity,
             m_BusPetitionerEntity = freshDebugInfo.BusDebugInfo.PetitionerEntity,
+            m_BusUpstreamDiscovery = (byte)freshDebugInfo.BusDebugInfo.UpstreamDiscovery,
+            m_BusUpstreamSiblingEntity = freshDebugInfo.BusDebugInfo.UpstreamSiblingEntity,
+            m_BusUpstreamConnectedEdgeEntity = freshDebugInfo.BusDebugInfo.UpstreamConnectedEdgeEntity,
+            m_BusUpstreamSiblingSubLaneCount = freshDebugInfo.BusDebugInfo.UpstreamSiblingSubLaneCount,
+            m_BusUpstreamConnectedEdgeCount = freshDebugInfo.BusDebugInfo.UpstreamConnectedEdgeCount,
+            m_BusUpstreamBusLaneCandidateCount = freshDebugInfo.BusDebugInfo.UpstreamBusLaneCandidateCount,
             m_TrackSignaledLaneProbe = (byte)freshDebugInfo.TrackSignaledLaneProbe,
             m_TrackApproachLaneProbe = (byte)freshDebugInfo.TrackApproachLaneProbe,
             m_TrackUpstreamLaneProbe = (byte)freshDebugInfo.TrackUpstreamLaneProbe,
@@ -1024,7 +1160,8 @@ public static class TransitSignalPriorityRuntime
             || debugInfo.PublicTransportObjectCount > 0
             || debugInfo.CurrentLaneFlags != 0
             || debugInfo.CurrentLaneEntity != Entity.Null
-            || debugInfo.MatchedVehicleEntity != Entity.Null;
+            || debugInfo.MatchedVehicleEntity != Entity.Null
+            || debugInfo.UpstreamDiscovery != BusUpstreamDiscovery.None;
     }
 
     private static bool HasVisibleBusProbeDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)
@@ -1036,7 +1173,8 @@ public static class TransitSignalPriorityRuntime
             || debugInfo.m_BusPublicTransportObjectCount > 0
             || debugInfo.m_BusCurrentLaneFlags != 0
             || debugInfo.m_BusCurrentLaneEntity != Entity.Null
-            || debugInfo.m_BusMatchedVehicleEntity != Entity.Null;
+            || debugInfo.m_BusMatchedVehicleEntity != Entity.Null
+            || debugInfo.m_BusUpstreamDiscovery != (byte)BusUpstreamDiscovery.None;
     }
 
     private static bool HasVisibleTrackDiagnostics(TransitSignalPriorityRuntimeDebugInfo debugInfo)

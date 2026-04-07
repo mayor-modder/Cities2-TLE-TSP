@@ -54,6 +54,13 @@ public struct TransitSignalPriorityRuntimeDebugInfo : IComponentData
     public Entity m_BusCurrentLaneEntity;
     public Entity m_BusMatchedVehicleEntity;
     public Entity m_BusPetitionerEntity;
+    // Encoded BusUpstreamDiscovery.
+    public byte m_BusUpstreamDiscovery;
+    public Entity m_BusUpstreamSiblingEntity;
+    public Entity m_BusUpstreamConnectedEdgeEntity;
+    public byte m_BusUpstreamSiblingSubLaneCount;
+    public byte m_BusUpstreamConnectedEdgeCount;
+    public byte m_BusUpstreamBusLaneCandidateCount;
     public byte m_TrackSignaledLaneProbe;
     public byte m_TrackApproachLaneProbe;
     public byte m_TrackUpstreamLaneProbe;
