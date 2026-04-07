@@ -554,7 +554,6 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                         continue;
                         
                     EntityManager.TryGetBuffer<SignalDelayData>(entity, false, out var buffer);
-                    bool bufferModified = false;
                     
                     for (int i = buffer.Length - 1; i >= 0; i--)
                     {
@@ -565,7 +564,6 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                         {
                             buffer.RemoveAt(i);
                             removedCount++;
-                            bufferModified = true;
                             continue;
                         }
                         
@@ -588,7 +586,6 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                         {
                             buffer[i] = delayData;
                             migratedCount++;
-                            bufferModified = true;
                         }
                     }
                 }
