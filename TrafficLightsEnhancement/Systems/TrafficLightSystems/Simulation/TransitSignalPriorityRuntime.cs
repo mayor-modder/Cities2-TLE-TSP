@@ -253,6 +253,7 @@ public static class TransitSignalPriorityRuntime
                     logicSettings,
                     isTramTrackLane,
                     isPublicCarLane,
+                    hasValidatedBusOccupant: false,
                     out var logicRequest))
             {
                 continue;

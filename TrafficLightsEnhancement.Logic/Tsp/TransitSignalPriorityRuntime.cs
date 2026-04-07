@@ -6,20 +6,6 @@ public static class TransitSignalPriorityRuntime
         TransitSignalPrioritySettings settings,
         bool isTrackLane,
         bool isPublicCarLane,
-        out TspRequest request)
-    {
-        return TryBuildRequestForLane(
-            settings,
-            isTrackLane,
-            isPublicCarLane,
-            hasValidatedBusOccupant: false,
-            out request);
-    }
-
-    public static bool TryBuildRequestForLane(
-        TransitSignalPrioritySettings settings,
-        bool isTrackLane,
-        bool isPublicCarLane,
         bool hasValidatedBusOccupant,
         out TspRequest request)
     {
