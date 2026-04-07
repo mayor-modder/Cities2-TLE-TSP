@@ -889,7 +889,7 @@ public static class TransitSignalPriorityRuntime
         busDebugInfo.SignaledLaneEntity = signaledLaneEntity;
         busDebugInfo.ApproachLaneEntity = approachLaneEntity;
 
-        if (!job.m_LaneObjects.TryGetBuffer(approachLaneEntity, out var laneObjects))
+        if (!job.m_LaneObjects.TryGetBuffer(approachLaneEntity, out var laneObjects) || laneObjects.Length == 0)
         {
             busDebugInfo.EarlyProbeResult = BusEarlyProbeResult.NoLaneObjects;
             return false;
