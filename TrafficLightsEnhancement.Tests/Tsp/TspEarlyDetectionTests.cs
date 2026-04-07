@@ -84,6 +84,60 @@ public class TspEarlyDetectionTests
     }
 
     [Fact]
+    public void Bus_early_probe_reports_no_lane_objects_when_buffer_is_empty()
+    {
+        BusEarlyProbeResult result = EarlyApproachDetection.EvaluateBusEarlyProbe(
+            laneObjectCount: 0,
+            publicTransportObjectCount: 0,
+            matchedApproachLane: false,
+            reachedThreshold: false,
+            blocked: false,
+            reachedLaneEnd: false,
+            suppressionFlags: TransitApproachSuppressionFlags.None);
+
+        Assert.Equal(BusEarlyProbeResult.NoLaneObjects, result);
+    }
+
+    [Fact]
+    public void Bus_early_probe_reports_lane_mismatch_when_public_transport_exists_but_not_on_scanned_lane()
+    {
+        BusEarlyProbeResult result = EarlyApproachDetection.EvaluateBusEarlyProbe(
+            laneObjectCount: 2,
+            publicTransportObjectCount: 1,
+            matchedApproachLane: false,
+            reachedThreshold: false,
+            blocked: false,
+            reachedLaneEnd: false,
+            suppressionFlags: TransitApproachSuppressionFlags.None);
+
+        Assert.Equal(BusEarlyProbeResult.CurrentLaneMismatch, result);
+    }
+
+    [Fact]
+    public void Bus_petitioner_probe_reports_missing_petitioner_when_signal_has_none()
+    {
+        BusPetitionerProbeResult result = EarlyApproachDetection.EvaluateBusPetitionerProbe(
+            petitionerExists: false,
+            petitionerHasPublicTransport: false,
+            petitionerFrontLaneMatches: false,
+            petitionerRearLaneMatches: false);
+
+        Assert.Equal(BusPetitionerProbeResult.MissingPetitioner, result);
+    }
+
+    [Fact]
+    public void Bus_petitioner_probe_reports_match_when_public_transport_petitioner_reaches_the_lane()
+    {
+        BusPetitionerProbeResult result = EarlyApproachDetection.EvaluateBusPetitionerProbe(
+            petitionerExists: true,
+            petitionerHasPublicTransport: true,
+            petitionerFrontLaneMatches: true,
+            petitionerRearLaneMatches: false);
+
+        Assert.Equal(BusPetitionerProbeResult.Match, result);
+    }
+
+    [Fact]
     public void Scan_wide_selection_falls_back_to_petitioner_when_early_request_is_absent()
     {
         TspRequest petitioner = new(TspSource.Track, strength: 0.8f, extensionEligible: true);

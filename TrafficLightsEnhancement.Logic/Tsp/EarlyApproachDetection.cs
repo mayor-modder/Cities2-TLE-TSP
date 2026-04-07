@@ -43,6 +43,26 @@ public readonly struct IndexedTrackProbeDiagnostics
     public IndexedTrackProbeMatch UpstreamLane { get; }
 }
 
+public enum BusEarlyProbeResult : byte
+{
+    None = 0,
+    NoLaneObjects = 1,
+    NoPublicTransportLaneObjects = 2,
+    CurrentLaneMismatch = 3,
+    Suppressed = 4,
+    BelowThreshold = 5,
+    Match = 6,
+}
+
+public enum BusPetitionerProbeResult : byte
+{
+    None = 0,
+    MissingPetitioner = 1,
+    NotPublicTransport = 2,
+    LaneMismatch = 3,
+    Match = 4,
+}
+
 public static class EarlyApproachDetection
 {
     public static TEntity ResolveApproachLane<TEntity>(TEntity signaledLane, TEntity sourceLane, TEntity nullLane)
@@ -139,6 +159,69 @@ public static class EarlyApproachDetection
         }
 
         return default;
+    }
+
+    public static BusEarlyProbeResult EvaluateBusEarlyProbe(
+        int laneObjectCount,
+        int publicTransportObjectCount,
+        bool matchedApproachLane,
+        bool reachedThreshold,
+        bool blocked,
+        bool reachedLaneEnd,
+        TransitApproachSuppressionFlags suppressionFlags)
+    {
+        if (laneObjectCount == 0)
+        {
+            return BusEarlyProbeResult.NoLaneObjects;
+        }
+
+        if (publicTransportObjectCount == 0)
+        {
+            return BusEarlyProbeResult.NoPublicTransportLaneObjects;
+        }
+
+        if (!matchedApproachLane)
+        {
+            return BusEarlyProbeResult.CurrentLaneMismatch;
+        }
+
+        if ((suppressionFlags & (TransitApproachSuppressionFlags.Boarding
+            | TransitApproachSuppressionFlags.Arriving
+            | TransitApproachSuppressionFlags.RequireStop)) != 0)
+        {
+            return BusEarlyProbeResult.Suppressed;
+        }
+
+        if (!reachedThreshold || blocked || reachedLaneEnd)
+        {
+            return BusEarlyProbeResult.BelowThreshold;
+        }
+
+        return BusEarlyProbeResult.Match;
+    }
+
+    public static BusPetitionerProbeResult EvaluateBusPetitionerProbe(
+        bool petitionerExists,
+        bool petitionerHasPublicTransport,
+        bool petitionerFrontLaneMatches,
+        bool petitionerRearLaneMatches)
+    {
+        if (!petitionerExists)
+        {
+            return BusPetitionerProbeResult.MissingPetitioner;
+        }
+
+        if (!petitionerHasPublicTransport)
+        {
+            return BusPetitionerProbeResult.NotPublicTransport;
+        }
+
+        if (!petitionerFrontLaneMatches && !petitionerRearLaneMatches)
+        {
+            return BusPetitionerProbeResult.LaneMismatch;
+        }
+
+        return BusPetitionerProbeResult.Match;
     }
 
     public static TransitApproachScanState RecordLaneRequests(
