@@ -4,16 +4,28 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      root-npm:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/TrafficLightsEnhancement/UI"
     schedule:
       interval: "weekly"
+    groups:
+      ui-npm:
+        patterns:
+          - "*"
 
   - package-ecosystem: "nuget"
     directories:
@@ -22,3 +34,7 @@ updates:
       - "/TrafficLightsEnhancement.Serialization.Tests"
     schedule:
       interval: "weekly"
+    groups:
+      test-nuget:
+        patterns:
+          - "*"
