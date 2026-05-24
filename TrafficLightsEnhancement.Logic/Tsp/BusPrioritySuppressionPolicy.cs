@@ -55,7 +55,9 @@ public static class BusPrioritySuppressionPolicy
         bool isRequireStopOnlySample = !isArriving && requiresStop;
         if (stopRelation == BusStopRelation.Unknown && isRequireStopOnlySample)
         {
-            return new BusPrioritySuppressionDecision(false, BusPrioritySuppressionReason.None);
+            return isDedicatedBusApproach || isVehicleMoving
+                ? new BusPrioritySuppressionDecision(false, BusPrioritySuppressionReason.None)
+                : new BusPrioritySuppressionDecision(true, BusPrioritySuppressionReason.UnknownStopRelation);
         }
 
         return stopRelation switch

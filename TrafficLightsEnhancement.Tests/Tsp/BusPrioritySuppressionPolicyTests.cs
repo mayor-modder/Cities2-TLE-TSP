@@ -97,6 +97,19 @@ public class BusPrioritySuppressionPolicyTests
     }
 
     [Fact]
+    public void Unknown_stop_relation_suppresses_stopped_mixed_lane_require_stop_bus()
+    {
+        BusPrioritySuppressionDecision decision = BusPrioritySuppressionPolicy.EvaluateStopSuppression(
+            TransitApproachSuppressionFlags.RequireStop,
+            BusStopRelation.Unknown,
+            isDedicatedBusApproach: false,
+            isVehicleMoving: false);
+
+        Assert.True(decision.IsSuppressed);
+        Assert.Equal(BusPrioritySuppressionReason.UnknownStopRelation, decision.Reason);
+    }
+
+    [Fact]
     public void Unknown_stop_relation_still_suppresses_arriving_bus_only_sample()
     {
         BusPrioritySuppressionDecision decision = BusPrioritySuppressionPolicy.EvaluateStopSuppression(
