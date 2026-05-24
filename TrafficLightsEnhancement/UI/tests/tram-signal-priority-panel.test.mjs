@@ -457,6 +457,22 @@ test("bus priority can select target group at normal transition without aggressi
   assert.doesNotMatch(getNextSource, /if\s*\(\s*!hasTspRequest\s*\|\|\s*!TspRuntime\.ShouldAggressivelyPreemptToTargetGroup/);
 });
 
+test("custom phase text fields preserve numeric regex escapes", async () => {
+  const panel = await source("src/mods/components/custom-phase-tool/main-panel/sub-panel.tsx");
+  const regexLiterals = [...panel.matchAll(/textFieldRegExp="([^"]+)"/g)].map((match) => match[1]);
+  const regexes = regexLiterals.map((literal) => new RegExp(Function(`return "${literal}"`)()));
+
+  for (const regex of regexes.slice(0, 5)) {
+    assert.match("1.2", regex);
+    assert.doesNotMatch("dxd", regex);
+  }
+
+  const smoothingRegex = regexes[5];
+  assert.match("0.5", smoothingRegex);
+  assert.match("1.0", smoothingRegex);
+  assert.doesNotMatch("0d5", smoothingRegex);
+});
+
 test("bus and custom phase docs do not carry stale review notes", async () => {
   const busResearch = await repoSource("../docs/bus-signal-priority-research.md");
   const tspArchitecture = await repoSource("../docs/tsp-architecture.md");

@@ -478,6 +478,8 @@ $RECYCLE.BIN/
 *.lnk
 
 Managed/
+Managed.zip
+.wrangler/
 
 # Local agent planning/specification notes. Keep these available on disk for
 # Codex/Claude sessions without publishing them as repository artifacts.

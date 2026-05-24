@@ -1,0 +1,33 @@
+name: Dependency Submission
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  submit-nuget:
+    name: Submit NuGet dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore Cities2-TrafficLightsEnhancement.sln
+
+      - name: Submit dependency snapshot
+        uses: advanced-security/component-detection-dependency-submission-action@v0.1.0

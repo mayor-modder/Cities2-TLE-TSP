@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cities2-tle-extended-dependencies",
+  "main": "managed-dependencies-worker.js",
+  "compatibility_date": "2026-05-23",
+  "workers_dev": true,
+  "r2_buckets": [
+    {
+      "binding": "DEPENDENCIES_BUCKET",
+      "bucket_name": "cities2-tle-extended-dependencies"
+    }
+  ]
+}

@@ -428,7 +428,7 @@ export default function SubPanel(props: {
                                 step={0.1}
                                 defaultValue={1}
                                 enableTextField
-                                textFieldRegExp="^\d{0,2}(\.\d{0,1})?$"
+                                textFieldRegExp="^\\d{0,2}(\\.\\d{0,1})?$"
                                 triggerName="CallUpdateCustomPhaseData"
                                 tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.CarWeight]") ?? "Weight multiplier for car lanes when calculating phase priority."}
                             />
@@ -443,7 +443,7 @@ export default function SubPanel(props: {
                                 step={0.1}
                                 defaultValue={2}
                                 enableTextField
-                                textFieldRegExp="^\d{0,2}(\.\d{0,1})?$"
+                                textFieldRegExp="^\\d{0,2}(\\.\\d{0,1})?$"
                                 triggerName="CallUpdateCustomPhaseData"
                                 tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.BusWeight]") ?? "Weight multiplier for public transport (bus) lanes."}
                             />
@@ -458,7 +458,7 @@ export default function SubPanel(props: {
                                 step={0.1}
                                 defaultValue={3}
                                 enableTextField
-                                textFieldRegExp="^\d{0,2}(\.\d{0,1})?$"
+                                textFieldRegExp="^\\d{0,2}(\\.\\d{0,1})?$"
                                 triggerName="CallUpdateCustomPhaseData"
                                 tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]") ?? "Weight multiplier for tram/train tracks."}
                             />
@@ -473,7 +473,7 @@ export default function SubPanel(props: {
                                 step={0.1}
                                 defaultValue={1}
                                 enableTextField
-                                textFieldRegExp="^\d{0,2}(\.\d{0,1})?$"
+                                textFieldRegExp="^\\d{0,2}(\\.\\d{0,1})?$"
                                 triggerName="CallUpdateCustomPhaseData"
                                 tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.PedestrianWeight]") ?? "Weight multiplier for pedestrian crossings."}
                             />
@@ -488,7 +488,7 @@ export default function SubPanel(props: {
                                 step={0.1}
                                 defaultValue={1}
                                 enableTextField
-                                textFieldRegExp="^\d{0,2}(\.\d{0,1})?$"
+                                textFieldRegExp="^\\d{0,2}(\\.\\d{0,1})?$"
                                 triggerName="CallUpdateCustomPhaseData"
                                 tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.BicycleWeight]") ?? "Weight multiplier for bicycle lanes."}
                             />
@@ -502,7 +502,7 @@ export default function SubPanel(props: {
                                 step={0.1}
                                 defaultValue={0.5}
                                 enableTextField
-                                textFieldRegExp="^(0(\.\d{0,1})?|1(\.0)?)$"
+                                textFieldRegExp="^(0(\\.\\d{0,1})?|1(\\.0)?)$"
                                 triggerName="CallUpdateCustomPhaseData"
                                 tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.SmoothingFactor]") ?? "How much to blend current calculations with previous values. 0 = no smoothing (instant changes), 1 = full smoothing (very gradual changes)."}
                             />

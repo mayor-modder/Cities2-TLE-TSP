@@ -1,0 +1,40 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      root-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/TrafficLightsEnhancement/UI"
+    schedule:
+      interval: "weekly"
+    groups:
+      ui-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "nuget"
+    directories:
+      - "/TrafficLightsEnhancement.Tests"
+      - "/TrafficLightsEnhancement.Ecs.Tests"
+      - "/TrafficLightsEnhancement.Serialization.Tests"
+    schedule:
+      interval: "weekly"
+    groups:
+      test-nuget:
+        patterns:
+          - "*"

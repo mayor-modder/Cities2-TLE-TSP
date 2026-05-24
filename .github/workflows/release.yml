@@ -22,26 +22,67 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         ref: ${{ inputs.commit-hash }}
 
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.x"
+
     - name: Retrieve dependencies
+      env:
+        DEPENDENCIES_URL: ${{ secrets.DEPENDENCIESURL }}
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
       run: |
-        wget --quiet --output-document=Managed.zip ${{ secrets.DependenciesUrl }}/Managed.zip
+        if [[ -n "${DEPENDENCIES_URL}" ]]; then
+          if [[ "${DEPENDENCIES_URL}" =~ \.zip(\?|$) ]]; then
+            download_url="${DEPENDENCIES_URL}"
+          else
+            download_url="${DEPENDENCIES_URL%/}/Managed.zip"
+          fi
+
+          wget --quiet --output-document=Managed.zip "${download_url}"
+        elif [[ -n "${R2_ACCOUNT_ID}" && -n "${R2_ACCESS_KEY_ID}" && -n "${R2_SECRET_ACCESS_KEY}" && -n "${R2_BUCKET}" ]]; then
+          python -m pip install --disable-pip-version-check --quiet boto3
+          python <<'PY'
+        import os
+        import boto3
+
+        endpoint_url = f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
+        object_key = os.environ.get("R2_OBJECT_KEY") or "Managed.zip"
+        client = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+            region_name="auto",
+        )
+        client.download_file(os.environ["R2_BUCKET"], object_key, "Managed.zip")
+        PY
+        else
+          echo "::error::Configure either DependenciesUrl or R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_BUCKET."
+          exit 1
+        fi
+
         unzip Managed.zip -d .
         sha256sum ./Managed/*
         mkdir C2VM.TrafficLightsEnhancement
         mkdir C2VM.CommonLibraries
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 8.0.x
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: 20.x
 
