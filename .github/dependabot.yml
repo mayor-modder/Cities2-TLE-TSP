@@ -22,6 +22,25 @@ updates:
     directory: "/TrafficLightsEnhancement/UI"
     schedule:
       interval: "weekly"
+    # CS2's in-game UI host is sensitive to the React/TypeScript/Webpack
+    # toolchain. Update these manually only after building and testing in-game.
+    ignore:
+      - dependency-name: "@types/react"
+      - dependency-name: "@types/react-dom"
+      - dependency-name: "css-loader"
+      - dependency-name: "mini-css-extract-plugin"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "sass"
+      - dependency-name: "sass-loader"
+      - dependency-name: "style-loader"
+      - dependency-name: "styled-components"
+      - dependency-name: "swc-loader"
+      - dependency-name: "terser-webpack-plugin"
+      - dependency-name: "ts-loader"
+      - dependency-name: "typescript"
+      - dependency-name: "webpack"
+      - dependency-name: "webpack-cli"
     groups:
       ui-npm:
         patterns:
