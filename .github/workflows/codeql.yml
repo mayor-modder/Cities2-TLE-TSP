@@ -54,66 +54,39 @@ jobs:
           }
 
           if ($hasUrl) {
-            $dependenciesUrl = $env:DEPENDENCIES_URL.Trim()
-            if ($dependenciesUrl -match "\.zip(\?|$)") {
+            $dependenciesUrl = $env:DEPENDENCIES_URL.Trim().Trim([char]0xFEFF).Trim()
+            $dependenciesUri = [Uri]$dependenciesUrl
+
+            if ($dependenciesUri.AbsolutePath.TrimEnd("/") -ieq "/Managed.zip") {
               $downloadUrl = $dependenciesUrl
             } else {
-              $downloadUrl = "$($dependenciesUrl.TrimEnd('/'))/Managed.zip"
+              $downloadUri = [UriBuilder]$dependenciesUri
+              $downloadUri.Path = "$($downloadUri.Path.TrimEnd('/'))/Managed.zip"
+              $downloadUrl = $downloadUri.Uri.AbsoluteUri
             }
 
+            $redactedUri = [UriBuilder]([Uri]$downloadUrl)
+            $redactedUri.Query = ""
+            "Downloading dependencies from $($redactedUri.Uri.AbsoluteUri)"
+
             $downloaded = $false
-            $lastError = $null
-            $hostName = ([Uri]$downloadUrl).Host
-
             for ($attempt = 1; $attempt -le 6 -and !$downloaded; $attempt++) {
-              try {
-                Invoke-WebRequest -Uri $downloadUrl -OutFile Managed.zip
+              & curl.exe --fail --location --silent --show-error --retry 3 `
+                --output Managed.zip `
+                $downloadUrl
+
+              if ($LASTEXITCODE -eq 0) {
                 $downloaded = $true
-              } catch {
-                $lastError = $_
+                break
+              }
 
-                if ($_.Exception.Message -notmatch "No such host") {
-                  throw
-                }
-
-                $ipAddresses = @()
-                try {
-                  $dnsResponse = Invoke-RestMethod `
-                    -Headers @{ Accept = "application/dns-json" } `
-                    -Uri "https://cloudflare-dns.com/dns-query?name=$hostName&type=A"
-                  $ipAddresses += $dnsResponse.Answer |
-                    Where-Object { $_.type -eq 1 } |
-                    Select-Object -ExpandProperty data
-                } catch {
-                  $lastError = $_
-                }
-
-                if ($hostName -like "*.workers.dev") {
-                  $ipAddresses += @("104.21.61.80", "172.67.207.101")
-                }
-
-                foreach ($ipAddress in ($ipAddresses | Select-Object -Unique)) {
-                  & curl.exe --fail --location --silent --show-error --retry 3 --noproxy "*" `
-                    --resolve "${hostName}:443:${ipAddress}" `
-                    --output Managed.zip `
-                    $downloadUrl
-
-                  if ($LASTEXITCODE -eq 0) {
-                    $downloaded = $true
-                    break
-                  }
-                }
-
-                if (!$downloaded -and $attempt -lt 6) {
-                  Start-Sleep -Seconds 15
-                }
+              if ($attempt -lt 6) {
+                Start-Sleep -Seconds 15
               }
             }
 
             if (!$downloaded) {
-              "full-build=false" >> $env:GITHUB_OUTPUT
-              "Could not download the managed dependency bundle; scanning the dependency-light C# logic project for CodeQL."
-              exit 0
+              throw "Could not download the managed dependency bundle."
             }
           } else {
             if ([string]::IsNullOrWhiteSpace($env:R2_OBJECT_KEY)) {
@@ -141,6 +114,28 @@ jobs:
 
           if (!(Test-Path ".\Managed\Game.dll")) {
             throw "Managed.zip did not contain Managed\Game.dll."
+          }
+
+          if (!(Test-Path ".\Mod.props")) {
+            @'
+          <Project>
+            <PropertyGroup>
+              <CustomManagedPath Condition="'$(CustomManagedPath)' == ''">$([System.Environment]::GetEnvironmentVariable('CSII_MANAGEDPATH', 'EnvironmentVariableTarget.User'))</CustomManagedPath>
+              <ModPropsFile>$(MSBuildThisFileFullPath)</ModPropsFile>
+              <ModTargetsFile>$(MSBuildThisFileDirectory)Mod.targets</ModTargetsFile>
+              <AssemblySearchPaths>$(CustomManagedPath);$(AssemblySearchPaths)</AssemblySearchPaths>
+            </PropertyGroup>
+            <ItemGroup>
+              <ReferencePath Include="$(CustomManagedPath)\*.dll" />
+            </ItemGroup>
+          </Project>
+          '@ | Set-Content -Encoding utf8 -Path .\Mod.props
+          }
+
+          if (!(Test-Path ".\Mod.targets")) {
+            @'
+          <Project />
+          '@ | Set-Content -Encoding utf8 -Path .\Mod.targets
           }
 
           [Environment]::SetEnvironmentVariable("CSII_TOOLPATH", (Get-Location).Path, "User")
