@@ -18,8 +18,8 @@ import {
     setPattern,
     toggleOption,
     setPedestrianDuration,
-    toggleTramSignalPriority,
-    toggleBusSignalPriority,
+    toggleTransitSignalPriorityForTrams,
+    toggleTransitSignalPriorityForBuses,
     savePanel,
     exitPanel,
     setPanelState,
@@ -67,11 +67,11 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
             enableTextField: false,
         };
         const showTransitSignalPriority = !!(
-            mainData.tramSignalPriority?.isVisible
-            || mainData.busSignalPriority?.isVisible
-            || mainData.tramSignalPriority?.diagnostics
+            mainData.transitSignalPriority?.tram.isVisible
+            || mainData.transitSignalPriority?.bus.isVisible
+            || mainData.transitSignalPriority?.diagnostics
         );
-        const transitSignalPriorityDiagnostics = mainData.tramSignalPriority?.diagnostics;
+        const transitSignalPriorityDiagnostics = mainData.transitSignalPriority?.diagnostics;
 
         return (
             <div className={styles.contentContainer}>
@@ -118,38 +118,38 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                         <>
                             <Divider />
                             <Title itemType="title" title="TransitSignalPriority" />
-                            {mainData.tramSignalPriority?.isVisible && (
+                            {mainData.transitSignalPriority?.tram.isVisible && (
                                 <>
                                     <Row
-                                        hoverEffect={mainData.tramSignalPriority.isEditable}
-                                        onClick={mainData.tramSignalPriority.isEditable
-                                            ? () => toggleTramSignalPriority(!mainData.tramSignalPriority!.isEnabled)
+                                        hoverEffect={mainData.transitSignalPriority.tram.isEditable}
+                                        onClick={mainData.transitSignalPriority.tram.isEditable
+                                            ? () => toggleTransitSignalPriorityForTrams(!mainData.transitSignalPriority!.tram.isEnabled)
                                             : undefined}
                                     >
-                                        <Checkbox isChecked={mainData.tramSignalPriority.isEnabled} />
-                                        <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTramSignalPriority]`) ?? "EnableTramSignalPriority"}</div>
+                                        <Checkbox isChecked={mainData.transitSignalPriority.tram.isEnabled} />
+                                        <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForTrams]`) ?? "EnableTransitPriorityForTrams"}</div>
                                     </Row>
-                                    {mainData.tramSignalPriority.statusLabel && (
+                                    {mainData.transitSignalPriority.tram.statusLabel && (
                                         <Row hoverEffect={false}>
-                                            <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${mainData.tramSignalPriority.statusLabel}]`) ?? mainData.tramSignalPriority.statusLabel}</div>
+                                            <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${mainData.transitSignalPriority.tram.statusLabel}]`) ?? mainData.transitSignalPriority.tram.statusLabel}</div>
                                         </Row>
                                     )}
                                 </>
                             )}
-                            {mainData.busSignalPriority?.isVisible && (
+                            {mainData.transitSignalPriority?.bus.isVisible && (
                                 <>
                                     <Row
-                                        hoverEffect={mainData.busSignalPriority.isEditable}
-                                        onClick={mainData.busSignalPriority.isEditable
-                                            ? () => toggleBusSignalPriority(!mainData.busSignalPriority!.isEnabled)
+                                        hoverEffect={mainData.transitSignalPriority.bus.isEditable}
+                                        onClick={mainData.transitSignalPriority.bus.isEditable
+                                            ? () => toggleTransitSignalPriorityForBuses(!mainData.transitSignalPriority!.bus.isEnabled)
                                             : undefined}
                                     >
-                                        <Checkbox isChecked={mainData.busSignalPriority.isEnabled} />
-                                        <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.EnableBusSignalPriority]`) ?? "EnableBusSignalPriority"}</div>
+                                        <Checkbox isChecked={mainData.transitSignalPriority.bus.isEnabled} />
+                                        <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForBuses]`) ?? "EnableTransitPriorityForBuses"}</div>
                                     </Row>
-                                    {mainData.busSignalPriority.statusLabel && (
+                                    {mainData.transitSignalPriority.bus.statusLabel && (
                                         <Row hoverEffect={false}>
-                                            <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${mainData.busSignalPriority.statusLabel}]`) ?? mainData.busSignalPriority.statusLabel}</div>
+                                            <div className={styles.contentLabel}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${mainData.transitSignalPriority.bus.statusLabel}]`) ?? mainData.transitSignalPriority.bus.statusLabel}</div>
                                         </Row>
                                     )}
                                 </>

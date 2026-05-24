@@ -157,7 +157,7 @@ public partial class UISystem: ExtendedUISystemBase
         return m_MainPanelState == MainPanelState.Main
             && m_SelectedEntity != Entity.Null
             && Mod.m_Setting != null
-            && Mod.m_Setting.m_ShowTramSignalPriorityDiagnostics;
+            && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics;
     }
 
     public void SetMainPanelState(MainPanelState state)

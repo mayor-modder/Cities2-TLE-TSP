@@ -2,7 +2,7 @@
 
 Traffic groups are inherited Traffic Lights Enhancement behavior for coordinating
 multiple signalized junctions. TLE Extended keeps this save/component model for
-drop-in compatibility, and Tram Signal Priority builds around it rather than
+drop-in compatibility, and Transit Signal Priority builds around it rather than
 rewriting it.
 
 This document is maintainer-facing. It describes the current implementation,

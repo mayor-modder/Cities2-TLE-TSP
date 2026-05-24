@@ -101,8 +101,8 @@ public partial class UISystem
         CreateTrigger<uint>("SetPattern", SetPattern);
         CreateTrigger<uint>("ToggleOption", ToggleOption);
         CreateTrigger<float>("SetPedestrianDuration", SetPedestrianDuration);
-        CreateTrigger<bool>("ToggleTramSignalPriority", ToggleTramSignalPriority);
-        CreateTrigger<bool>("ToggleBusSignalPriority", ToggleBusSignalPriority);
+        CreateTrigger<bool>("ToggleTransitSignalPriorityForTrams", ToggleTransitSignalPriorityForTrams);
+        CreateTrigger<bool>("ToggleTransitSignalPriorityForBuses", ToggleTransitSignalPriorityForBuses);
         CreateTrigger<string>("CallMainPanelUpdatePosition", CallMainPanelUpdatePosition);
         CreateTrigger("SavePanel", SavePanel);
         CreateTrigger("ExitPanel", ExitPanel);
@@ -359,10 +359,10 @@ public partial class UISystem
             TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(m_SelectedEntity)
                 ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(m_SelectedEntity)
                 : TransitSignalPrioritySettings.CreateDefault();
-            string tramStatusLabel = isTrafficGroupFollower ? "TramSignalPriorityFollowerUnavailable" : null;
-            string busStatusLabel = isTrafficGroupFollower ? "BusSignalPriorityFollowerUnavailable" : null;
-            object tspDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTramSignalPriorityDiagnostics
-                ? GetTramSignalPriorityDiagnostics(m_SelectedEntity, tspSettings)
+            string tramStatusLabel = isTrafficGroupFollower ? "TramTransitPriorityFollowerUnavailable" : null;
+            string busStatusLabel = isTrafficGroupFollower ? "BusTransitPriorityFollowerUnavailable" : null;
+            object tspDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics
+                ? GetTransitSignalPriorityDiagnostics(m_SelectedEntity, tspSettings)
                 : null;
 
             var availablePatterns = new ArrayList();
@@ -396,20 +396,23 @@ public partial class UISystem
                 hasLaneDirectionTool = EntityManager.HasBuffer<C2VM.CommonLibraries.LaneSystem.CustomLaneDirection>(m_SelectedEntity),
                 hasUnsavedChanges = m_ShowNotificationUnsaved,
                 isCustomPhaseMode,
-                tramSignalPriority = new
+                transitSignalPriority = new
                 {
-                    isVisible = true,
-                    isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
-                    isEditable = !isTrafficGroupFollower,
-                    statusLabel = tramStatusLabel,
+                    tram = new
+                    {
+                        isVisible = true,
+                        isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
+                        isEditable = !isTrafficGroupFollower,
+                        statusLabel = tramStatusLabel
+                    },
+                    bus = new
+                    {
+                        isVisible = true,
+                        isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
+                        isEditable = !isTrafficGroupFollower,
+                        statusLabel = busStatusLabel
+                    },
                     diagnostics = tspDiagnostics
-                },
-                busSignalPriority = new
-                {
-                    isVisible = true,
-                    isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
-                    isEditable = !isTrafficGroupFollower,
-                    statusLabel = busStatusLabel
                 }
             };
         }
@@ -841,12 +844,12 @@ public partial class UISystem
         m_MainPanelBinding.Update();
     }
 
-    protected void ToggleTramSignalPriority(bool enabled)
+    protected void ToggleTransitSignalPriorityForTrams(bool enabled)
     {
         ToggleTransitSignalPrioritySource(enabled, allowTrackRequests: true);
     }
 
-    protected void ToggleBusSignalPriority(bool enabled)
+    protected void ToggleTransitSignalPriorityForBuses(bool enabled)
     {
         ToggleTransitSignalPrioritySource(enabled, allowTrackRequests: false);
     }
@@ -913,7 +916,7 @@ public partial class UISystem
         m_MainPanelBinding.Update();
     }
 
-    private object GetTramSignalPriorityDiagnostics(Entity entity, TransitSignalPrioritySettings settings)
+    private object GetTransitSignalPriorityDiagnostics(Entity entity, TransitSignalPrioritySettings settings)
     {
         bool hasTrafficLights = EntityManager.TryGetComponent(entity, out TrafficLights trafficLights);
         bool hasRuntimeDebug = EntityManager.TryGetComponent(entity, out TransitSignalPriorityRuntimeDebugInfo runtimeDebug);

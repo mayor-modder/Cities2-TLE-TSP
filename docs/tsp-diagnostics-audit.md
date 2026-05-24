@@ -1,6 +1,6 @@
 # TSP Diagnostics Cost And Trace Audit
 
-This document records the diagnostics audit for Tram Signal Priority (TSP).
+This document records the diagnostics audit for Transit Signal Priority (TSP).
 
 ## Summary
 
@@ -12,7 +12,7 @@ only, and stale/non-traffic-light settings do not trigger rail transit scans.
 
 ## UI Diagnostics Gating
 
-The user-facing setting is `Settings.m_ShowTramSignalPriorityDiagnostics`.
+The user-facing setting is `Settings.m_ShowTransitSignalPriorityDiagnostics`.
 Defaults:
 
 - `false` in settings defaults

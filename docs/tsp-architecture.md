@@ -1,6 +1,6 @@
-# Tram Signal Priority Architecture
+# Transit Signal Priority Architecture
 
-This document maps the Tram Signal Priority (TSP) implementation for future maintainers and coding agents. TSP is split between a pure C# decision layer, Unity/ECS runtime integration, and UI diagnostics. The pure layer owns policy and testable decisions; the Unity layer turns game state into requests and applies those requests to traffic-light state machines.
+This document maps the Transit Signal Priority (TSP) implementation for future maintainers and coding agents. TSP is split between a pure C# decision layer, Unity/ECS runtime integration, and UI diagnostics. The pure layer owns policy and testable decisions; the Unity layer turns game state into requests and applies those requests to traffic-light state machines.
 
 ## Quick Map
 
@@ -36,7 +36,7 @@ Key files:
 Important boundary conventions:
 
 - Signal groups in game/ECS data are 1-based. Pure phase indexes are usually 0-based. `TspOverrideEngine.ApplySignalGroupOverride()` is the bridge between those conventions.
-- `TspSource.PublicCar` and `m_AllowPublicCarRequests` power the soft Bus Signal Priority MVP. Bus requests are off by default, have lower priority than tram requests, and do not use aggressive tram-style minimum-green shortening.
+- `TspSource.PublicCar` and `m_AllowPublicCarRequests` power the soft Transit Signal Priority for buses MVP. Bus requests are off by default, have lower priority than tram requests, and do not use aggressive tram-style minimum-green shortening.
 - Request horizon value `120` is treated as a legacy default and normalized to `10`. Changing that behavior affects compatibility with previously saved TSP settings.
 
 ## Saved Settings And Runtime Components
@@ -141,20 +141,22 @@ The UI binding layer is [`TrafficLightsEnhancement/Systems/UI/UISystem.UIBInding
 Selected panel flow:
 
 1. `GetMainPanel()` reads the selected entity's `TransitSignalPrioritySettings`, defaulting to `CreateDefault()` if the component is absent.
-2. It attaches `mainData.tramSignalPriority` with visibility, enabled/editable state, status label, and optional diagnostics.
-3. TypeScript consumes the binding through `useMainPanel()` in [`UI/src/mods/components/main-panel/index.tsx`](../TrafficLightsEnhancement/UI/src/mods/components/main-panel/index.tsx).
-4. [`content.tsx`](../TrafficLightsEnhancement/UI/src/mods/components/main-panel/content.tsx) renders the TSP toggle, follower status, summary, recent events, and diagnostic rows.
+2. It attaches `mainData.transitSignalPriority.tram` with visibility, enabled/editable state, and status label.
+3. It attaches `mainData.transitSignalPriority.bus` with independent visibility, enabled/editable state, and status label.
+4. It attaches optional diagnostics under `mainData.transitSignalPriority.diagnostics`.
+5. TypeScript consumes the binding through `useMainPanel()` in [`UI/src/mods/components/main-panel/index.tsx`](../TrafficLightsEnhancement/UI/src/mods/components/main-panel/index.tsx).
+6. [`content.tsx`](../TrafficLightsEnhancement/UI/src/mods/components/main-panel/content.tsx) renders the TSP source toggles, follower status, summary, recent events, and diagnostic rows.
 
 The toggle path is also in `UISystem.UIBIndings.cs`:
 
-- The UI calls `toggleTramSignalPriority(...)`.
-- The C# trigger `ToggleTramSignalPriority(...)` creates or updates `TransitSignalPrioritySettings` when enabled.
+- The UI calls `toggleTransitSignalPriorityForTrams(...)` and `toggleTransitSignalPriorityForBuses(...)`.
+- The C# triggers `ToggleTransitSignalPriorityForTrams(...)` and `ToggleTransitSignalPriorityForBuses(...)` create or update `TransitSignalPrioritySettings` when enabled.
 - Disabling TSP removes `TransitSignalPrioritySettings` from the selected entity and marks it updated.
 - Follower intersections cannot toggle TSP; leader intersections remain editable.
 
-Diagnostics are off by default. The mod option is `Settings.m_ShowTramSignalPriorityDiagnostics`; `GetMainPanel()` only builds diagnostics when that option is true. `UISystem.SimulationUpdate()` also only auto-refreshes the selected panel for diagnostics when the same option is enabled.
+Diagnostics are off by default. The mod option is `Settings.m_ShowTransitSignalPriorityDiagnostics`; `GetMainPanel()` only builds diagnostics when that option is true. `UISystem.SimulationUpdate()` also only auto-refreshes the selected panel for diagnostics when the same option is enabled.
 
-`GetTramSignalPriorityDiagnostics(...)` reads:
+`GetTransitSignalPriorityDiagnostics(...)` reads:
 
 - `TrafficLights` for current signal state,
 - `TransitSignalPriorityRuntimeDebugInfo` for probe and request-candidate details,
@@ -189,7 +191,7 @@ TSP pure logic is covered by xUnit tests in [`TrafficLightsEnhancement.Tests/Tsp
 - [`TspDecisionEngineTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspDecisionEngineTests.cs) covers track-only requests, public-car non-participation, null/empty handling, extension rules, override behavior, latching/expiry, hold policy, aggressive preemption, and active pedestrian protection.
 - [`TspStatusFormatterTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspStatusFormatterTests.cs) covers status label formatting.
 
-UI-facing behavior also has Node tests in [`TrafficLightsEnhancement/UI/tests/tram-signal-priority-panel.test.mjs`](../TrafficLightsEnhancement/UI/tests/tram-signal-priority-panel.test.mjs), including panel state, diagnostics gating, trace writing, toggling, cleanup, and serialization expectations.
+UI-facing behavior also has Node tests in [`TrafficLightsEnhancement/UI/tests/transit-signal-priority-panel.test.mjs`](../TrafficLightsEnhancement/UI/tests/transit-signal-priority-panel.test.mjs), including panel state, diagnostics gating, trace writing, toggling, cleanup, and serialization expectations.
 
 ## Caveats For Future Work
 

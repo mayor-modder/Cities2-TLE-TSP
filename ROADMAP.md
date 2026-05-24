@@ -2,7 +2,7 @@
 
 TLE Extended is a compatible extended fork of Traffic Lights Enhancement for
 Cities: Skylines II. The project starts from the rewritten TLE codebase plus
-Tram Signal Priority, and grows from there with a focus on compatibility,
+Transit Signal Priority, and grows from there with a focus on compatibility,
 maintainability, diagnostics, and broader transit-priority features.
 
 This roadmap is maintainer-facing. The repository is public, but these notes are
@@ -27,16 +27,17 @@ not release promises.
 These are no longer roadmap guesses. They are the foundation future work should
 preserve and extend:
 
-- Tram Signal Priority is implemented as an opt-in, per-junction feature.
+- Transit Signal Priority is implemented as an opt-in, per-junction feature
+  with separate tram and bus source controls.
 - TSP has pure policy tests, UI source tests, serialization coverage, and a
   custom state-machine regression harness for TSP-off behavior.
 - Dynamic mode now documents and tests restored narrow linked-phase behavior,
   including how it interacts with TSP-selected phases.
 - Bicycle phase weight is exposed in the custom phase vehicle-weight UI.
-- Bus Signal Priority has a separate off-by-default player control and a soft
-  MVP runtime path. Bus requests can hold an already-serving green or select
-  their group at normal transition points, but trams outrank buses and buses do
-  not use aggressive tram-style preemption.
+- The bus source has a separate off-by-default player control and a soft MVP
+  runtime path. Bus requests can hold an already-serving green or select their
+  group at normal transition points, but trams outrank buses and buses do not
+  use aggressive tram-style preemption.
 - Bus diagnostics can identify mixed and bus-only approaches, including current
   and change-lane samples, but bus stop and lane-change semantics still need
   real-save playtesting and refinement.
@@ -50,9 +51,9 @@ preserve and extend:
 
 These are the next bounded choices to resolve before larger feature expansion:
 
-- Playtest Bus Signal Priority and bus approach diagnostics in real saves, with
-  special attention to mixed lanes, bus-only lanes, lane changes, queues, and
-  stop behavior.
+- Continue playtesting bus priority and bus approach diagnostics in real saves,
+  with special attention to mixed lanes, bus-only lanes, lane changes, queues,
+  and stop behavior.
 - Refine bus stop-relation classification and lane-change request semantics
   before making bus priority more aggressive.
 - Extract custom phase selection into pure logic only when a behavior change or
@@ -73,7 +74,7 @@ MVP:
   behind the existing off-by-default diagnostics option.
 - Pure stop-aware suppression rules are in place for boarding, near-side stops,
   far-side stops, unknown stop relation, and queued buses.
-- A separate Bus Signal Priority control exists and is off by default.
+- A separate bus source control exists and is off by default.
 - Bus requests are soft: they may hold an already-serving green or select their
   group at normal transition points, while tram requests outrank bus requests.
 - Bus priority does not use tram-style aggressive minimum-green shortening in

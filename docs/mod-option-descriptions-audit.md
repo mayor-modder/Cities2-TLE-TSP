@@ -43,7 +43,7 @@ visible option in `Settings.cs`:
 - `m_DefaultSplitPhasing`
 - `m_DefaultAlwaysGreenKerbsideTurn`
 - `m_DefaultExclusivePedestrian`
-- `m_ShowTramSignalPriorityDiagnostics`
+- `m_ShowTransitSignalPriorityDiagnostics`
 - `m_ForceNodeUpdate`
 - `m_ComponentTypeToClear`
 - `m_ClearSelectedComponent`

@@ -1,17 +1,17 @@
-# Bus Signal Priority Research
+# Transit Signal Priority for buses Research
 
 This document records research and follow-up notes for extending Tram Signal
-Priority (TSP) toward bus signal priority.
+Priority (TSP) toward transit signal priority for buses.
 
 ## Current State
 
-Bus Signal Priority now exists as a separate off-by-default player control with
+Transit Signal Priority for buses now exists as a separate off-by-default player control with
 a soft MVP runtime path.
 
 - `TspSource.PublicCar` exists as a reserved source.
 - `m_AllowPublicCarRequests` exists in settings and serialization.
 - Runtime normalization and UI toggling keep bus requests disabled unless the
-  separate Bus Signal Priority control is enabled.
+  separate Transit Signal Priority for buses control is enabled.
 - Pure decision tests cover bus request ordering and keep tram requests ahead of
   bus requests.
 
@@ -149,7 +149,7 @@ The selected junction diagnostics can report:
 - bus-only versus mixed lane structure via `CarLaneFlags.PublicOnly`
 - lane-change progress, speed, public-transport state, and vehicle lane flags
 
-The Bus Signal Priority MVP can create `TransitSignalPriorityRequest` values
+The Transit Signal Priority for buses MVP can create `TransitSignalPriorityRequest` values
 when its separate player control is enabled. It is intentionally soft: bus
 requests may hold an already-serving green or select their target group at
 normal transition points, but trams outrank buses and buses do not use
@@ -197,8 +197,8 @@ stop and lane-change behavior is better understood.
 
 ## Naming Decision
 
-Keep **Tram Signal Priority** and **Bus Signal Priority** as separate
-player-facing controls.
+Keep **Transit Signal Priority** as the player-facing feature name, with
+separate source controls for trams and buses.
 
 The code can keep internal `TransitSignalPriority*` names because the saved
 component shape and pure policy layer are intended to support more than one

@@ -15,7 +15,7 @@ namespace C2VM.TrafficLightsEnhancement;
 
 [FileLocation(nameof(TrafficLightsEnhancement))]
 [SettingsUITabOrder(kTabGeneral, kTabKeyBindings)]
-[SettingsUIGroupOrder(kGroupGeneral, kGroupDefault, kGroupVersion, kGroupMainPanel, kGroupKeyBindingReset)]
+[SettingsUIGroupOrder(kGroupGeneral, kGroupDefault, kGroupDiagnostics, kGroupVersion, kGroupMainPanel, kGroupKeyBindingReset)]
 [SettingsUIShowGroupName]
 public class Settings : ModSetting
 {
@@ -28,6 +28,8 @@ public class Settings : ModSetting
     public const string kGroupLanguage = "GroupLanguage";
 
     public const string kGroupDefault = "GroupDefault";
+
+    public const string kGroupDiagnostics = "GroupDiagnostics";
 
     public const string kGroupVersion = "GroupVersion";
 
@@ -115,8 +117,8 @@ public class Settings : ModSetting
     [SettingsUIHideByCondition(typeof(Settings), "IsCompatibilityMode")]
     public bool m_DefaultExclusivePedestrian { get; set; }
 
-    [SettingsUISection(kTabGeneral, kGroupDefault)]
-    public bool m_ShowTramSignalPriorityDiagnostics { get; set; }
+    [SettingsUISection(kTabGeneral, kGroupDiagnostics)]
+    public bool m_ShowTransitSignalPriorityDiagnostics { get; set; }
 
     [SettingsUISection(kTabGeneral, kGroupDefault)]
     [SettingsUIButton]
@@ -289,7 +291,7 @@ public class Settings : ModSetting
         m_DefaultSplitPhasing = false;
         m_DefaultAlwaysGreenKerbsideTurn = false;
         m_DefaultExclusivePedestrian = false;
-        m_ShowTramSignalPriorityDiagnostics = false;
+        m_ShowTransitSignalPriorityDiagnostics = false;
         m_SuppressCanaryWarningVersion = "";
     }
 

@@ -1487,7 +1487,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             hasTransitSignalPrioritySettings,
             hasApproachIndexEligibleTransitSignalPrioritySettings:
                 HasApproachIndexEligibleTransitSignalPrioritySettings(requirePublicCarRequests: false));
-        bool showTransitSignalPriorityDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTramSignalPriorityDiagnostics;
+        bool showTransitSignalPriorityDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics;
         bool shouldBuildBusApproachIndex = showTransitSignalPriorityDiagnostics
             || HasApproachIndexEligibleTransitSignalPrioritySettings(requirePublicCarRequests: true);
         var tramApproachIndex = shouldBuildTramApproachIndex

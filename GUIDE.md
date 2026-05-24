@@ -2,7 +2,7 @@
 > Currently, the mod only supports three-way and four-way junctions. Junctions of other types will offer fewer options in the mod.
 
 > [!TIP]
-> Most controls change the sequencing or grouping of signals. Dynamic mode and Tram Signal Priority can also affect phase selection or timing within their configured limits.
+> Most controls change the sequencing or grouping of signals. Dynamic mode and Transit Signal Priority can also affect phase selection or timing within their configured limits.
 
 ## Introduction
 TLE Extended introduces advanced traffic light controls for Cities: Skylines II, allowing for more explicit traffic management at supported junctions. It supports both Left-Hand Traffic (LHT) and Right-Hand Traffic (RHT), and it is intended to remain compatible with intersections already configured in Traffic Lights Enhancement.
@@ -24,15 +24,16 @@ TLE Extended introduces advanced traffic light controls for Cities: Skylines II,
 | Give Way to Oncoming Vehicles<br>(Only for vanilla signals) | Require vehicles to give way to oncoming traffic when turning.<br>Note: Although drivers are required to give way, their aggressive behavior may reduce the effectiveness of this option at busy junctions. |
 | Exclusive Pedestrian Phase | A dedicated phase for pedestrian crossings, stopping all vehicular traffic. |
 | Pedestrian Phase Duration | Sets the duration of the green light for pedestrians.<br>Only available when the "Exclusive Pedestrian Phase" option is enabled.<br>Note: Pedestrian traffic lights are not "smart" and will not extend the green signal. |
-| Enable Tram Signal Priority | Allows approaching trams to request signal priority at this intersection. TSP may extend the current compatible phase or preempt toward a tram-serving phase, while respecting an already-active exclusive pedestrian phase. |
+| Enable for trams | Allows approaching trams to request signal priority at this intersection. TSP may extend the current compatible phase or preempt toward a tram-serving phase, while respecting an already-active exclusive pedestrian phase. |
+| Enable for buses | Allows approaching buses to request soft signal priority at this intersection. Bus priority may hold an already-serving green or select the bus-serving group at normal transition points, but it does not use aggressive tram-style preemption. |
 
-## Tram Signal Priority
+## Transit Signal Priority
 
-Tram Signal Priority is configured per intersection. When enabled, TLE Extended watches indexed tram lanes near the selected junction and may create a priority request when a tram is approaching.
+Transit Signal Priority is configured per intersection. The panel provides separate source toggles for trams and buses, so each intersection can enable either source independently.
 
-TSP is intended to reduce avoidable tram delay, not to force every signal to flip immediately. The request policy considers signal state, current and next signal groups, approach information, and pedestrian-phase protection. If the mod option for TSP diagnostics is enabled, the selected-intersection panel can show recent TSP decisions and write selected diagnostic traces for troubleshooting.
+TSP is intended to reduce avoidable transit delay, not to force every signal to flip immediately. Tram requests have higher priority than bus requests and can use stronger preemption behavior. Bus requests are softer: they can extend a compatible green or select their target group at normal transition points, while stop-aware suppression avoids holding cross traffic for buses that are boarding or likely stopping before the signal.
 
-Current TSP support is tram-focused. Bus priority is planned as future research rather than part of the current feature set.
+If the mod option for TSP diagnostics is enabled, the selected-intersection panel can show recent TSP decisions and write selected diagnostic traces for troubleshooting. Diagnostics are off by default and live in the mod options Diagnostics group.
 
 > [!WARNING]
 > There may be pedestrian pathfinding issues at junctions, potentially indicating a bug in the game's node or pathfinding system, not addressed by this mod.
@@ -47,7 +48,7 @@ Current TSP support is tram-focused. Bus priority is planned as future research 
 
 ![Screenshot 2023-12-10 103024](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/c0beae47-9175-4a31-aad4-ea169f81e1e7)
 
-3. Select the signal mode and options you prefer. Enable Tram Signal Priority only on intersections where tram priority should be active.
+3. Select the signal mode and options you prefer. Enable Transit Signal Priority for trams or buses only on intersections where that source should receive priority.
 
 ![Screenshot 2023-12-10 103213](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/ee258c53-0ab4-43a2-a9b8-2ed07a792c1a)
 

@@ -5,10 +5,11 @@ import test from "node:test";
 const source = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const repoSource = (path) => readFile(new URL(`../../${path}`, import.meta.url), "utf8");
 
-test("main panel data exposes tram signal priority state", async () => {
+test("main panel data exposes transit signal priority tram source state", async () => {
   const general = await source("src/mods/general.ts");
 
-  assert.match(general, /tramSignalPriority\?\s*:\s*\{/);
+  assert.match(general, /transitSignalPriority\?\s*:\s*\{/);
+  assert.match(general, /tram:\s*\{/);
   assert.match(general, /isVisible:\s*boolean/);
   assert.match(general, /isEnabled:\s*boolean/);
   assert.match(general, /isEditable:\s*boolean/);
@@ -19,28 +20,29 @@ test("main panel data exposes tram signal priority state", async () => {
   assert.match(general, /rows:\s*Array<\{\s*label:\s*string,\s*value:\s*string\s*\}>/);
 });
 
-test("main panel data exposes separate bus signal priority state", async () => {
+test("main panel data exposes transit signal priority bus source state", async () => {
   const general = await source("src/mods/general.ts");
 
-  assert.match(general, /busSignalPriority\?\s*:\s*\{/);
+  assert.match(general, /transitSignalPriority\?\s*:\s*\{/);
+  assert.match(general, /bus:\s*\{/);
   assert.match(general, /isVisible:\s*boolean/);
   assert.match(general, /isEnabled:\s*boolean/);
   assert.match(general, /isEditable:\s*boolean/);
   assert.match(general, /statusLabel\?:\s*string/);
 });
 
-test("bindings exposes the tram signal priority toggle trigger", async () => {
+test("bindings exposes the transit signal priority tram toggle trigger", async () => {
   const bindings = await source("src/bindings.ts");
 
-  assert.match(bindings, /toggleTramSignalPriority\s*=\s*triggers\.create<\[boolean\]>\("ToggleTramSignalPriority"\)/);
+  assert.match(bindings, /toggleTransitSignalPriorityForTrams\s*=\s*triggers\.create<\[boolean\]>\("ToggleTransitSignalPriorityForTrams"\)/);
 });
 
-test("bindings exposes the bus signal priority toggle trigger", async () => {
+test("bindings exposes the transit signal priority bus toggle trigger", async () => {
   const bindings = await source("src/bindings.ts");
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
 
-  assert.match(bindings, /toggleBusSignalPriority\s*=\s*triggers\.create<\[boolean\]>\("ToggleBusSignalPriority"\)/);
-  assert.match(uiBindings, /CreateTrigger<bool>\("ToggleBusSignalPriority",\s*ToggleBusSignalPriority\)/);
+  assert.match(bindings, /toggleTransitSignalPriorityForBuses\s*=\s*triggers\.create<\[boolean\]>\("ToggleTransitSignalPriorityForBuses"\)/);
+  assert.match(uiBindings, /CreateTrigger<bool>\("ToggleTransitSignalPriorityForBuses",\s*ToggleTransitSignalPriorityForBuses\)/);
 });
 
 test("migration issue UI derives boolean state from affected entities", async () => {
@@ -64,20 +66,19 @@ test("main panel renders tram and bus controls under one transit signal priority
   const panelSource = panelEnd === -1 ? content.slice(panelStart) : content.slice(panelStart, panelEnd);
 
   assert.match(panelSource, /TransitSignalPriority/);
-  assert.match(panelSource, /EnableTramSignalPriority/);
-  assert.match(panelSource, /EnableBusSignalPriority/);
-  assert.match(panelSource, /toggleBusSignalPriority/);
+  assert.match(panelSource, /EnableTransitPriorityForTrams/);
+  assert.match(panelSource, /EnableTransitPriorityForBuses/);
+  assert.match(panelSource, /toggleTransitSignalPriorityForBuses/);
   assert.match(panelSource, /TransitSignalPriorityDiagnostics/);
-  assert.doesNotMatch(panelSource, /TramSignalPriorityDiagnostics/);
-  assert.doesNotMatch(panelSource, /title="BusSignalPriority"/);
+  assert.doesNotMatch(panelSource, /title="TransitPriorityForBuses"/);
   assert.doesNotMatch(panelSource, /source/i);
   assert.doesNotMatch(panelSource, /public[-\s]?car|publicCar/i);
 });
 
-test("bus signal priority row is visible independently from tram signal priority", async () => {
+test("bus source row is visible independently from tram source row", async () => {
   const content = await source("src/mods/components/main-panel/content.tsx");
-  const tramVisible = "mainData.tramSignalPriority?.isVisible";
-  const busVisible = "mainData.busSignalPriority?.isVisible";
+  const tramVisible = "mainData.transitSignalPriority?.tram.isVisible";
+  const busVisible = "mainData.transitSignalPriority?.bus.isVisible";
   const tramVisibleIndex = content.indexOf(tramVisible);
   const busVisibleIndex = content.indexOf(busVisible);
 
@@ -91,18 +92,19 @@ test("bus signal priority row is visible independently from tram signal priority
   assert.equal(nestedFragments, 0);
 });
 
-test("backend exposes separate tram and bus signal priority controls", async () => {
+test("backend exposes separate tram and bus transit priority controls", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const toggleStart = uiBindings.indexOf("private void ToggleTransitSignalPrioritySource");
   const toggleEnd = uiBindings.indexOf("protected void SetCustomPhase", toggleStart);
   const toggleSource = uiBindings.slice(toggleStart, toggleEnd);
 
-  assert.match(uiBindings, /tramSignalPriority\s*=\s*new/);
-  assert.match(uiBindings, /busSignalPriority\s*=\s*new/);
-  assert.match(uiBindings, /protected void ToggleTramSignalPriority\(bool enabled\)/);
-  assert.match(uiBindings, /protected void ToggleBusSignalPriority\(bool enabled\)/);
-  assert.match(uiBindings, /tramStatusLabel\s*=\s*isTrafficGroupFollower\s*\?\s*"TramSignalPriorityFollowerUnavailable"/);
-  assert.match(uiBindings, /busStatusLabel\s*=\s*isTrafficGroupFollower\s*\?\s*"BusSignalPriorityFollowerUnavailable"/);
+  assert.match(uiBindings, /transitSignalPriority\s*=\s*new/);
+  assert.match(uiBindings, /tram\s*=\s*new/);
+  assert.match(uiBindings, /bus\s*=\s*new/);
+  assert.match(uiBindings, /protected void ToggleTransitSignalPriorityForTrams\(bool enabled\)/);
+  assert.match(uiBindings, /protected void ToggleTransitSignalPriorityForBuses\(bool enabled\)/);
+  assert.match(uiBindings, /tramStatusLabel\s*=\s*isTrafficGroupFollower\s*\?\s*"TramTransitPriorityFollowerUnavailable"/);
+  assert.match(uiBindings, /busStatusLabel\s*=\s*isTrafficGroupFollower\s*\?\s*"BusTransitPriorityFollowerUnavailable"/);
   assert.match(uiBindings, /settings\.m_AllowTrackRequests\s*=\s*enabled/);
   assert.match(uiBindings, /settings\.m_AllowPublicCarRequests\s*=\s*enabled/);
   assert.match(uiBindings, /settings\.m_Enabled\s*=\s*settings\.m_AllowTrackRequests\s*\|\|\s*settings\.m_AllowPublicCarRequests/);
@@ -115,27 +117,26 @@ test("transit signal priority has concise English base labels", async () => {
   const locale = JSON.parse(await repoSource("Locale.json"));
 
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriority]"], "Transit Signal Priority");
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTramSignalPriority]"], "Enable for trams");
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableBusSignalPriority]"], "Enable for buses");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForTrams]"], "Enable for trams");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForBuses]"], "Enable for buses");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriorityDiagnostics]"], "Diagnostics");
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TramSignalPriorityDiagnostics]"], undefined);
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusSignalPriorityFollowerUnavailable]"], "Bus Signal Priority is controlled by the group leader");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityFollowerUnavailable]"], "Transit Signal Priority for buses is controlled by the group leader");
 });
 
-test("tram signal priority diagnostics are gated by a mod option", async () => {
+test("transit signal priority diagnostics are gated by a mod option", async () => {
   const settings = await repoSource("Settings.cs");
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const uiSystem = await repoSource("Systems/UI/UISystem.cs");
   const locale = await repoSource("Locale.json");
   const content = await source("src/mods/components/main-panel/content.tsx");
 
-  assert.match(settings, /public\s+bool\s+m_ShowTramSignalPriorityDiagnostics\s*\{\s*get;\s*set;\s*\}/);
-  assert.match(settings, /m_ShowTramSignalPriorityDiagnostics\s*=\s*false/);
-  assert.match(uiBindings, /m_ShowTramSignalPriorityDiagnostics\s*\?\s*GetTramSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings\)/);
+  assert.match(settings, /public\s+bool\s+m_ShowTransitSignalPriorityDiagnostics\s*\{\s*get;\s*set;\s*\}/);
+  assert.match(settings, /m_ShowTransitSignalPriorityDiagnostics\s*=\s*false/);
+  assert.match(uiBindings, /m_ShowTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings\)/);
   assert.match(uiBindings, /diagnostics\s*=\s*tspDiagnostics/);
   assert.match(uiSystem, /ShouldRefreshMainPanelForDiagnostics\(\)/);
   assert.match(uiSystem, /m_MainPanelState\s*==\s*MainPanelState\.Main/);
-  assert.match(content, /const\s+transitSignalPriorityDiagnostics\s*=\s*mainData\.tramSignalPriority\?\.diagnostics/);
+  assert.match(content, /const\s+transitSignalPriorityDiagnostics\s*=\s*mainData\.transitSignalPriority\?\.diagnostics/);
   assert.match(content, /transitSignalPriorityDiagnostics\.summary/);
   assert.match(content, /transitSignalPriorityDiagnostics\.events/);
   assert.match(locale, /Show Transit Signal Priority Diagnostics/);
@@ -145,7 +146,7 @@ test("tram signal priority diagnostics are gated by a mod option", async () => {
   assert.match(locale, /TSPDiagnosticsDecision/);
 });
 
-test("backend provides tram signal priority summary and event history", async () => {
+test("backend provides transit signal priority summary and event history", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const uiSystem = await repoSource("Systems/UI/UISystem.cs");
   const locale = await repoSource("Locale.json");
@@ -161,7 +162,7 @@ test("backend provides tram signal priority summary and event history", async ()
   assert.match(locale, /TSPDiagnosticsEvents/);
 });
 
-test("backend writes selected tram signal priority diagnostics to a trace file", async () => {
+test("backend writes selected transit signal priority diagnostics to a trace file", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
 
   assert.match(uiBindings, /TspDiagnosticsTraceFileName/);
@@ -202,7 +203,7 @@ test("static locale provides descriptions for visible mod options", async () => 
     "m_DefaultSplitPhasing",
     "m_DefaultAlwaysGreenKerbsideTurn",
     "m_DefaultExclusivePedestrian",
-    "m_ShowTramSignalPriorityDiagnostics",
+    "m_ShowTransitSignalPriorityDiagnostics",
     "m_ForceNodeUpdate",
     "m_ComponentTypeToClear",
     "m_ClearSelectedComponent",
@@ -263,7 +264,7 @@ test("custom phase vehicle weights expose bicycle weight control", async () => {
 
 test("backend toggle removes transit signal priority settings when all sources are disabled", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
-  const toggleStart = uiBindings.indexOf("protected void ToggleTramSignalPriority(bool enabled)");
+  const toggleStart = uiBindings.indexOf("protected void ToggleTransitSignalPriorityForTrams(bool enabled)");
 
   assert.notEqual(toggleStart, -1);
   const toggleEnd = uiBindings.indexOf("protected void CallMainPanelUpdatePosition", toggleStart);
@@ -276,7 +277,7 @@ test("backend toggle removes transit signal priority settings when all sources a
   assert.match(toggleSource, /EntityManager\.RemoveComponent<TransitSignalPrioritySettings>\(m_SelectedEntity\)/);
 });
 
-test("tool removal clears tram signal priority runtime components", async () => {
+test("tool removal clears transit signal priority runtime components", async () => {
   const toolSystem = await repoSource("Systems/Tool/ToolSystem.cs");
   const helperStart = toolSystem.indexOf("private void RemoveTransitSignalPriorityComponents(Entity entity)");
 
@@ -299,7 +300,7 @@ test("tool removal clears tram signal priority runtime components", async () => 
   assert.match(removalSource, /RemoveTransitSignalPriorityComponents\(m_RaycastResult\)/);
 });
 
-test("tram signal priority settings reserve public car priority without persisting group propagation", async () => {
+test("transit signal priority settings reserve public car priority without persisting group propagation", async () => {
   const settings = await repoSource("Components/TransitSignalPrioritySettings.cs");
   const normalizeStart = settings.indexOf("public void Normalize()");
   const serializeStart = settings.indexOf("public void Serialize");
@@ -334,7 +335,7 @@ test("backend exposes bus approach index details", async () => {
   assert.match(patchedSystem, /m_BusTransitQuery/);
   assert.match(patchedSystem, /ComponentType\.ReadOnly<PassengerTransport>\(\)/);
   assert.match(patchedSystem, /BusApproachIndex\.Build/);
-  assert.match(patchedSystem, /m_ShowTramSignalPriorityDiagnostics/);
+  assert.match(patchedSystem, /m_ShowTransitSignalPriorityDiagnostics/);
   assert.ok(busBuildCondition, "bus approach index should have an explicit build condition");
   assert.match(busBuildCondition[1], /shouldBuildBusApproachIndex/);
   assert.doesNotMatch(busBuildCondition[1], /shouldBuildTramApproachIndex/);
@@ -474,14 +475,14 @@ test("custom phase text fields preserve numeric regex escapes", async () => {
 });
 
 test("bus and custom phase docs do not carry stale review notes", async () => {
-  const busResearch = await repoSource("../docs/bus-signal-priority-research.md");
+  const busResearch = await repoSource("../docs/transit-signal-priority-bus-research.md");
   const tspArchitecture = await repoSource("../docs/tsp-architecture.md");
   const customPhaseExtraction = await repoSource("../docs/custom-phase-selection-extraction.md");
   const edgeCaseHeadings = busResearch.match(/^## Edge Cases$/gm) ?? [];
 
   assert.equal(edgeCaseHeadings.length, 1);
   assert.doesNotMatch(tspArchitecture, /reserved for future bus|effectively track-only|only emits `TspSource\.Track`/);
-  assert.match(tspArchitecture, /soft bus/i);
+  assert.match(tspArchitecture, /Transit Signal Priority for buses/i);
   assert.match(tspArchitecture, /Diagnostic cost contract/);
   assert.match(busResearch, /runtime always passes `BusStopRelation\.Unknown`/);
   assert.match(busResearch, /#35/);

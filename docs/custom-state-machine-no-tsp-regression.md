@@ -1,7 +1,7 @@
 # Custom State Machine No-TSP Regression Harness
 
 This document captures the regression coverage plan for custom signal state
-transitions when Tram Signal Priority (TSP) is disabled or absent.
+transitions when Transit Signal Priority (TSP) is disabled or absent.
 
 ## Purpose
 
