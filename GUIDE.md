@@ -24,12 +24,15 @@ TLE Extended introduces advanced traffic light controls for Cities: Skylines II,
 | Give Way to Oncoming Vehicles<br>(Only for vanilla signals) | Require vehicles to give way to oncoming traffic when turning.<br>Note: Although drivers are required to give way, their aggressive behavior may reduce the effectiveness of this option at busy junctions. |
 | Exclusive Pedestrian Phase | A dedicated phase for pedestrian crossings, stopping all vehicular traffic. |
 | Pedestrian Phase Duration | Sets the duration of the green light for pedestrians.<br>Only available when the "Exclusive Pedestrian Phase" option is enabled.<br>Note: Pedestrian traffic lights are not "smart" and will not extend the green signal. |
-| Enable for trams | Allows approaching trams to request signal priority at this intersection. TSP may extend the current compatible phase or preempt toward a tram-serving phase, while respecting an already-active exclusive pedestrian phase. |
-| Enable for buses | Allows approaching buses to request soft signal priority at this intersection. Bus priority may hold an already-serving green or select the bus-serving group at normal transition points, but it does not use aggressive tram-style preemption. |
 
 ## Transit Signal Priority
 
 Transit Signal Priority is configured per intersection. The panel provides separate source toggles for trams and buses, so each intersection can enable either source independently.
+
+| Source Option | Description |
+| --- | --- |
+| Enable for trams | Allows approaching trams to request signal priority at this intersection. TSP may extend the current compatible phase or preempt toward a tram-serving phase, while respecting an already-active exclusive pedestrian phase. |
+| Enable for buses | Allows approaching buses to request soft signal priority at this intersection. Bus priority may hold an already-serving green or select the bus-serving group at normal transition points, but it does not use aggressive tram-style preemption. |
 
 TSP is intended to reduce avoidable transit delay, not to force every signal to flip immediately. Tram requests have higher priority than bus requests and can use stronger preemption behavior. Bus requests are softer: they can extend a compatible green or select their target group at normal transition points, while stop-aware suppression avoids holding cross traffic for buses that are boarding or likely stopping before the signal.
 
