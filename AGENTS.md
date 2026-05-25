@@ -13,4 +13,6 @@ These skills use the portable `SKILL.md` layout with YAML `name` and `descriptio
 
 Client-specific files such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/agents.mdc`, `.cursorrules`, `.windsurfrules`, `.clinerules`, and `.github/copilot-instructions.md` are compatibility shims. Keep this file and `.agents/skills` canonical rather than duplicating project rules into those shims.
 
+See `docs/agent-workflow.md` for why the repo-local skills exist, what each skill covers, and how to keep the shims and canonical instructions in sync.
+
 Keep changes scoped and preserve user work in the current tree. This mod intentionally keeps `C2VM.TrafficLightsEnhancement` assembly/root namespace identifiers for compatibility with existing Traffic Lights Enhancement saves and configured intersections.

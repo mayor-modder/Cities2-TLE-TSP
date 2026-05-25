@@ -9,7 +9,7 @@ Current capabilities include:
 * Enable optional Transit Signal Priority for trams or soft bus priority on selected intersections.
 * Use opt-in diagnostics when investigating Transit Signal Priority behavior.
 
-See the [guide](GUIDE.md), [roadmap](ROADMAP.md), [TSP architecture notes](docs/tsp-architecture.md), [traffic group notes](docs/traffic-groups.md), [custom phase data flow](docs/custom-phase-data-flow.md), and [save-format contract](docs/save-format-contract.md) for the current direction of the project.
+See the [guide](GUIDE.md), [roadmap](ROADMAP.md), [TSP architecture notes](docs/tsp-architecture.md), [traffic group notes](docs/traffic-groups.md), [custom phase data flow](docs/custom-phase-data-flow.md), and [save-format contract](docs/save-format-contract.md) for the current direction of the project. Coding agents should start with [AGENTS.md](AGENTS.md) and the [agent workflow notes](docs/agent-workflow.md).
 
 ## Status
 
