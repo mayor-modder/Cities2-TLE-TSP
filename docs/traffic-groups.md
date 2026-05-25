@@ -92,10 +92,11 @@ The same binding file handles UI triggers for:
 - calculating delays
 - selecting group members from the panel
 
-When a selected junction is a group follower, the main panel marks TSP as
-non-editable and shows the "controlled by the group leader" status. This avoids
-letting a follower appear to own behavior that is actually driven by the
-leader.
+When a selected junction belongs to a traffic group, the main panel marks TSP as
+non-editable and explains that local TSP is suspended while the group controls
+coordination. This applies to both followers and the current leader. Saved TSP
+settings remain on the junction and can resume if the junction is removed from
+the group.
 
 ## Runtime Behavior
 
@@ -127,25 +128,30 @@ timed, the group system switches it to dynamic mode.
 
 ## TSP Interaction
 
-TSP is intentionally leader-only for grouped intersections today.
+Traffic groups and local TSP are intentionally incompatible controls today.
+When a junction has `TrafficGroupMember`, local runtime TSP is suspended for
+that junction, including the group leader.
 
 `TransitSignalPriorityRuntime.IsRuntimeEligibleJunction(...)` returns false for
-group members where `m_IsGroupLeader` is false. The approach-index eligibility
-job in `PatchedTrafficLightSystem` uses the same idea so a follower-only TSP
-setting does not cause unnecessary approach-index work.
+all group members. The approach-index eligibility job in
+`PatchedTrafficLightSystem` uses the same rule so grouped intersections do not
+cause unnecessary TSP approach-index work.
 
 This is conservative but important:
 
-- Followers are driven by the leader, so a local follower request could not
-  safely select its own signal group.
-- Routing follower requests to the leader would need explicit conflict and
-  diagnostics semantics.
+- Group coordination and green-wave timing remain authoritative once a user
+  places intersections in a group.
+- A leader-local TSP request could disrupt the timing contract the user chose
+  for the whole group.
+- Routing member requests through a group leader would need explicit conflict,
+  pedestrian fairness, and diagnostics semantics.
 - Group-level TSP propagation is not currently active; old serialized
   scaffolding is read for compatibility where needed, but not used for behavior.
 
-Future group-wide TSP should define how requests from followers are promoted to
-the leader, how diagnostics explain that promotion, and how pedestrian fairness
-works across the whole group.
+Future group-wide TSP should define whether and how requests from members are
+promoted to a leader, how diagnostics explain that promotion, and how pedestrian
+fairness works across the whole group. Until then, local TSP settings are
+preserved but inactive while the junction belongs to a group.
 
 ## Save Compatibility
 
@@ -169,12 +175,12 @@ Compatibility rules for future work:
 
 - Do not remove or rename these components without an explicit save-format
   migration.
-- Do not make follower-local behavior authoritative without a documented group
-  semantics change.
+- Do not make member-local or leader-local TSP behavior authoritative while a
+  junction is grouped without a documented group semantics change.
 - Keep group membership and leader fields stable for users moving from upstream
   TLE to TLE Extended.
-- Treat group-wide TSP or bus priority as new behavior that needs opt-in
-  controls, diagnostics, and tests.
+- Treat group-wide TSP or grouped bus priority as new behavior that needs
+  opt-in controls, diagnostics, and tests.
 
 ## Known Maintenance Notes
 

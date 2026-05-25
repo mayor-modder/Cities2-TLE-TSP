@@ -39,8 +39,9 @@ preserve and extend:
   group at normal transition points, but trams outrank buses and buses do not
   use aggressive tram-style preemption.
 - Bus diagnostics can identify mixed and bus-only approaches, including current
-  and change-lane samples, but bus stop and lane-change semantics still need
-  real-save playtesting and refinement.
+  and change-lane samples. Bus priority has been playtested enough for the
+  soft MVP to be considered release-ready; stop-relation classification,
+  lane-change semantics, and queue heuristics remain future refinements.
 - Maintainer docs now cover TSP architecture, diagnostics, dynamic mode,
   save-format compatibility, localization workflow, and serialization/migration
   audit notes.
@@ -51,9 +52,8 @@ preserve and extend:
 
 These are the next bounded choices to resolve before larger feature expansion:
 
-- Continue playtesting bus priority and bus approach diagnostics in real saves,
-  with special attention to mixed lanes, bus-only lanes, lane changes, queues,
-  and stop behavior.
+- Keep collecting bus-priority examples from real saves, especially edge cases
+  around mixed lanes, lane changes, queues, and stop behavior.
 - Refine bus stop-relation classification and lane-change request semantics
   before making bus priority more aggressive.
 - Extract custom phase selection into pure logic only when a behavior change or
@@ -79,8 +79,8 @@ MVP:
   group at normal transition points, while tram requests outrank bus requests.
 - Bus priority does not use tram-style aggressive minimum-green shortening in
   this MVP.
-- Next, use playtesting to refine stop relation, lane-change behavior, and bus
-  stop semantics before expanding bus priority behavior.
+- Future expansion should refine stop relation, lane-change behavior, and bus
+  stop semantics before making bus priority more aggressive.
 
 ## Longer-Term Direction
 

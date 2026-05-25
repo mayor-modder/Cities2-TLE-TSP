@@ -66,7 +66,7 @@ The normal runtime path starts in [`PatchedTrafficLightSystem.OnUpdate()`](../Tr
 1. `OnUpdate()` checks whether any enabled, source-capable, runtime-eligible TSP setting exists through `TspPolicy.ShouldBuildApproachIndex(...)`, `TspPolicy.IsApproachIndexEligibleSetting(...)`, and the bus-specific eligibility helper.
 2. If needed, [`TramApproachIndex.Build(...)`](../TrafficLightsEnhancement/Systems/TrafficLightSystems/Simulation/TramApproachIndex.cs) scans rail transit vehicles and builds a `NativeParallelHashMap<Entity, float>` from tram track lane entity to curve position. [`BusApproachIndex.Build(...)`](../TrafficLightsEnhancement/Systems/TrafficLightSystems/Simulation/BusApproachIndex.cs) scans bus road vehicles when diagnostics or bus priority require bus samples.
 3. `UpdateTrafficLightsJob.Execute(...)` calls `TransitSignalPriorityRuntime.TryResolveActiveLocalRequest(...)` before selecting the next signal group.
-4. The runtime reads and normalizes ECS settings, rejects unavailable or grouped-follower intersections, builds a fresh request if possible, or latches a still-valid existing request.
+4. The runtime reads and normalizes ECS settings, rejects unavailable or traffic-group member intersections, builds a fresh request if possible, or latches a still-valid existing request.
 5. If a request is active, the job writes `TransitSignalPriorityRequest` and `TransitSignalPriorityRuntimeDebugInfo`. If no request is active, stale request/debug components are removed.
 6. Normal or custom signal selection receives `hasTspRequest` plus the active `TransitSignalPriorityRequest`.
 
@@ -114,6 +114,12 @@ Request latching is pure policy:
 - Existing requests decrement while source, target, strength, and expiry remain valid.
 - Expired or invalid requests are removed from ECS state.
 
+Live playtesting has confirmed the soft bus-priority path on bus-only lanes,
+mixed lanes, vanilla signals, split phasing, protected turns, tram corridors,
+and exclusive pedestrian phases. Dedicated bus lanes tend to produce cleaner
+matches; mixed-lane buses remain supported but rely more heavily on conservative
+stop-relation and lane-change suppression.
+
 ## Applying Requests To Signals
 
 Normal signal selection is handled in [`PatchedTrafficLightSystem.cs`](../TrafficLightsEnhancement/Systems/TrafficLightSystems/Simulation/PatchedTrafficLightSystem.cs).
@@ -152,7 +158,7 @@ The toggle path is also in `UISystem.UIBIndings.cs`:
 - The UI calls `toggleTransitSignalPriorityForTrams(...)` and `toggleTransitSignalPriorityForBuses(...)`.
 - The C# triggers `ToggleTransitSignalPriorityForTrams(...)` and `ToggleTransitSignalPriorityForBuses(...)` create or update `TransitSignalPrioritySettings` when enabled.
 - Disabling TSP removes `TransitSignalPrioritySettings` from the selected entity and marks it updated.
-- Follower intersections cannot toggle TSP; leader intersections remain editable.
+- Intersections in TLE traffic groups cannot toggle local TSP. Runtime TSP is suspended for every group member, including the leader, so group coordination and green-wave timing remain authoritative. Saved TSP settings are preserved and can resume if the intersection leaves the group.
 
 Diagnostics are off by default. The mod option is `Settings.m_ShowTransitSignalPriorityDiagnostics`; `GetMainPanel()` only builds diagnostics when that option is true. `UISystem.SimulationUpdate()` also only auto-refreshes the selected panel for diagnostics when the same option is enabled.
 
@@ -161,6 +167,7 @@ Diagnostics are off by default. The mod option is `Settings.m_ShowTransitSignalP
 - `TrafficLights` for current signal state,
 - `TransitSignalPriorityRuntimeDebugInfo` for probe and request-candidate details,
 - `TransitSignalPriorityDecisionTrace` for the final selected/base/requested groups and reason.
+- selected signal configuration, traffic-group membership, and lane signal group masks for JSONL trace context.
 
 It returns:
 
@@ -195,12 +202,12 @@ UI-facing behavior also has Node tests in [`TrafficLightsEnhancement/UI/tests/tr
 
 ## Caveats For Future Work
 
-- Bus priority is a conservative MVP. It can hold or select bus-serving groups at normal transition points, but it still needs real-save refinement around stop relation, lane changes, queues, and grouped-intersection semantics before any more aggressive behavior is considered.
+- Bus priority is a conservative release-ready MVP. It can hold or select bus-serving groups at normal transition points. Stop relation, lane changes, and queues remain refinement areas before any more aggressive behavior is considered.
 - Vehicle-phase fairness prevents repeated transit priority from starving the
   same normal signal group. When TSP skips the base group, that group is
   recorded as pending; when it comes due again, TSP defers once so the skipped
   group can run.
-- Grouped intersections currently reject non-leader runtime TSP requests. Group-wide TSP would need explicit leader/follower semantics.
+- Grouped intersections currently suspend all local runtime TSP. Group-wide TSP would need explicit leader/member semantics before implementation.
 - Runtime diagnostics are transient ECS data, but UI code depends on their field meanings. Treat renames/removals as UI-impacting.
 - Connected-edge fallback is topology-sensitive and diagnostics-heavy. If lane-resolution rules change, update both runtime diagnostics and this document.
 - The selected-intersection JSONL trace is synchronous UI-triggered file I/O. Keep it opt-in unless it is redesigned.

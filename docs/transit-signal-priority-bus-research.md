@@ -5,15 +5,18 @@ Priority (TSP) toward transit signal priority for buses.
 
 ## Current State
 
-Transit Signal Priority for buses now exists as a separate off-by-default player control with
-a soft MVP runtime path.
+Transit Signal Priority for buses now exists as a separate off-by-default
+player control with a release-ready soft MVP runtime path.
 
-- `TspSource.PublicCar` exists as a reserved source.
+- `TspSource.PublicCar` is the internal source used for bus priority.
 - `m_AllowPublicCarRequests` exists in settings and serialization.
 - Runtime normalization and UI toggling keep bus requests disabled unless the
   separate Transit Signal Priority for buses control is enabled.
 - Pure decision tests cover bus request ordering and keep tram requests ahead of
   bus requests.
+- Live playtesting has verified useful bus priority behavior on bus-only lanes,
+  mixed lanes, vanilla signals, split phasing, protected turns, tram corridors,
+  and exclusive pedestrian phases.
 
 The tram path builds `TramApproachIndex` from rail public transport vehicles
 using `PublicTransport`, `TrainNavigation`, and `TrainCurrentLane`. Fresh
@@ -36,14 +39,14 @@ The lane and signal group mapping also has useful inherited support. Bus-only
 lanes are represented through `CarLaneFlags.PublicOnly`, and custom phase masks
 track public-car lane groups separately from general car lanes.
 
-## Remaining Pieces
+## Runtime Detection
 
 Bus detection uses a road-vehicle approach index, not just public-only lane
 detection. A bus in a mixed car lane can request that lane's signal group,
 while a bus-only lane can use the public-car lane mask where custom phases
 split it.
 
-Likely ECS data sources to investigate:
+Runtime detection and diagnostics use or may refine these ECS data sources:
 
 - `PublicTransport`
 - `PublicTransport.m_State` with `Boarding`, `Arriving`, and `RequireStop`
@@ -64,10 +67,9 @@ diagnostics: `PassengerTransport`, `CarCurrentLane`,
 `CarNavigation`, `CarNavigationLane`, `Moving`, and
 `PublicTransportVehicleData`.
 
-Pure policy is source-generalized enough for the soft bus MVP. Request
-construction, request combination, phase scoring, latching, current-group hold,
-and overrides can account for bus requests, while aggressive preemption remains
-tram-only.
+Pure policy is source-generalized for the soft bus MVP. Request construction,
+request combination, phase scoring, latching, current-group hold, and overrides
+account for bus requests, while aggressive preemption remains tram-only.
 
 ## Stop-Aware Suppression Policy
 
@@ -119,8 +121,8 @@ that classifier exists, not behavior the current runtime can already observe.
   detection may still require movement/position thresholds before creating a
   request, but queueing is not the same as boarding.
 
-Runtime implementation should continue refining stop relation before expanding
-bus request behavior:
+Runtime implementation should continue refining stop relation before making bus
+priority more aggressive:
 
 - **Near-side stop:** suppress while `Arriving`, `RequireStop`, or `Boarding`.
 - **Far-side stop:** allow approach priority unless the bus is actually
@@ -149,13 +151,18 @@ The selected junction diagnostics can report:
 - bus-only versus mixed lane structure via `CarLaneFlags.PublicOnly`
 - lane-change progress, speed, public-transport state, and vehicle lane flags
 
-The Transit Signal Priority for buses MVP can create `TransitSignalPriorityRequest` values
-when its separate player control is enabled. It is intentionally soft: bus
-requests may hold an already-serving green or select their target group at
-normal transition points, but trams outrank buses and buses do not use
-tram-style aggressive minimum-green shortening. Diagnostics still need
-playtesting against real saves before bus stop and lane-change semantics are
-considered mature.
+The Transit Signal Priority for buses MVP creates
+`TransitSignalPriorityRequest` values when its separate player control is
+enabled. It is intentionally soft: bus requests may hold an already-serving
+green or select their target group at normal transition points, but trams
+outrank buses and buses do not use tram-style aggressive minimum-green
+shortening.
+
+Playtesting showed a useful split between lane types. Dedicated bus lanes
+usually produce cleaner matches and fewer suppression reasons. Mixed-lane buses
+are supported and useful, but they are noisier: stop relation and lane-change
+uncertainty can suppress requests when the runtime cannot safely prove the bus
+will benefit from priority.
 
 No separate bus aggressive-preemption suppression diagnostic is exposed. A bus
 request can be outranked by tram priority, but buses do not attempt the
@@ -179,11 +186,14 @@ signal group.
 
 Congestion also matters. A stopped bus far behind a queue may not deserve
 priority until it is close enough, latched, or otherwise confirmed to benefit
-from priority.
+from priority. Playtesting found intentionally pathological layouts where TSP
+can keep serving a legal-looking transit phase while the physical road geometry
+is gridlocked; that is a layout edge case, not a reason to make the soft MVP
+more aggressive or more restrictive by default.
 
 ## MVP Recommendation
 
-Use and refine a soft bus-priority MVP:
+Use the current soft bus-priority MVP for release:
 
 - keep bus requests behind an explicit, off-by-default setting
 - keep tram requests ahead of bus requests
@@ -192,8 +202,9 @@ Use and refine a soft bus-priority MVP:
 - do not use tram-style aggressive minimum-green shortening for buses in the
   first version
 
-That keeps bus priority useful while avoiding the most disruptive cases until
-stop and lane-change behavior is better understood.
+That keeps bus priority useful while avoiding the most disruptive cases.
+Further stop, queue, and lane-change refinements should improve diagnostics and
+edge-case handling without changing the basic soft-priority contract.
 
 ## Naming Decision
 
@@ -204,27 +215,33 @@ The code can keep internal `TransitSignalPriority*` names because the saved
 component shape and pure policy layer are intended to support more than one
 transit source over time. Separate controls make the behavior easier to
 explain, keep existing tram settings stable, and let buses stay disabled by
-default while diagnostics and semantics mature.
+default unless a user explicitly enables them at an intersection.
 
 Localization impact: keep new base strings in `Locale.json` first. Do not
 rewrite non-English locale files by hand for this rename/split; let the normal
 translation workflow handle new strings after the English UI is stable.
 
-## Staged Plan
+## Staged Plan Status
 
 1. Add pure policy tests for `PublicCar` eligibility and source ordering.
+   (Done.)
 2. Prototype bus approach diagnostics that report bus lane hits. (Done.)
 3. Integrate soft bus fresh request production from car-lane bus samples. (Done
    for MVP.)
 4. Add a separate bus settings/control surface while keeping the existing tram
    labels and saved settings stable. (Done.)
-5. Refine stop-aware suppression, lane-change handling, mixed-lane regression
-   cases, and grouped-intersection semantics through playtesting.
+5. Playtest bus-only lanes, mixed lanes, tram corridors, exclusive pedestrian
+   phases, and combined bus/tram priority. (Done for release readiness.)
+6. Refine stop-aware suppression, lane-change handling, queue heuristics, and
+   grouped-intersection semantics as follow-up work.
 
 ## Follow-Up Work
 
 Suggested follow-up issues:
 
-- Refine bus request production from car-lane bus samples.
+- Refine bus request production around stop relation, lane changes, and queue
+  distance.
 - Refine stop-aware bus suppression rules with real-save examples.
-- Playtest separate tram and bus controls with mixed and bus-only approaches.
+- Improve lane-change and queue heuristics with real-save examples.
+- Design explicit group-wide TSP semantics before allowing TSP to run on
+  traffic-group members.

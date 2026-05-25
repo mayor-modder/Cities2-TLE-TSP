@@ -7,8 +7,8 @@ This document records the diagnostics audit for Transit Signal Priority (TSP).
 The selected-intersection diagnostics UI and JSONL trace writer are opt-in and
 off by default. When enabled, they are useful for live troubleshooting, but they
 also make selected-panel refresh broader than normal gameplay needs. The runtime
-tram approach index is gated separately so disabled, follower-only, public-car
-only, and stale/non-traffic-light settings do not trigger rail transit scans.
+tram approach index is gated separately so disabled, grouped, public-car-only,
+and stale/non-traffic-light settings do not trigger rail transit scans.
 
 ## UI Diagnostics Gating
 
@@ -55,27 +55,32 @@ rerunning runtime detection in the UI layer.
 This is acceptable for now, but it should be profiled before increasing TSP
 scope or enabling diagnostics by default.
 
-## Tram Approach Index
+## Approach Index Gating
 
 `PatchedTrafficLightSystem.OnUpdate()` builds `TramApproachIndex` only when the
 settings query contains at least one approach-index-eligible TSP setting. The
 query is narrowed to non-temp, non-deleted traffic-light entities, and the pure
 policy requires an enabled, track-request-capable setting that is not on a
-grouped follower.
+traffic-group member.
 
 ```text
-enabled track-capable leader/standalone TSP setting -> scan rail transit lanes for the tick
+enabled track-capable standalone TSP setting -> scan rail transit lanes for the tick
 ```
 
 Disabling TSP from the UI removes the settings component, which still avoids the
 scan for users who have no TSP-enabled intersections. The narrower gate also
 protects against stale disabled settings and future public-car-only settings.
 
+Bus indexing is built when diagnostics or bus priority need bus samples. With
+diagnostics disabled and bus priority off, panel-only bus debug work should not
+run. With bus priority enabled, the same samples support both request production
+and selected-intersection diagnostics.
+
 ## Follow-Up Work
 
 Useful follow-ups:
 
-- Profile `TransitSignalPriorityRuntimeDebugInfo` writes before adding bus
-  priority or broader public transport priority.
+- Profile `TransitSignalPriorityRuntimeDebugInfo` writes before adding broader
+  public transport priority or enabling diagnostics by default.
 - Consider a separate "write JSONL trace" option only if we need deliberate deep
   tracing for disabled/no-request selected intersections.

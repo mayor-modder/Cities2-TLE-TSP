@@ -133,6 +133,10 @@ internal static class BusApproachIndex
             PublicTransportState = publicTransportState,
             VehicleLaneFlags = vehicleLaneFlags,
         };
+        if (!TransitSignalPriorityRuntime.IsBusPrioritySampleEligible(sample))
+        {
+            return;
+        }
 
         if (!index.TryGetValue(laneEntity, out BusApproachSample existing))
         {

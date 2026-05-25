@@ -43,6 +43,8 @@ namespace C2VM.TrafficLightsEnhancement
 
         private static TrafficLightsEnhancement.Systems.TrafficLightSystems.Simulation.PatchedTrafficLightSystem m_PatchedTrafficLightSystem;
 
+        private static bool m_PatchedTrafficLightSystemsAvailable = true;
+
         public void OnLoad(UpdateSystem updateSystem)
         {
             log.Info(nameof(OnLoad));
@@ -67,14 +69,20 @@ namespace C2VM.TrafficLightsEnhancement
 
             m_World.GetOrCreateSystemManaged<Game.Tools.NetToolSystem>();
 
-            var noneList = new NativeList<ComponentType>(1, Allocator.Temp);
+            using var noneList = new NativeList<ComponentType>(1, Allocator.Temp);
             noneList.Add(ComponentType.ReadOnly<Components.CustomTrafficLights>());
-            Utils.EntityQueryUtils.UpdateEntityQuery(m_TrafficLightInitializationSystem, "m_TrafficLightsQuery", noneList);
-            Utils.EntityQueryUtils.UpdateEntityQuery(m_TrafficLightSystem, "m_TrafficLightQuery", noneList);
+            m_PatchedTrafficLightSystemsAvailable = TryPatchVanillaTrafficLightQueries(noneList);
 
-            updateSystem.UpdateBefore<TLEDataMigrationSystem, Systems.TrafficLightSystems.Initialisation.PatchedTrafficLightInitializationSystem>(SystemUpdatePhase.Modification4B);
-            updateSystem.UpdateBefore<Systems.TrafficLightSystems.Initialisation.PatchedTrafficLightInitializationSystem, Game.Net.TrafficLightInitializationSystem>(SystemUpdatePhase.Modification4B);
-            updateSystem.UpdateBefore<Systems.TrafficLightSystems.Simulation.PatchedTrafficLightSystem, Game.Simulation.TrafficLightSystem>(SystemUpdatePhase.GameSimulation);
+            if (m_PatchedTrafficLightSystemsAvailable)
+            {
+                updateSystem.UpdateBefore<TLEDataMigrationSystem, Systems.TrafficLightSystems.Initialisation.PatchedTrafficLightInitializationSystem>(SystemUpdatePhase.Modification4B);
+                updateSystem.UpdateBefore<Systems.TrafficLightSystems.Initialisation.PatchedTrafficLightInitializationSystem, Game.Net.TrafficLightInitializationSystem>(SystemUpdatePhase.Modification4B);
+                updateSystem.UpdateBefore<Systems.TrafficLightSystems.Simulation.PatchedTrafficLightSystem, Game.Simulation.TrafficLightSystem>(SystemUpdatePhase.GameSimulation);
+            }
+            else
+            {
+                updateSystem.UpdateAt<TLEDataMigrationSystem>(SystemUpdatePhase.Modification4B);
+            }
             updateSystem.UpdateAt<Systems.TrafficGroupSystem>(SystemUpdatePhase.ModificationEnd);
             updateSystem.UpdateAt<Systems.UI.TooltipSystem>(SystemUpdatePhase.UITooltip);
             updateSystem.UpdateAt<Systems.UI.UISystem>(SystemUpdatePhase.UIUpdate);
@@ -98,6 +106,15 @@ namespace C2VM.TrafficLightsEnhancement
 
         public static void SetCompatibilityMode(bool enable)
         {
+            if (!m_PatchedTrafficLightSystemsAvailable)
+            {
+                m_TrafficLightInitializationSystem.Enabled = true;
+                m_TrafficLightSystem.Enabled = true;
+                m_PatchedTrafficLightInitializationSystem.Enabled = false;
+                m_PatchedTrafficLightSystem.Enabled = false;
+                return;
+            }
+
             m_TrafficLightInitializationSystem.Enabled = enable;
             m_TrafficLightSystem.Enabled = enable;
 
@@ -105,6 +122,52 @@ namespace C2VM.TrafficLightsEnhancement
             m_PatchedTrafficLightSystem.SetCompatibilityMode(enable);
 
             log.Info($"Compatibility mode is set to {enable}.");
+        }
+
+        private static bool TryPatchVanillaTrafficLightQueries(NativeList<ComponentType> noneList)
+        {
+            const string initializationQueryField = "m_TrafficLightsQuery";
+            const string simulationQueryField = "m_TrafficLightQuery";
+
+            if (!Utils.EntityQueryUtils.TryGetEntityQuery(m_TrafficLightInitializationSystem, initializationQueryField, out EntityQuery originalInitializationQuery, out string initializationError))
+            {
+                log.Error($"Failed to patch vanilla traffic light query: {initializationError}");
+                return false;
+            }
+
+            if (!Utils.EntityQueryUtils.TryGetEntityQuery(m_TrafficLightSystem, simulationQueryField, out _, out string simulationError))
+            {
+                log.Error($"Failed to patch vanilla traffic light query: {simulationError}");
+                return false;
+            }
+
+            if (!TryUpdateVanillaTrafficLightQuery(m_TrafficLightInitializationSystem, initializationQueryField, noneList))
+            {
+                return false;
+            }
+
+            if (TryUpdateVanillaTrafficLightQuery(m_TrafficLightSystem, simulationQueryField, noneList))
+            {
+                return true;
+            }
+
+            if (!Utils.EntityQueryUtils.TrySetEntityQuery(m_TrafficLightInitializationSystem, initializationQueryField, originalInitializationQuery, out string rollbackError))
+            {
+                log.Error($"Failed to restore vanilla traffic light initialization query after patch failure: {rollbackError}");
+            }
+
+            return false;
+        }
+
+        private static bool TryUpdateVanillaTrafficLightQuery(SystemBase systemBase, string fieldName, NativeList<ComponentType> noneList)
+        {
+            if (Utils.EntityQueryUtils.TryUpdateEntityQuery(systemBase, fieldName, noneList, out string error))
+            {
+                return true;
+            }
+
+            log.Error($"Failed to patch vanilla traffic light query: {error}");
+            return false;
         }
 
         public static bool IsBeta()

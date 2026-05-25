@@ -10,6 +10,7 @@ using C2VM.TrafficLightsEnhancement.Systems.TrafficLightSystems.Initialisation;
 using C2VM.TrafficLightsEnhancement.Utils;
 using Colossal.Entities;
 using Colossal.UI.Binding;
+using Game.Common;
 using Game.Net;
 using Game.Rendering;
 using Newtonsoft.Json;
@@ -23,6 +24,8 @@ public partial class UISystem
     private const string TspDiagnosticsTraceFileName = "C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl";
     private const long TspDiagnosticsTraceMaxBytes = 5 * 1024 * 1024;
     private const int TspDiagnosticsTraceMaxRotatedFiles = 3;
+    private const int TspDiagnosticsEventHistoryLimit = 100;
+    private const int TspDiagnosticsEventDisplayLimit = 5;
     private static readonly object TspDiagnosticsTraceFileLock = new();
 
     private sealed class TspDiagnosticsHistory
@@ -350,17 +353,13 @@ public partial class UISystem
             bool hasTrainTrack = NodeUtils.HasTrainTrack(m_EdgeInfoDictionary[m_SelectedEntity]);
             bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && !hasTrainTrack;
             bool hasExclusivePedestrian = showOptions && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
-            bool isTrafficGroupFollower = false;
-            if (EntityManager.TryGetComponent(m_SelectedEntity, out TrafficGroupMember trafficGroupMember))
-            {
-                isTrafficGroupFollower = !trafficGroupMember.m_IsGroupLeader;
-            }
+            bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
 
             TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(m_SelectedEntity)
                 ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(m_SelectedEntity)
                 : TransitSignalPrioritySettings.CreateDefault();
-            string tramStatusLabel = isTrafficGroupFollower ? "TramTransitPriorityFollowerUnavailable" : null;
-            string busStatusLabel = isTrafficGroupFollower ? "BusTransitPriorityFollowerUnavailable" : null;
+            string tramStatusLabel = isTrafficGroupMember ? "TramTransitPriorityGroupedUnavailable" : null;
+            string busStatusLabel = isTrafficGroupMember ? "BusTransitPriorityGroupedUnavailable" : null;
             object tspDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics
                 ? GetTransitSignalPriorityDiagnostics(m_SelectedEntity, tspSettings)
                 : null;
@@ -402,14 +401,14 @@ public partial class UISystem
                     {
                         isVisible = true,
                         isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
-                        isEditable = !isTrafficGroupFollower,
+                        isEditable = !isTrafficGroupMember,
                         statusLabel = tramStatusLabel
                     },
                     bus = new
                     {
                         isVisible = true,
                         isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
-                        isEditable = !isTrafficGroupFollower,
+                        isEditable = !isTrafficGroupMember,
                         statusLabel = busStatusLabel
                     },
                     diagnostics = tspDiagnostics
@@ -861,8 +860,7 @@ public partial class UISystem
             return;
         }
 
-        if (EntityManager.TryGetComponent(m_SelectedEntity, out TrafficGroupMember trafficGroupMember) &&
-            !trafficGroupMember.m_IsGroupLeader)
+        if (EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity))
         {
             return;
         }
@@ -960,34 +958,41 @@ public partial class UISystem
 
         if (hasRuntimeDebug)
         {
+            bool isTrackRequest = (global::TrafficLightsEnhancement.Logic.Tsp.TspSource)runtimeDebug.m_SourceType == global::TrafficLightsEnhancement.Logic.Tsp.TspSource.Track;
+            bool isCurrentTargetGroup = hasTrafficLights
+                && runtimeDebug.m_TargetSignalGroup == trafficLights.m_CurrentSignalGroup;
+            bool isExtendingCurrentPhase = runtimeDebug.m_ExtendCurrentPhase && isCurrentTargetGroup;
             rows.Add(new { label = "TSPDiagnosticsRequest", value = GetTspRequestKindName(runtimeDebug.m_RequestKind) });
             rows.Add(new { label = "TSPDiagnosticsSource", value = GetTspSourceName(runtimeDebug.m_SourceType) });
             rows.Add(new { label = "TSPDiagnosticsTargetGroup", value = FormatByteValue(runtimeDebug.m_TargetSignalGroup) });
             rows.Add(new { label = "TSPDiagnosticsStrength", value = runtimeDebug.m_Strength.ToString("0.00", CultureInfo.InvariantCulture) });
             rows.Add(new { label = "TSPDiagnosticsExpiry", value = runtimeDebug.m_ExpiryTimer.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsExtend", value = runtimeDebug.m_ExtendCurrentPhase ? "Yes" : "No" });
-            rows.Add(new { label = "TSPDiagnosticsApproachRole", value = GetApproachLaneRoleName(runtimeDebug.m_ApproachLaneRole) });
-            rows.Add(new { label = "TSPDiagnosticsCandidates", value = FormatCandidates(runtimeDebug) });
-            rows.Add(new { label = "TSPDiagnosticsProbeSignaled", value = GetTrackProbeName(runtimeDebug.m_TrackSignaledLaneProbe) });
-            rows.Add(new { label = "TSPDiagnosticsCurveSignaled", value = FormatCurvePosition(runtimeDebug.m_TrackSignaledLaneProbe, runtimeDebug.m_TrackSignaledLaneCurvePosition) });
-            rows.Add(new { label = "TSPDiagnosticsProbeApproach", value = GetTrackProbeName(runtimeDebug.m_TrackApproachLaneProbe) });
-            rows.Add(new { label = "TSPDiagnosticsCurveApproach", value = FormatCurvePosition(runtimeDebug.m_TrackApproachLaneProbe, runtimeDebug.m_TrackApproachLaneCurvePosition) });
-            rows.Add(new { label = "TSPDiagnosticsProbeUpstream", value = GetTrackProbeName(runtimeDebug.m_TrackUpstreamLaneProbe) });
-            rows.Add(new { label = "TSPDiagnosticsCurveUpstream", value = FormatCurvePosition(runtimeDebug.m_TrackUpstreamLaneProbe, runtimeDebug.m_TrackUpstreamLaneCurvePosition) });
-            rows.Add(new { label = "TSPDiagnosticsIndexLanes", value = runtimeDebug.m_TramApproachIndexLaneCount.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsSignaledLane", value = FormatEntity(runtimeDebug.m_TrackSignaledLaneEntity) });
-            rows.Add(new { label = "TSPDiagnosticsApproachLane", value = FormatEntity(runtimeDebug.m_TrackApproachLaneEntity) });
-            rows.Add(new { label = "TSPDiagnosticsUpstreamLane", value = FormatEntity(runtimeDebug.m_TrackUpstreamLaneEntity) });
-            rows.Add(new { label = "TSPDiagnosticsSignaledOwner", value = FormatEntity(runtimeDebug.m_TrackSignaledLaneOwnerEntity) });
-            rows.Add(new { label = "TSPDiagnosticsApproachOwner", value = FormatEntity(runtimeDebug.m_TrackApproachLaneOwnerEntity) });
-            rows.Add(new { label = "TSPDiagnosticsUpstreamOwner", value = FormatEntity(runtimeDebug.m_TrackUpstreamLaneOwnerEntity) });
-            rows.Add(new { label = "TSPDiagnosticsSiblingSamples", value = FormatSiblingSamples(runtimeDebug) });
-            rows.Add(new { label = "TSPDiagnosticsMasterLanes", value = FormatMasterLanes(runtimeDebug) });
-            rows.Add(new { label = "TSPDiagnosticsFallbackEdges", value = runtimeDebug.m_FallbackConnectedEdgeCount.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsFallbackTramLanes", value = runtimeDebug.m_FallbackTramSublaneCount.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsFallbackPathMatches", value = runtimeDebug.m_FallbackPathNodeMatchCount.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsFallbackIndexHits", value = runtimeDebug.m_FallbackIndexHitCount.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsFallbackBestCurve", value = FormatFallbackCurvePosition(runtimeDebug) });
+            rows.Add(new { label = "TSPDiagnosticsExtend", value = isExtendingCurrentPhase ? "Yes" : "No" });
+            if (isTrackRequest)
+            {
+                rows.Add(new { label = "TSPDiagnosticsApproachRole", value = GetApproachLaneRoleName(runtimeDebug.m_ApproachLaneRole) });
+                rows.Add(new { label = "TSPDiagnosticsCandidates", value = FormatCandidates(runtimeDebug) });
+                rows.Add(new { label = "TSPDiagnosticsProbeSignaled", value = GetTrackProbeName(runtimeDebug.m_TrackSignaledLaneProbe) });
+                rows.Add(new { label = "TSPDiagnosticsCurveSignaled", value = FormatCurvePosition(runtimeDebug.m_TrackSignaledLaneProbe, runtimeDebug.m_TrackSignaledLaneCurvePosition) });
+                rows.Add(new { label = "TSPDiagnosticsProbeApproach", value = GetTrackProbeName(runtimeDebug.m_TrackApproachLaneProbe) });
+                rows.Add(new { label = "TSPDiagnosticsCurveApproach", value = FormatCurvePosition(runtimeDebug.m_TrackApproachLaneProbe, runtimeDebug.m_TrackApproachLaneCurvePosition) });
+                rows.Add(new { label = "TSPDiagnosticsProbeUpstream", value = GetTrackProbeName(runtimeDebug.m_TrackUpstreamLaneProbe) });
+                rows.Add(new { label = "TSPDiagnosticsCurveUpstream", value = FormatCurvePosition(runtimeDebug.m_TrackUpstreamLaneProbe, runtimeDebug.m_TrackUpstreamLaneCurvePosition) });
+                rows.Add(new { label = "TSPDiagnosticsIndexLanes", value = runtimeDebug.m_TramApproachIndexLaneCount.ToString(CultureInfo.InvariantCulture) });
+                rows.Add(new { label = "TSPDiagnosticsSignaledLane", value = FormatEntity(runtimeDebug.m_TrackSignaledLaneEntity) });
+                rows.Add(new { label = "TSPDiagnosticsApproachLane", value = FormatEntity(runtimeDebug.m_TrackApproachLaneEntity) });
+                rows.Add(new { label = "TSPDiagnosticsUpstreamLane", value = FormatEntity(runtimeDebug.m_TrackUpstreamLaneEntity) });
+                rows.Add(new { label = "TSPDiagnosticsSignaledOwner", value = FormatEntity(runtimeDebug.m_TrackSignaledLaneOwnerEntity) });
+                rows.Add(new { label = "TSPDiagnosticsApproachOwner", value = FormatEntity(runtimeDebug.m_TrackApproachLaneOwnerEntity) });
+                rows.Add(new { label = "TSPDiagnosticsUpstreamOwner", value = FormatEntity(runtimeDebug.m_TrackUpstreamLaneOwnerEntity) });
+                rows.Add(new { label = "TSPDiagnosticsSiblingSamples", value = FormatSiblingSamples(runtimeDebug) });
+                rows.Add(new { label = "TSPDiagnosticsMasterLanes", value = FormatMasterLanes(runtimeDebug) });
+                rows.Add(new { label = "TSPDiagnosticsFallbackEdges", value = runtimeDebug.m_FallbackConnectedEdgeCount.ToString(CultureInfo.InvariantCulture) });
+                rows.Add(new { label = "TSPDiagnosticsFallbackTramLanes", value = runtimeDebug.m_FallbackTramSublaneCount.ToString(CultureInfo.InvariantCulture) });
+                rows.Add(new { label = "TSPDiagnosticsFallbackPathMatches", value = runtimeDebug.m_FallbackPathNodeMatchCount.ToString(CultureInfo.InvariantCulture) });
+                rows.Add(new { label = "TSPDiagnosticsFallbackIndexHits", value = runtimeDebug.m_FallbackIndexHitCount.ToString(CultureInfo.InvariantCulture) });
+                rows.Add(new { label = "TSPDiagnosticsFallbackBestCurve", value = FormatFallbackCurvePosition(runtimeDebug) });
+            }
         }
         else
         {
@@ -996,21 +1001,26 @@ public partial class UISystem
 
         if (hasBusApproachDebug)
         {
+            bool hasBusSample = busApproachDebug.m_BusHitCount > 0;
             rows.Add(new { label = "TSPDiagnosticsBusIndexLanes", value = busApproachDebug.m_BusApproachIndexLaneCount.ToString(CultureInfo.InvariantCulture) });
             rows.Add(new { label = "TSPDiagnosticsBusScannedSignalLanes", value = busApproachDebug.m_ScannedSignalLaneCount.ToString(CultureInfo.InvariantCulture) });
             rows.Add(new { label = "TSPDiagnosticsBusProbe", value = GetBusProbeName(busApproachDebug.m_BusProbe) });
             rows.Add(new { label = "TSPDiagnosticsBusDecision", value = GetBusDecisionName(busApproachDebug.m_BusDecision) });
-            rows.Add(new { label = "TSPDiagnosticsBusTargetGroup", value = FormatByteValue(busApproachDebug.m_BusTargetSignalGroup) });
-            rows.Add(new { label = "TSPDiagnosticsBusHitCount", value = busApproachDebug.m_BusHitCount.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsBusLane", value = FormatEntity(busApproachDebug.m_BusLaneEntity) });
-            rows.Add(new { label = "TSPDiagnosticsBusVehicle", value = FormatEntity(busApproachDebug.m_BusVehicleEntity) });
-            rows.Add(new { label = "TSPDiagnosticsBusCurve", value = FormatBusCurvePosition(busApproachDebug) });
-            rows.Add(new { label = "TSPDiagnosticsBusLaneType", value = busApproachDebug.m_BusLaneIsPublicOnly ? "Bus-only" : "Mixed" });
-            rows.Add(new { label = "TSPDiagnosticsBusLaneChange", value = FormatBusLaneChange(busApproachDebug) });
-            rows.Add(new { label = "TSPDiagnosticsBusNavigationLanes", value = busApproachDebug.m_BusHasNavigation ? busApproachDebug.m_BusNavigationLaneCount.ToString(CultureInfo.InvariantCulture) : "-" });
-            rows.Add(new { label = "TSPDiagnosticsBusSpeed", value = busApproachDebug.m_BusSpeed.ToString("0.00", CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsBusTransportState", value = busApproachDebug.m_BusPublicTransportState.ToString() });
-            rows.Add(new { label = "TSPDiagnosticsBusVehicleFlags", value = busApproachDebug.m_BusVehicleLaneFlags.ToString() });
+            if (busApproachDebug.m_BusTargetSignalGroup > 0)
+            {
+                rows.Add(new { label = "TSPDiagnosticsBusTargetGroup", value = FormatByteValue(busApproachDebug.m_BusTargetSignalGroup) });
+            }
+
+            if (hasBusSample)
+            {
+                rows.Add(new { label = "TSPDiagnosticsBusHitCount", value = busApproachDebug.m_BusHitCount.ToString(CultureInfo.InvariantCulture) });
+                rows.Add(new { label = "TSPDiagnosticsBusLane", value = FormatEntity(busApproachDebug.m_BusLaneEntity) });
+                rows.Add(new { label = "TSPDiagnosticsBusVehicle", value = FormatEntity(busApproachDebug.m_BusVehicleEntity) });
+                rows.Add(new { label = "TSPDiagnosticsBusCurve", value = FormatBusCurvePosition(busApproachDebug) });
+                rows.Add(new { label = "TSPDiagnosticsBusLaneType", value = busApproachDebug.m_BusLaneIsPublicOnly ? "Bus-only" : "Mixed" });
+                rows.Add(new { label = "TSPDiagnosticsBusLaneChange", value = FormatBusLaneChange(busApproachDebug) });
+                rows.Add(new { label = "TSPDiagnosticsBusSpeed", value = busApproachDebug.m_BusSpeed.ToString("0.00", CultureInfo.InvariantCulture) });
+            }
         }
 
         if (hasDecisionTrace)
@@ -1020,9 +1030,12 @@ public partial class UISystem
             rows.Add(new { label = "TSPDiagnosticsSelectedGroup", value = FormatByteValue(decisionTrace.m_SelectedSignalGroup) });
             rows.Add(new { label = "TSPDiagnosticsDecisionTarget", value = FormatByteValue(decisionTrace.m_RequestTargetSignalGroup) });
             rows.Add(new { label = "TSPDiagnosticsDecisionSource", value = GetTspSourceName(decisionTrace.m_SourceType) });
-            rows.Add(new { label = "TSPDiagnosticsExclusivePedestrian", value = decisionTrace.m_ExclusivePedestrianEnabled ? "Yes" : "No" });
-            rows.Add(new { label = "TSPDiagnosticsActivePedestrianProtection", value = decisionTrace.m_ActiveExclusivePedestrianPhase ? "Yes" : "No" });
-            rows.Add(new { label = "TSPDiagnosticsPendingPedestrianFairness", value = decisionTrace.m_PendingPedestrianFairness ? $"G{FormatByteValue(decisionTrace.m_PendingPedestrianSignalGroup)}" : "No" });
+            if (HasPedestrianDecisionContext(decisionTrace))
+            {
+                rows.Add(new { label = "TSPDiagnosticsExclusivePedestrian", value = decisionTrace.m_ExclusivePedestrianEnabled ? "Yes" : "No" });
+                rows.Add(new { label = "TSPDiagnosticsActivePedestrianProtection", value = decisionTrace.m_ActiveExclusivePedestrianPhase ? "Yes" : "No" });
+                rows.Add(new { label = "TSPDiagnosticsPendingPedestrianFairness", value = decisionTrace.m_PendingPedestrianFairness ? $"G{FormatByteValue(decisionTrace.m_PendingPedestrianSignalGroup)}" : "No" });
+            }
         }
         else
         {
@@ -1190,13 +1203,16 @@ public partial class UISystem
         }
 
         var events = new ArrayList();
-        foreach (TspDiagnosticsEvent diagnosticsEvent in history.Events)
+        foreach (TspDiagnosticsEvent diagnosticsEvent in history.Events.Take(TspDiagnosticsEventDisplayLimit))
         {
+            string[] eventParts = diagnosticsEvent.Value.Split(new[] { " | " }, 2, StringSplitOptions.None);
+            string eventTitle = eventParts[0];
+            string eventDetail = eventParts.Length > 1 ? eventParts[1] : string.Empty;
             events.Add(new
             {
                 sequence = diagnosticsEvent.Sequence,
-                label = "TSPDiagnosticsEvent",
-                value = $"#{diagnosticsEvent.Sequence} {diagnosticsEvent.Value}"
+                title = $"#{diagnosticsEvent.Sequence} {eventTitle}",
+                detail = eventDetail
             });
         }
 
@@ -1263,7 +1279,7 @@ public partial class UISystem
         return $"{summary}|{trafficSignature}|{requestSignature}|{busSignature}|{decisionSignature}";
     }
 
-    private static void WriteTspDiagnosticsTraceEvent(
+    private void WriteTspDiagnosticsTraceEvent(
         Entity entity,
         string summary,
         bool hasTrafficLights,
@@ -1281,7 +1297,11 @@ public partial class UISystem
             string line = JsonConvert.SerializeObject(new
             {
                 timestampUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+                simulationFrame = m_SimulationSystem.frameIndex,
                 selectedEntity = new { index = entity.Index, version = entity.Version },
+                signalConfiguration = GetTspSignalConfigurationTrace(entity),
+                trafficGroup = GetTspTrafficGroupTrace(entity),
+                laneSignals = GetTspLaneSignalTrace(entity, hasTrafficLights, trafficLights, hasRuntimeDebug, runtimeDebug),
                 summary,
                 trafficLights = hasTrafficLights
                     ? new
@@ -1377,6 +1397,133 @@ public partial class UISystem
         }
     }
 
+    private object GetTspSignalConfigurationTrace(Entity entity)
+    {
+        CustomTrafficLights customTrafficLights = EntityManager.TryGetComponent(entity, out CustomTrafficLights value)
+            ? value
+            : new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla);
+        CustomTrafficLights.Patterns pattern = customTrafficLights.GetPattern();
+        CustomTrafficLights.Patterns patternOnly = customTrafficLights.GetPatternOnly();
+        CustomTrafficLights.TrafficMode mode = customTrafficLights.GetMode();
+        CustomTrafficLights.TrafficOptions options = customTrafficLights.GetOptions();
+
+        return new
+        {
+            pattern = (uint)pattern,
+            patternName = pattern.ToString(),
+            patternOnly = (uint)patternOnly,
+            patternOnlyName = patternOnly.ToString(),
+            mode = mode.ToString(),
+            options = (uint)options,
+            optionsName = options.ToString(),
+            exclusivePedestrian = (pattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0,
+            smartPhaseSelection = (options & CustomTrafficLights.TrafficOptions.SmartPhaseSelection) != 0,
+            pedestrianPhaseGroupMask = customTrafficLights.m_PedestrianPhaseGroupMask,
+        };
+    }
+
+    private object GetTspTrafficGroupTrace(Entity entity)
+    {
+        if (!EntityManager.TryGetComponent(entity, out TrafficGroupMember member))
+        {
+            return new
+            {
+                isMember = false,
+                isLeader = false,
+                groupEntity = FormatEntity(Entity.Null),
+                leaderEntity = FormatEntity(Entity.Null),
+                isCoordinated = false,
+                greenWaveEnabled = false,
+                signalDelay = 0,
+                distanceToLeader = 0f,
+            };
+        }
+
+        TrafficGroup group = default;
+        bool hasGroup = member.m_GroupEntity != Entity.Null
+            && EntityManager.TryGetComponent(member.m_GroupEntity, out group);
+        return new
+        {
+            isMember = true,
+            isLeader = member.m_IsGroupLeader,
+            groupEntity = FormatEntity(member.m_GroupEntity),
+            leaderEntity = FormatEntity(member.m_LeaderEntity),
+            isCoordinated = hasGroup && group.m_IsCoordinated,
+            greenWaveEnabled = hasGroup && group.m_GreenWaveEnabled,
+            signalDelay = member.m_SignalDelay,
+            distanceToLeader = member.m_DistanceToLeader,
+        };
+    }
+
+    private ArrayList GetTspLaneSignalTrace(
+        Entity entity,
+        bool hasTrafficLights,
+        TrafficLights trafficLights,
+        bool hasRuntimeDebug,
+        TransitSignalPriorityRuntimeDebugInfo runtimeDebug)
+    {
+        var lanes = new ArrayList();
+        if (!EntityManager.TryGetBuffer<SubLane>(entity, true, out var subLaneBuffer))
+        {
+            return lanes;
+        }
+
+        byte currentGroup = hasTrafficLights ? trafficLights.m_CurrentSignalGroup : (byte)0;
+        byte nextGroup = hasTrafficLights ? trafficLights.m_NextSignalGroup : (byte)0;
+        byte requestedGroup = hasRuntimeDebug ? runtimeDebug.m_TargetSignalGroup : (byte)0;
+        ushort currentMask = ToGroupBit(currentGroup);
+        ushort nextMask = ToGroupBit(nextGroup);
+        ushort requestedMask = ToGroupBit(requestedGroup);
+
+        foreach (var subLane in subLaneBuffer)
+        {
+            Entity subLaneEntity = subLane.m_SubLane;
+            if (!EntityManager.TryGetComponent(subLaneEntity, out LaneSignal laneSignal))
+            {
+                continue;
+            }
+
+            Entity ownerEntity = Entity.Null;
+            if (EntityManager.TryGetComponent(subLaneEntity, out Owner owner))
+            {
+                ownerEntity = owner.m_Owner;
+            }
+
+            ushort yieldGroupMask = 0;
+            ushort ignorePriorityGroupMask = 0;
+            if (EntityManager.TryGetComponent(subLaneEntity, out ExtraLaneSignal extraLaneSignal))
+            {
+                yieldGroupMask = extraLaneSignal.m_YieldGroupMask;
+                ignorePriorityGroupMask = extraLaneSignal.m_IgnorePriorityGroupMask;
+            }
+
+            lanes.Add(new
+            {
+                lane = FormatEntity(subLaneEntity),
+                owner = FormatEntity(ownerEntity),
+                groupMask = laneSignal.m_GroupMask,
+                yieldGroupMask,
+                ignorePriorityGroupMask,
+                signal = laneSignal.m_Signal.ToString(),
+                defaultSignal = laneSignal.m_Default.ToString(),
+                currentGroupActive = currentMask != 0 && (laneSignal.m_GroupMask & currentMask) != 0,
+                currentGroupYield = currentMask != 0 && (yieldGroupMask & currentMask) != 0,
+                nextGroupActive = nextMask != 0 && (laneSignal.m_GroupMask & nextMask) != 0,
+                requestedGroupActive = requestedMask != 0 && (laneSignal.m_GroupMask & requestedMask) != 0,
+                requestedGroupYield = requestedMask != 0 && (yieldGroupMask & requestedMask) != 0,
+            });
+        }
+
+        return lanes;
+    }
+
+    private static ushort ToGroupBit(byte signalGroup)
+    {
+        return signalGroup is > 0 and <= 16
+            ? (ushort)(1 << (signalGroup - 1))
+            : (ushort)0;
+    }
+
     private static void AppendTspDiagnosticsTraceLine(string path, string line)
     {
         lock (TspDiagnosticsTraceFileLock)
@@ -1432,7 +1579,7 @@ public partial class UISystem
     {
         history.Sequence++;
         history.Events.Insert(0, new TspDiagnosticsEvent(history.Sequence, value));
-        if (history.Events.Count > 10)
+        if (history.Events.Count > TspDiagnosticsEventHistoryLimit)
         {
             history.Events.RemoveAt(history.Events.Count - 1);
         }
@@ -1518,9 +1665,16 @@ public partial class UISystem
     private static string GetTspSourceName(byte value) => ((global::TrafficLightsEnhancement.Logic.Tsp.TspSource)value) switch
     {
         global::TrafficLightsEnhancement.Logic.Tsp.TspSource.Track => "Track",
-        global::TrafficLightsEnhancement.Logic.Tsp.TspSource.PublicCar => "Public car",
+        global::TrafficLightsEnhancement.Logic.Tsp.TspSource.PublicCar => "Bus",
         _ => "None"
     };
+
+    private static bool HasPedestrianDecisionContext(TransitSignalPriorityDecisionTrace decisionTrace)
+    {
+        return decisionTrace.m_ExclusivePedestrianEnabled
+            || decisionTrace.m_ActiveExclusivePedestrianPhase
+            || decisionTrace.m_PendingPedestrianFairness;
+    }
 
     private static string GetTrackProbeName(TransitSignalPriorityTrackProbeResult value) => value switch
     {

@@ -78,20 +78,20 @@ public static class TspPolicy
 
     public static bool IsApproachIndexEligibleSetting(
         TransitSignalPrioritySettings settings,
-        bool isGroupedFollower)
+        bool isGroupedIntersection)
     {
         return settings.m_Enabled
             && settings.m_AllowTrackRequests
-            && !isGroupedFollower;
+            && !isGroupedIntersection;
     }
 
     public static bool IsBusApproachIndexEligibleSetting(
         TransitSignalPrioritySettings settings,
-        bool isGroupedFollower)
+        bool isGroupedIntersection)
     {
         return settings.m_Enabled
             && settings.m_AllowPublicCarRequests
-            && !isGroupedFollower;
+            && !isGroupedIntersection;
     }
 
     public static TspAvailability GetAvailability(

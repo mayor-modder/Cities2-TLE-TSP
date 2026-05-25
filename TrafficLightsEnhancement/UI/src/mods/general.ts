@@ -32,7 +32,7 @@ export interface MainPanelMainData {
     },
     diagnostics?: {
       summary?: { label: string, value: string },
-      events?: Array<{ sequence: number, label: string, value: string }>,
+      events?: Array<{ sequence: number, title: string, detail: string }>,
       rows: Array<{ label: string, value: string }>
     }
   }

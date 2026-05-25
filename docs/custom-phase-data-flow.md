@@ -170,8 +170,10 @@ pedestrian phase when that protection applies.
 
 TSP does not generate custom phases. It observes the resolved signal groups and,
 for eligible custom phase junctions, can extend the current phase or override
-the next selected phase inside `CustomStateMachine`. Grouped followers ignore
-local TSP requests because coordinated followers mirror their leader.
+the next selected phase inside `CustomStateMachine`. Grouped intersections
+ignore local TSP requests, including the group leader, because group
+coordination and green-wave timing are authoritative while a junction is in a
+traffic group.
 
 ## Safe Refactor Boundaries
 

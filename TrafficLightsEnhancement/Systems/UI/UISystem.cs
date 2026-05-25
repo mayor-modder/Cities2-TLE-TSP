@@ -10,6 +10,7 @@ using Game;
 using Game.Common;
 using Game.Rendering;
 using Game.SceneFlow;
+using Game.Simulation;
 using Game.UI;
 using Unity.Collections;
 using Unity.Entities;
@@ -58,6 +59,8 @@ public partial class UISystem: ExtendedUISystemBase
     private Update.ModificationUpdateSystem m_ModificationUpdateSystem;
 
     private SimulationUpdateSystem m_SimulationUpdateSystem;
+
+    private SimulationSystem m_SimulationSystem;
 
     private Camera m_Camera;
 
@@ -109,6 +112,7 @@ public partial class UISystem: ExtendedUISystemBase
         m_ToolSystem = World.GetOrCreateSystemManaged<Tool.ToolSystem>();
         m_ModificationUpdateSystem = World.GetOrCreateSystemManaged<Update.ModificationUpdateSystem>();
         m_SimulationUpdateSystem = World.GetOrCreateSystemManaged<SimulationUpdateSystem>();
+        m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
 
         m_ModificationUpdateSystem.Enabled = false;
         m_SimulationUpdateSystem.Enabled = false;
@@ -136,6 +140,27 @@ public partial class UISystem: ExtendedUISystemBase
     protected override void OnDestroy()
     {
         ClearEdgeInfo();
+
+        try
+        {
+            var gameManager = GameManager.instance;
+            var localizationManager = gameManager?.localizationManager;
+            if (localizationManager != null)
+            {
+                localizationManager.onActiveDictionaryChanged -= UpdateLocale;
+            }
+        }
+        catch (System.Exception)
+        {
+            // GameManager can already be partially torn down during shutdown.
+        }
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+
+        base.OnDestroy();
     }
 
     protected override void OnGameLoadingComplete(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
