@@ -959,12 +959,15 @@ public partial class UISystem
         if (hasRuntimeDebug)
         {
             bool isTrackRequest = (global::TrafficLightsEnhancement.Logic.Tsp.TspSource)runtimeDebug.m_SourceType == global::TrafficLightsEnhancement.Logic.Tsp.TspSource.Track;
+            bool isCurrentTargetGroup = hasTrafficLights
+                && runtimeDebug.m_TargetSignalGroup == trafficLights.m_CurrentSignalGroup;
+            bool isExtendingCurrentPhase = runtimeDebug.m_ExtendCurrentPhase && isCurrentTargetGroup;
             rows.Add(new { label = "TSPDiagnosticsRequest", value = GetTspRequestKindName(runtimeDebug.m_RequestKind) });
             rows.Add(new { label = "TSPDiagnosticsSource", value = GetTspSourceName(runtimeDebug.m_SourceType) });
             rows.Add(new { label = "TSPDiagnosticsTargetGroup", value = FormatByteValue(runtimeDebug.m_TargetSignalGroup) });
             rows.Add(new { label = "TSPDiagnosticsStrength", value = runtimeDebug.m_Strength.ToString("0.00", CultureInfo.InvariantCulture) });
             rows.Add(new { label = "TSPDiagnosticsExpiry", value = runtimeDebug.m_ExpiryTimer.ToString(CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsExtend", value = runtimeDebug.m_ExtendCurrentPhase ? "Yes" : "No" });
+            rows.Add(new { label = "TSPDiagnosticsExtend", value = isExtendingCurrentPhase ? "Yes" : "No" });
             if (isTrackRequest)
             {
                 rows.Add(new { label = "TSPDiagnosticsApproachRole", value = GetApproachLaneRoleName(runtimeDebug.m_ApproachLaneRole) });
@@ -1033,6 +1036,10 @@ public partial class UISystem
                 rows.Add(new { label = "TSPDiagnosticsActivePedestrianProtection", value = decisionTrace.m_ActiveExclusivePedestrianPhase ? "Yes" : "No" });
                 rows.Add(new { label = "TSPDiagnosticsPendingPedestrianFairness", value = decisionTrace.m_PendingPedestrianFairness ? $"G{FormatByteValue(decisionTrace.m_PendingPedestrianSignalGroup)}" : "No" });
             }
+        }
+        else
+        {
+            rows.Add(new { label = "TSPDiagnosticsDecision", value = "None" });
         }
 
         return new { summary, events, rows };

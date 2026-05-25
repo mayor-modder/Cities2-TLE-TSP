@@ -254,6 +254,7 @@ test("backend hides empty bus detail diagnostics until a bus sample exists", asy
 
 test("backend keeps in-game diagnostics source-aware and hides raw deep debug rows", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const locale = JSON.parse(await repoSource("Locale.json"));
   const rowsStart = uiBindings.indexOf("if (hasRuntimeDebug)");
   const rowsEnd = uiBindings.indexOf("if (hasBusApproachDebug)", rowsStart);
   const runtimeRowsSource = uiBindings.slice(rowsStart, rowsEnd);
@@ -273,6 +274,22 @@ test("backend keeps in-game diagnostics source-aware and hides raw deep debug ro
   assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusNavigationLanes/);
   assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusTransportState/);
   assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusVehicleFlags/);
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusNavigationLanes]"], undefined);
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusTransportState]"], undefined);
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusVehicleFlags]"], undefined);
+});
+
+test("backend reports current-phase extension only while target group is current", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const rowsStart = uiBindings.indexOf("if (hasRuntimeDebug)");
+  const rowsEnd = uiBindings.indexOf("if (hasBusApproachDebug)", rowsStart);
+  const runtimeRowsSource = uiBindings.slice(rowsStart, rowsEnd);
+
+  assert.notEqual(rowsStart, -1);
+  assert.notEqual(rowsEnd, -1);
+  assert.match(runtimeRowsSource, /bool\s+isCurrentTargetGroup\s*=\s*hasTrafficLights\s*&&\s*runtimeDebug\.m_TargetSignalGroup\s*==\s*trafficLights\.m_CurrentSignalGroup/);
+  assert.match(runtimeRowsSource, /bool\s+isExtendingCurrentPhase\s*=\s*runtimeDebug\.m_ExtendCurrentPhase\s*&&\s*isCurrentTargetGroup/);
+  assert.match(runtimeRowsSource, /TSPDiagnosticsExtend\",\s*value\s*=\s*isExtendingCurrentPhase\s*\?\s*\"Yes\"\s*:\s*\"No\"/);
 });
 
 test("diagnostic row labels are localized", async () => {
@@ -322,6 +339,7 @@ test("backend hides pedestrian decision diagnostics when no pedestrian context i
   assert.notEqual(traceStart, -1);
   assert.notEqual(traceEnd, -1);
   assert.match(decisionRowsSource, /HasPedestrianDecisionContext\(decisionTrace\)/);
+  assert.match(decisionRowsSource, /else\s*\{\s*rows\.Add\(new\s*\{\s*label\s*=\s*"TSPDiagnosticsDecision",\s*value\s*=\s*"None"\s*\}\);\s*\}/);
   assert.ok(
     decisionRowsSource.indexOf("HasPedestrianDecisionContext(decisionTrace)") <
       decisionRowsSource.indexOf("TSPDiagnosticsExclusivePedestrian"),
