@@ -106,8 +106,6 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriority]": "Transit Signal Priority",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForTrams]": "Enable for trams",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForBuses]": "Enable for buses",
-    "UI.LABEL[C2VM.TrafficLightsEnhancement.TramTransitPriorityFollowerUnavailable]": "Transit Signal Priority for trams is controlled by the group leader",
-    "UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityFollowerUnavailable]": "Transit Signal Priority for buses is controlled by the group leader",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TramTransitPriorityGroupedUnavailable]": "Transit Signal Priority is suspended while this intersection is in a traffic group",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]": "Transit Signal Priority is suspended while this intersection is in a traffic group",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriorityDiagnostics]": "Diagnostics",

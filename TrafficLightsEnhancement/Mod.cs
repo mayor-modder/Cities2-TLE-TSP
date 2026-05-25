@@ -112,7 +112,6 @@ namespace C2VM.TrafficLightsEnhancement
                 m_TrafficLightSystem.Enabled = true;
                 m_PatchedTrafficLightInitializationSystem.Enabled = false;
                 m_PatchedTrafficLightSystem.Enabled = false;
-                log.Warn("Traffic light query patching is unavailable. Falling back to vanilla traffic light systems.");
                 return;
             }
 
