@@ -223,7 +223,7 @@ public class TspDecisionEngineTests
     }
 
     [Fact]
-    public void Grouped_enabled_intersection_is_not_runtime_eligible_for_follower_request()
+    public void Grouped_enabled_intersection_is_not_runtime_eligible_for_local_request()
     {
         var availability = TspPolicy.GetAvailability(
             settings: new TransitSignalPrioritySettings(enabled: true),

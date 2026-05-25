@@ -166,7 +166,7 @@ public class TspPolicyTests
     }
 
     [Fact]
-    public void Public_car_setting_is_preserved_as_reserved_bus_priority_input()
+    public void Public_car_setting_is_preserved_as_bus_priority_input()
     {
         var settings = new TransitSignalPrioritySettings(allowPublicCarRequests: true);
 
@@ -222,25 +222,25 @@ public class TspPolicyTests
             allowTrackRequests: false,
             allowPublicCarRequests: true);
 
-        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(disabled, isGroupedFollower: false));
-        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(trackDisabled, isGroupedFollower: false));
-        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(publicCarOnly, isGroupedFollower: false));
+        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(disabled, isGroupedIntersection: false));
+        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(trackDisabled, isGroupedIntersection: false));
+        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(publicCarOnly, isGroupedIntersection: false));
     }
 
     [Fact]
-    public void Approach_index_setting_rejects_grouped_followers()
+    public void Approach_index_setting_rejects_grouped_intersections()
     {
         var settings = new TransitSignalPrioritySettings(enabled: true, allowTrackRequests: true);
 
-        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(settings, isGroupedFollower: true));
+        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(settings, isGroupedIntersection: true));
     }
 
     [Fact]
-    public void Approach_index_setting_allows_enabled_track_request_leaders_or_standalone_junctions()
+    public void Approach_index_setting_allows_enabled_track_request_standalone_junctions()
     {
         var settings = new TransitSignalPrioritySettings(enabled: true, allowTrackRequests: true);
 
-        Assert.True(TspPolicy.IsApproachIndexEligibleSetting(settings, isGroupedFollower: false));
+        Assert.True(TspPolicy.IsApproachIndexEligibleSetting(settings, isGroupedIntersection: false));
     }
 
     [Fact]
@@ -259,10 +259,10 @@ public class TspPolicyTests
             allowTrackRequests: false,
             allowPublicCarRequests: true);
 
-        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(disabled, isGroupedFollower: false));
-        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(busDisabled, isGroupedFollower: false));
-        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(busEnabled, isGroupedFollower: true));
-        Assert.True(TspPolicy.IsBusApproachIndexEligibleSetting(busEnabled, isGroupedFollower: false));
+        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(disabled, isGroupedIntersection: false));
+        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(busDisabled, isGroupedIntersection: false));
+        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(busEnabled, isGroupedIntersection: true));
+        Assert.True(TspPolicy.IsBusApproachIndexEligibleSetting(busEnabled, isGroupedIntersection: false));
     }
 
     [Fact]

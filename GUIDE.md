@@ -36,7 +36,62 @@ Transit Signal Priority is configured per intersection. The panel provides separ
 
 TSP is intended to reduce avoidable transit delay, not to force every signal to flip immediately. Tram requests have higher priority than bus requests and can use stronger preemption behavior. Bus requests are softer: they can extend a compatible green or select their target group at normal transition points, while stop-aware suppression avoids holding cross traffic for buses that are boarding or likely stopping before the signal.
 
+Bus TSP has been playtested as a release-ready soft-priority feature on bus-only lanes, mixed lanes, vanilla signals, split phasing, protected turns, tram corridors, and exclusive pedestrian phases. Dedicated bus lanes usually produce cleaner detection. Mixed-lane buses are supported, but the detector is more conservative when the bus stop relationship or lane-change target is unclear.
+
+Traffic groups and TSP are intentionally treated as incompatible controls. When an intersection is part of a TLE traffic group, local TSP is suspended so group coordination and green-wave timing remain authoritative. The intersection's saved TSP settings are preserved and can take effect again if the intersection is removed from the group.
+
 If the mod option for TSP diagnostics is enabled, the selected-intersection panel can show recent TSP decisions and write selected diagnostic traces for troubleshooting. Diagnostics are off by default and live in the mod options Diagnostics group.
+
+### Diagnostics Legend
+
+When Transit Signal Priority diagnostics are enabled, the selected-intersection panel shows the current TSP state for the selected junction. These fields are intended for troubleshooting and are most useful while the game is paused.
+
+| Field | Meaning |
+| --- | --- |
+| Enabled | Whether TSP is enabled for the selected intersection. |
+| Signal state | Current traffic light transition state, such as `Ongoing`, `Ending`, `Changing`, `Beginning`, `Extending`, or `Extended`. |
+| Current group | The signal group currently being served. |
+| Next group | The signal group the controller is preparing to serve next. `-` means no next group is currently selected. |
+| Timer | Current signal timer value. |
+| Signal groups | Number of signal groups configured at the intersection. |
+| Request | Active TSP request type. `Early` is a fresh approach request; `Latched` is a recently accepted request being carried briefly after the vehicle sample disappears; `None` means no active request. |
+| Source | Request source, usually `Track` for trams or `Bus` for bus TSP. |
+| Target group | Signal group requested by the transit vehicle. |
+| Strength | Request strength used when comparing competing TSP requests. |
+| Expiry | How long a latched request can remain active before clearing. |
+| Extend current phase | Whether the request can hold the current compatible green. |
+| Bus probe | How the detector matched the sampled bus, such as an approach-lane match, connected-approach match, or signaled-lane match. |
+| Bus decision | Outcome for bus TSP, such as `Request emitted` or a suppression reason. |
+| Bus target group | Signal group mapped to the sampled bus. |
+| Bus hits | Number of bus samples contributing to the selected match. |
+| Bus lane / Bus vehicle | Internal entity IDs for comparing panel state to trace logs. |
+| Bus curve | Sampled bus position along its lane. |
+| Bus lane type | Whether the sampled bus is in a mixed or bus-only lane. |
+| Bus lane change | Whether the sampled bus appears to be changing lanes. |
+| Bus speed | Sampled bus speed. |
+| Decision | Final controller decision for the active request, such as extending the current phase, selecting the target phase, or deferring. |
+| Base group | Group the controller would normally serve before applying TSP. |
+| Selected group | Group selected after considering TSP. |
+| Decision target | Requested signal group considered by the decision. |
+| Decision source | Request source considered by the decision. |
+| Exclusive pedestrian phase | Whether exclusive pedestrian phasing is enabled. This only appears when pedestrian context affects the TSP decision. |
+| Active pedestrian protection | Whether an active pedestrian phase is protected from preemption. |
+| Pedestrian phase due | A pedestrian phase is waiting and may delay or prevent TSP so pedestrians are not starved. |
+| Recent TSP events | Compact history of recent request and decision changes for the selected intersection. The newest event appears first. |
+
+The JSONL trace also includes lower-level troubleshooting context that is not all shown in the panel: the selected signal configuration, traffic-group membership, simulation frame, and lane signal group masks for comparing the trace to the colored lane overlay.
+
+Common bus decisions:
+
+| Decision | Meaning |
+| --- | --- |
+| Request emitted | A bus sample was eligible and generated a TSP request. |
+| No eligible bus sample | No current bus sample met detector and eligibility rules. |
+| Bus priority disabled | Bus TSP is disabled at this intersection. |
+| Suppressed: boarding | The bus appears to be boarding or stopped for service. |
+| Suppressed: near-side stop | The bus likely needs to stop before the signal, so holding the light would not help. |
+| Suppressed: stop relation unknown | The stop relationship could not be determined safely. |
+| Suppressed: lane change ambiguous | The bus appears to be changing lanes, so the target group may be unreliable. |
 
 > [!WARNING]
 > There may be pedestrian pathfinding issues at junctions, potentially indicating a bug in the game's node or pathfinding system, not addressed by this mod.

@@ -92,23 +92,9 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 	public bool AddJunctionToGroup(Entity groupEntity, Entity junctionEntity)
 	{
-		if (groupEntity == Entity.Null || junctionEntity == Entity.Null)
+		if (!CanAssignTrafficGroupMember(EntityManager, groupEntity, junctionEntity))
 		{
 			return false;
-		}
-
-		if (!EntityManager.HasComponent<TrafficGroup>(groupEntity))
-		{
-			return false;
-		}
-
-		if (EntityManager.HasComponent<TrafficGroupMember>(junctionEntity))
-		{
-			var existingMember = EntityManager.GetComponentData<TrafficGroupMember>(junctionEntity);
-			if (existingMember.m_GroupEntity != Entity.Null)
-			{
-				return false;
-			}
 		}
 
 		int memberCount = GetGroupMemberCount(groupEntity);
@@ -116,7 +102,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 		Entity leaderEntity = isLeader ? junctionEntity : GetGroupLeader(groupEntity);
 
 		var member = new TrafficGroupMember(groupEntity, leaderEntity, memberCount, 0f, 0f, 0, 0, 0f, isLeader);
-		EntityManager.AddComponentData(junctionEntity, member);
+		SetOrAddTrafficGroupMember(EntityManager, junctionEntity, member);
 		if (EntityManager.HasComponent<CustomTrafficLights>(junctionEntity))
 		{
 			var customTrafficLights = EntityManager.GetComponentData<CustomTrafficLights>(junctionEntity);
@@ -166,6 +152,38 @@ public partial class TrafficGroupSystem : GameSystemBase
 			}
 		}
 		return true;
+	}
+
+	private static bool CanAssignTrafficGroupMember(EntityManager entityManager, Entity groupEntity, Entity junctionEntity)
+	{
+		if (groupEntity == Entity.Null || junctionEntity == Entity.Null)
+		{
+			return false;
+		}
+
+		if (!entityManager.HasComponent<TrafficGroup>(groupEntity))
+		{
+			return false;
+		}
+
+		if (!entityManager.HasComponent<TrafficGroupMember>(junctionEntity))
+		{
+			return true;
+		}
+
+		var existingMember = entityManager.GetComponentData<TrafficGroupMember>(junctionEntity);
+		return existingMember.m_GroupEntity == Entity.Null;
+	}
+
+	private static void SetOrAddTrafficGroupMember(EntityManager entityManager, Entity junctionEntity, TrafficGroupMember member)
+	{
+		if (entityManager.HasComponent<TrafficGroupMember>(junctionEntity))
+		{
+			entityManager.SetComponentData(junctionEntity, member);
+			return;
+		}
+
+		entityManager.AddComponentData(junctionEntity, member);
 	}
 
 	public bool RemoveJunctionFromGroup(Entity junctionEntity)

@@ -25,16 +25,17 @@ normalized on load.
 - `m_RequestHorizonTicks`
 - `m_MaxGreenExtensionTicks`
 
-The runtime currently normalizes the feature to tram-only behavior:
+The runtime currently normalizes the feature to explicit source flags:
 
 - track requests are allowed
-- public-car requests are reserved but disabled
+- public-car requests back the player-facing soft bus-priority control and
+  remain disabled unless that control is enabled
 - request horizon is clamped through policy, with legacy `120` remapped to `10`
 - max green extension is clamped through policy
 
-Future bus/public transport priority should treat the reserved public-car fields
-as schema-sensitive. Turning them into active user-configurable settings may
-need a save version bump rather than simply removing normalization.
+Future changes to public-car/bus priority should treat these fields as
+schema-sensitive. Changing their serialized meaning may need a save version bump
+rather than simply removing normalization.
 
 ## Inherited Save Components Needing Explicit Coverage
 

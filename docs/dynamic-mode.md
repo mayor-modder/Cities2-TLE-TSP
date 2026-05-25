@@ -161,8 +161,8 @@ leader through `SyncSignalGroupWithLeader(...)`.
   `m_PhaseOffset` and subtract signal delay from timers.
 - The UI displays leader phase settings read-only for coordinated followers.
 
-Current TSP runtime rejects non-leader grouped intersections. This is the
-intended short-term behavior: coordinated followers are driven by the leader, so
-a follower-local TSP request should remain ignored rather than being routed to a
-leader implicitly. Future group-wide TSP needs explicit leader/follower
-semantics.
+Current TSP runtime rejects every grouped intersection, including the group
+leader. This is the intended short-term behavior: once a user places a junction
+in a traffic group, group coordination and green-wave timing remain
+authoritative. Future group-wide TSP needs explicit leader/member semantics
+before local requests can safely affect grouped timing.

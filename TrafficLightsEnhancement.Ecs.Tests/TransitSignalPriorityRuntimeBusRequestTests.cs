@@ -44,6 +44,37 @@ public class TransitSignalPriorityRuntimeBusRequestTests
     }
 
     [Fact]
+    public void Dummy_traffic_bus_sample_is_not_eligible_for_priority()
+    {
+        bool hasRequest = EcsTspRuntime.TryBuildBusApproachRequestFromSample(
+            BusSettings(enabled: true),
+            Sample(curvePosition: 0.8f, state: PublicTransportFlags.DummyTraffic),
+            out _,
+            out TransitSignalPriorityBusDecision decision,
+            out BusPrioritySuppressionReason suppressionReason);
+
+        Assert.False(hasRequest);
+        Assert.Equal(TransitSignalPriorityBusDecision.NoEligibleSample, decision);
+        Assert.Equal(BusPrioritySuppressionReason.None, suppressionReason);
+    }
+
+    [Fact]
+    public void Route_source_bus_sample_can_emit_priority_request()
+    {
+        bool hasRequest = EcsTspRuntime.TryBuildBusApproachRequestFromSample(
+            BusSettings(enabled: true),
+            Sample(curvePosition: 0.8f, state: PublicTransportFlags.RouteSource),
+            out TspRequest request,
+            out TransitSignalPriorityBusDecision decision,
+            out BusPrioritySuppressionReason suppressionReason);
+
+        Assert.True(hasRequest);
+        Assert.Equal(TspSource.PublicCar, request.Source);
+        Assert.Equal(TransitSignalPriorityBusDecision.RequestEmitted, decision);
+        Assert.Equal(BusPrioritySuppressionReason.None, suppressionReason);
+    }
+
+    [Fact]
     public void Bus_priority_toggle_off_short_circuits_sample()
     {
         bool hasRequest = EcsTspRuntime.TryBuildBusApproachRequestFromSample(

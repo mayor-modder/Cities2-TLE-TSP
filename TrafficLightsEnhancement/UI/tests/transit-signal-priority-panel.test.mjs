@@ -16,7 +16,7 @@ test("main panel data exposes transit signal priority tram source state", async 
   assert.match(general, /statusLabel\?:\s*string/);
   assert.match(general, /diagnostics\?:\s*\{/);
   assert.match(general, /summary\?:\s*\{\s*label:\s*string,\s*value:\s*string\s*\}/);
-  assert.match(general, /events\?:\s*Array<\{\s*sequence:\s*number,\s*label:\s*string,\s*value:\s*string\s*\}>/);
+  assert.match(general, /events\?:\s*Array<\{\s*sequence:\s*number,\s*title:\s*string,\s*detail:\s*string\s*\}>/);
   assert.match(general, /rows:\s*Array<\{\s*label:\s*string,\s*value:\s*string\s*\}>/);
 });
 
@@ -103,8 +103,8 @@ test("backend exposes separate tram and bus transit priority controls", async ()
   assert.match(uiBindings, /bus\s*=\s*new/);
   assert.match(uiBindings, /protected void ToggleTransitSignalPriorityForTrams\(bool enabled\)/);
   assert.match(uiBindings, /protected void ToggleTransitSignalPriorityForBuses\(bool enabled\)/);
-  assert.match(uiBindings, /tramStatusLabel\s*=\s*isTrafficGroupFollower\s*\?\s*"TramTransitPriorityFollowerUnavailable"/);
-  assert.match(uiBindings, /busStatusLabel\s*=\s*isTrafficGroupFollower\s*\?\s*"BusTransitPriorityFollowerUnavailable"/);
+  assert.match(uiBindings, /tramStatusLabel\s*=\s*isTrafficGroupMember\s*\?\s*"TramTransitPriorityGroupedUnavailable"/);
+  assert.match(uiBindings, /busStatusLabel\s*=\s*isTrafficGroupMember\s*\?\s*"BusTransitPriorityGroupedUnavailable"/);
   assert.match(uiBindings, /settings\.m_AllowTrackRequests\s*=\s*enabled/);
   assert.match(uiBindings, /settings\.m_AllowPublicCarRequests\s*=\s*enabled/);
   assert.match(uiBindings, /settings\.m_Enabled\s*=\s*settings\.m_AllowTrackRequests\s*\|\|\s*settings\.m_AllowPublicCarRequests/);
@@ -120,7 +120,7 @@ test("transit signal priority has concise English base labels", async () => {
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForTrams]"], "Enable for trams");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForBuses]"], "Enable for buses");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriorityDiagnostics]"], "Diagnostics");
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityFollowerUnavailable]"], "Transit Signal Priority for buses is controlled by the group leader");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"], "Transit Signal Priority is suspended while this intersection is in a traffic group");
 });
 
 test("transit signal priority diagnostics are gated by a mod option", async () => {
@@ -137,13 +137,35 @@ test("transit signal priority diagnostics are gated by a mod option", async () =
   assert.match(uiSystem, /ShouldRefreshMainPanelForDiagnostics\(\)/);
   assert.match(uiSystem, /m_MainPanelState\s*==\s*MainPanelState\.Main/);
   assert.match(content, /const\s+transitSignalPriorityDiagnostics\s*=\s*mainData\.transitSignalPriority\?\.diagnostics/);
-  assert.match(content, /transitSignalPriorityDiagnostics\.summary/);
   assert.match(content, /transitSignalPriorityDiagnostics\.events/);
+  assert.match(content, /transitSignalPriorityDiagnostics\.rows/);
   assert.match(locale, /Show Transit Signal Priority Diagnostics/);
   assert.match(locale, /TSPDiagnosticsRequest/);
   assert.match(locale, /TSPDiagnosticsCurrentGroup/);
   assert.match(locale, /TSPDiagnosticsCurveApproach/);
   assert.match(locale, /TSPDiagnosticsDecision/);
+});
+
+test("transit signal priority diagnostics option is declared after default options", async () => {
+  const settings = await repoSource("Settings.cs");
+  const diagnosticsIndex = settings.indexOf("public bool m_ShowTransitSignalPriorityDiagnostics");
+  const defaultOptionNames = [
+    "m_DefaultSplitPhasing",
+    "m_DefaultAlwaysGreenKerbsideTurn",
+    "m_DefaultExclusivePedestrian",
+    "m_ForceNodeUpdate",
+    "m_ComponentTypeToClear",
+    "m_ClearSelectedComponent",
+  ];
+
+  assert.notEqual(diagnosticsIndex, -1);
+
+  for (const optionName of defaultOptionNames) {
+    const optionIndex = settings.indexOf(optionName);
+
+    assert.notEqual(optionIndex, -1, `${optionName} is missing from Settings.cs`);
+    assert.ok(optionIndex < diagnosticsIndex, `${optionName} should be declared before diagnostics`);
+  }
 });
 
 test("backend provides transit signal priority summary and event history", async () => {
@@ -153,13 +175,158 @@ test("backend provides transit signal priority summary and event history", async
 
   assert.match(uiBindings, /GetTspDiagnosticsSummary/);
   assert.match(uiBindings, /GetTspDiagnosticsEvents/);
+  assert.match(uiBindings, /private\s+const\s+int\s+TspDiagnosticsEventHistoryLimit\s*=\s*100\s*;/);
   assert.match(uiBindings, /ShouldRecordTspDiagnosticsEvent/);
   assert.match(uiBindings, /RecordTspDiagnosticsEvent/);
+  assert.match(uiBindings, /history\.Events\.Count\s*>\s*TspDiagnosticsEventHistoryLimit/);
   assert.match(uiBindings, /summary\s*=\s*GetTspDiagnosticsSummary/);
   assert.match(uiBindings, /events\s*=\s*GetTspDiagnosticsEvents/);
   assert.match(uiSystem, /m_TspDiagnosticsEvents/);
   assert.match(locale, /TSPDiagnosticsSummary/);
   assert.match(locale, /TSPDiagnosticsEvents/);
+});
+
+test("backend keeps transit signal priority history at 100 but renders a bounded recent slice", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
+  const eventsEnd = uiBindings.indexOf("private void PruneTspDiagnosticsEvents", eventsStart);
+  const eventsSource = uiBindings.slice(eventsStart, eventsEnd);
+
+  assert.notEqual(eventsStart, -1);
+  assert.notEqual(eventsEnd, -1);
+  assert.match(uiBindings, /private\s+const\s+int\s+TspDiagnosticsEventHistoryLimit\s*=\s*100\s*;/);
+  assert.match(uiBindings, /private\s+const\s+int\s+TspDiagnosticsEventDisplayLimit\s*=\s*5\s*;/);
+  assert.match(uiBindings, /history\.Events\.Count\s*>\s*TspDiagnosticsEventHistoryLimit/);
+  assert.match(eventsSource, /history\.Events\.Take\(TspDiagnosticsEventDisplayLimit\)/);
+  assert.doesNotMatch(eventsSource, /foreach\s*\(\s*TspDiagnosticsEvent\s+diagnosticsEvent\s+in\s+history\.Events\s*\)/);
+});
+
+test("diagnostics panel renders details before compact recent events", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const diagnosticsStart = content.indexOf('title="TransitSignalPriorityDiagnostics"');
+  const diagnosticsEnd = content.indexOf("{mainData.hasLaneDirectionTool", diagnosticsStart);
+  const diagnosticsSource = content.slice(diagnosticsStart, diagnosticsEnd);
+
+  assert.notEqual(diagnosticsStart, -1);
+  assert.notEqual(diagnosticsEnd, -1);
+  assert.doesNotMatch(diagnosticsSource, /transitSignalPriorityDiagnostics\.summary/);
+  assert.ok(
+    diagnosticsSource.indexOf("transitSignalPriorityDiagnostics.rows.map") <
+      diagnosticsSource.indexOf("transitSignalPriorityDiagnostics.events.map"),
+    "diagnostic rows should render before event history"
+  );
+  assert.match(diagnosticsSource, /styles\.diagnosticEventTitle/);
+  assert.match(diagnosticsSource, /styles\.diagnosticEventDetail/);
+});
+
+test("backend event history provides compact event title and detail fields", async () => {
+  const general = await source("src/mods/general.ts");
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
+  const eventsEnd = uiBindings.indexOf("private void PruneTspDiagnosticsEvents", eventsStart);
+  const eventsSource = uiBindings.slice(eventsStart, eventsEnd);
+
+  assert.match(general, /events\?:\s*Array<\{\s*sequence:\s*number,\s*title:\s*string,\s*detail:\s*string\s*\}>/);
+  assert.match(uiBindings, /title\s*=\s*\$"#\{diagnosticsEvent\.Sequence\} \{eventTitle\}"/);
+  assert.match(uiBindings, /detail\s*=\s*eventDetail/);
+  assert.doesNotMatch(eventsSource, /label\s*=\s*"TSPDiagnosticsEvent"/);
+  assert.doesNotMatch(eventsSource, /value\s*=\s*\$"#\{diagnosticsEvent\.Sequence\} \{diagnosticsEvent\.Value\}"/);
+});
+
+test("backend hides empty bus detail diagnostics until a bus sample exists", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const rowsStart = uiBindings.indexOf("if (hasBusApproachDebug)");
+  const rowsEnd = uiBindings.indexOf("if (hasDecisionTrace)", rowsStart);
+  const busRowsSource = uiBindings.slice(rowsStart, rowsEnd);
+
+  assert.notEqual(rowsStart, -1);
+  assert.notEqual(rowsEnd, -1);
+  assert.match(busRowsSource, /bool\s+hasBusSample\s*=\s*busApproachDebug\.m_BusHitCount\s*>\s*0/);
+  assert.match(busRowsSource, /if\s*\(\s*hasBusSample\s*\)/);
+  assert.ok(
+    busRowsSource.indexOf("if (hasBusSample)") <
+      busRowsSource.indexOf("TSPDiagnosticsBusLane"),
+    "bus lane and vehicle details should be inside the sampled-bus block"
+  );
+  assert.match(busRowsSource, /if\s*\(\s*busApproachDebug\.m_BusTargetSignalGroup\s*>\s*0\s*\)/);
+  assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusNavigationLanes[\s\S]*\?\s*busApproachDebug\.m_BusNavigationLaneCount\.ToString\(CultureInfo\.InvariantCulture\)\s*:\s*"-"/);
+});
+
+test("backend keeps in-game diagnostics source-aware and hides raw deep debug rows", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const rowsStart = uiBindings.indexOf("if (hasRuntimeDebug)");
+  const rowsEnd = uiBindings.indexOf("if (hasBusApproachDebug)", rowsStart);
+  const runtimeRowsSource = uiBindings.slice(rowsStart, rowsEnd);
+  const busRowsEnd = uiBindings.indexOf("if (hasDecisionTrace)", rowsEnd);
+  const busRowsSource = uiBindings.slice(rowsEnd, busRowsEnd);
+
+  assert.notEqual(rowsStart, -1);
+  assert.notEqual(rowsEnd, -1);
+  assert.notEqual(busRowsEnd, -1);
+  assert.match(runtimeRowsSource, /bool\s+isTrackRequest\s*=\s*\(global::TrafficLightsEnhancement\.Logic\.Tsp\.TspSource\)runtimeDebug\.m_SourceType\s*==\s*global::TrafficLightsEnhancement\.Logic\.Tsp\.TspSource\.Track/);
+  assert.match(runtimeRowsSource, /if\s*\(\s*isTrackRequest\s*\)/);
+  assert.ok(
+    runtimeRowsSource.indexOf("if (isTrackRequest)") <
+      runtimeRowsSource.indexOf("TSPDiagnosticsProbeSignaled"),
+    "tram probe fields should only render for track requests"
+  );
+  assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusNavigationLanes/);
+  assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusTransportState/);
+  assert.doesNotMatch(busRowsSource, /TSPDiagnosticsBusVehicleFlags/);
+});
+
+test("diagnostic row labels are localized", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const locale = JSON.parse(await repoSource("Locale.json"));
+  const labelPattern = /label\s*=\s*"([^"]+)"/g;
+  const labels = new Set();
+  let match;
+
+  while ((match = labelPattern.exec(uiBindings)) !== null) {
+    if (match[1].startsWith("TSPDiagnostics")) {
+      labels.add(match[1]);
+    }
+  }
+
+  for (const label of labels) {
+    const localeKey = `UI.LABEL[C2VM.TrafficLightsEnhancement.${label}]`;
+
+    assert.equal(typeof locale[localeKey], "string", `${label} needs a locale entry`);
+    assert.notEqual(locale[localeKey].trim(), "", `${label} locale entry cannot be empty`);
+  }
+
+  assert.equal(
+    locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsPendingPedestrianFairness]"],
+    "Pedestrian phase due"
+  );
+});
+
+test("backend presents bus-originated TSP requests as bus diagnostics", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const helperStart = uiBindings.indexOf("private static string GetTspSourceName");
+  const helperEnd = uiBindings.indexOf("private static string GetTrackProbeName", helperStart);
+  const helperSource = uiBindings.slice(helperStart, helperEnd);
+
+  assert.notEqual(helperStart, -1);
+  assert.notEqual(helperEnd, -1);
+  assert.match(helperSource, /TspSource\.PublicCar\s*=>\s*"Bus"/);
+  assert.doesNotMatch(helperSource, /"Public car"/);
+});
+
+test("backend hides pedestrian decision diagnostics when no pedestrian context is active", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const traceStart = uiBindings.indexOf("if (hasDecisionTrace)");
+  const traceEnd = uiBindings.indexOf("return new { summary, events, rows };", traceStart);
+  const decisionRowsSource = uiBindings.slice(traceStart, traceEnd);
+
+  assert.notEqual(traceStart, -1);
+  assert.notEqual(traceEnd, -1);
+  assert.match(decisionRowsSource, /HasPedestrianDecisionContext\(decisionTrace\)/);
+  assert.ok(
+    decisionRowsSource.indexOf("HasPedestrianDecisionContext(decisionTrace)") <
+      decisionRowsSource.indexOf("TSPDiagnosticsExclusivePedestrian"),
+    "pedestrian rows should be gated behind an active pedestrian decision context"
+  );
 });
 
 test("backend writes selected transit signal priority diagnostics to a trace file", async () => {
@@ -169,11 +336,42 @@ test("backend writes selected transit signal priority diagnostics to a trace fil
   assert.match(uiBindings, /C2VM\.TrafficLightsEnhancement\.TspDiagnostics\.jsonl/);
   assert.match(uiBindings, /WriteTspDiagnosticsTraceEvent/);
   assert.match(uiBindings, /Application\.persistentDataPath/);
+  assert.match(uiBindings, /simulationFrame\s*=\s*m_SimulationSystem\.frameIndex/);
+  assert.match(uiBindings, /signalConfiguration\s*=\s*GetTspSignalConfigurationTrace/);
+  assert.match(uiBindings, /trafficGroup\s*=\s*GetTspTrafficGroupTrace/);
+  assert.match(uiBindings, /laneSignals\s*=\s*GetTspLaneSignalTrace/);
   assert.match(uiBindings, /TspDiagnosticsTraceFileLock/);
   assert.match(uiBindings, /RotateTspDiagnosticsTraceFileIfNeeded/);
   assert.match(uiBindings, /TspDiagnosticsTraceMaxRotatedFiles/);
   assert.match(uiBindings, /PruneTspDiagnosticsTraceFiles/);
   assert.match(uiBindings, /FileMode\.Append/);
+});
+
+test("runtime suspends transit signal priority for all traffic group members", async () => {
+  const runtime = await repoSource("Systems/TrafficLightSystems/Simulation/TransitSignalPriorityRuntime.cs");
+  const patchedSystem = await repoSource("Systems/TrafficLightSystems/Simulation/PatchedTrafficLightSystem.cs");
+  const policy = await repoSource("../TrafficLightsEnhancement.Logic/Tsp/TspPolicy.cs");
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+
+  assert.match(runtime, /return\s+!job\.m_ExtraTypeHandle\.m_TrafficGroupMember\.HasComponent\(junctionEntity\)/);
+  assert.doesNotMatch(runtime, /return\s+member\.m_IsGroupLeader/);
+  assert.match(patchedSystem, /bool\s+isGroupedIntersection\s*=\s*m_TrafficGroupMemberLookup\.HasComponent\(entity\)/);
+  assert.doesNotMatch(patchedSystem, /bool\s+isGroupedFollower\s*=/);
+  assert.match(policy, /IsApproachIndexEligibleSetting\(\s*TransitSignalPrioritySettings\s+settings,\s*bool\s+isGroupedIntersection/);
+  assert.match(policy, /IsBusApproachIndexEligibleSetting\(\s*TransitSignalPrioritySettings\s+settings,\s*bool\s+isGroupedIntersection/);
+  assert.match(uiBindings, /isEditable\s*=\s*!isTrafficGroupMember/);
+});
+
+test("bus requests remember extension eligibility after the target group becomes current", async () => {
+  const runtime = await repoSource("Systems/TrafficLightSystems/Simulation/TransitSignalPriorityRuntime.cs");
+  const createStart = runtime.indexOf("private static TransitSignalPriorityRequest CreateRequest");
+  const createEnd = runtime.indexOf("private static TspSignalRequest ToSignalRequest", createStart);
+  const createSource = runtime.slice(createStart, createEnd);
+
+  assert.notEqual(createStart, -1);
+  assert.notEqual(createEnd, -1);
+  assert.match(createSource, /m_ExtendCurrentPhase\s*=\s*request\.ExtensionEligible\s*&&\s*\(laneSignal\.m_Flags\s*&\s*LaneSignalFlags\.CanExtend\)\s*!=\s*0/);
+  assert.doesNotMatch(createSource, /currentSignalGroup\s*==\s*targetSignalGroup/);
 });
 
 test("backend trace writes follow selected diagnostics event filtering", async () => {
@@ -300,7 +498,7 @@ test("tool removal clears transit signal priority runtime components", async () 
   assert.match(removalSource, /RemoveTransitSignalPriorityComponents\(m_RaycastResult\)/);
 });
 
-test("transit signal priority settings reserve public car priority without persisting group propagation", async () => {
+test("transit signal priority settings preserve bus priority without persisting group propagation", async () => {
   const settings = await repoSource("Components/TransitSignalPrioritySettings.cs");
   const normalizeStart = settings.indexOf("public void Normalize()");
   const serializeStart = settings.indexOf("public void Serialize");
@@ -373,7 +571,7 @@ test("backend exposes bus approach index details", async () => {
   assert.match(uiBindings, /TSPDiagnosticsBusIndexLanes/);
   assert.match(uiBindings, /TSPDiagnosticsBusLaneType/);
   assert.match(uiBindings, /TSPDiagnosticsBusLaneChange/);
-  assert.match(uiBindings, /TSPDiagnosticsBusVehicleFlags/);
+  assert.match(uiBindings, /vehicleLaneFlags\s*=\s*busApproachDebug\.m_BusVehicleLaneFlags\.ToString\(\)/);
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusIndexLanes]"], "Indexed bus lanes");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusLaneType]"], "Bus lane type");
 });

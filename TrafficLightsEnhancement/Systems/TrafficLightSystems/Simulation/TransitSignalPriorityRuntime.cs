@@ -202,7 +202,7 @@ public static class TransitSignalPriorityRuntime
             return;
         }
 
-        if (debugInfo.m_BusTargetSignalGroup == 0 || !IsBusApproachCurveEligible(sample, busProbe))
+        if (debugInfo.m_BusTargetSignalGroup == 0 || !IsBusPrioritySampleEligible(sample) || !IsBusApproachCurveEligible(sample, busProbe))
         {
             debugInfo.m_BusDecision = TransitSignalPriorityBusDecision.NoEligibleSample;
             return;
@@ -273,7 +273,7 @@ public static class TransitSignalPriorityRuntime
             return false;
         }
 
-        if (!IsBusApproachCurveEligible(sample, busProbe))
+        if (!IsBusPrioritySampleEligible(sample) || !IsBusApproachCurveEligible(sample, busProbe))
         {
             return false;
         }
@@ -316,6 +316,11 @@ public static class TransitSignalPriorityRuntime
     {
         return busProbe == TransitSignalPriorityBusProbeResult.MatchOnSignaledLane
             || sample.CurvePosition >= BusApproachLaneCurveThreshold;
+    }
+
+    public static bool IsBusPrioritySampleEligible(BusApproachSample sample)
+    {
+        return (sample.PublicTransportState & PublicTransportFlags.DummyTraffic) == 0;
     }
 
     public static bool TryResolveActiveLocalRequest(
@@ -435,12 +440,7 @@ public static class TransitSignalPriorityRuntime
         PatchedTrafficLightSystem.UpdateTrafficLightsJob job,
         Entity junctionEntity)
     {
-        if (!job.m_ExtraTypeHandle.m_TrafficGroupMember.TryGetComponent(junctionEntity, out var member))
-        {
-            return true;
-        }
-
-        return member.m_IsGroupLeader;
+        return !job.m_ExtraTypeHandle.m_TrafficGroupMember.HasComponent(junctionEntity);
     }
 
     public static bool ShouldHoldCurrentGroup(
@@ -1457,7 +1457,6 @@ public static class TransitSignalPriorityRuntime
             m_Strength = request.Strength,
             m_ExpiryTimer = expiryTimer,
             m_ExtendCurrentPhase = request.ExtensionEligible
-                && currentSignalGroup == targetSignalGroup
                 && (laneSignal.m_Flags & LaneSignalFlags.CanExtend) != 0,
         };
     }

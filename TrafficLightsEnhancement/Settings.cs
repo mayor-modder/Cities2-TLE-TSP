@@ -117,9 +117,6 @@ public class Settings : ModSetting
     [SettingsUIHideByCondition(typeof(Settings), "IsCompatibilityMode")]
     public bool m_DefaultExclusivePedestrian { get; set; }
 
-    [SettingsUISection(kTabGeneral, kGroupDiagnostics)]
-    public bool m_ShowTransitSignalPriorityDiagnostics { get; set; }
-
     [SettingsUISection(kTabGeneral, kGroupDefault)]
     [SettingsUIButton]
     [SettingsUIConfirmation(null, null)]
@@ -133,7 +130,7 @@ public class Settings : ModSetting
         }
         set
         {
-            EntityQuery entityQuery = Mod.m_World.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<Game.Net.TrafficLights>());
+            using EntityQuery entityQuery = Mod.m_World.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<Game.Net.TrafficLights>());
             Mod.m_World.EntityManager.AddComponent<Game.Common.Updated>(entityQuery);
         }
     }
@@ -154,6 +151,9 @@ public class Settings : ModSetting
             ClearSelectedTLEComponent();
         }
     }
+
+    [SettingsUISection(kTabGeneral, kGroupDiagnostics)]
+    public bool m_ShowTransitSignalPriorityDiagnostics { get; set; }
 
     public static DropdownItem<string>[] GetComponentTypeValues()
     {
@@ -177,65 +177,48 @@ public class Settings : ModSetting
         
         if (componentName == "All" || componentName == "CustomTrafficLights")
         {
-            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.CustomTrafficLights>());
-            if (!query.IsEmptyIgnoreFilter)
-            {
-                removedCount += query.CalculateEntityCount();
-                entityManager.RemoveComponent<Components.CustomTrafficLights>(query);
-            }
+            removedCount += ClearComponent(entityManager, ComponentType.ReadOnly<Components.CustomTrafficLights>());
         }
         
         if (componentName == "All" || componentName == "CustomPhaseData")
         {
-            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.CustomPhaseData>());
-            if (!query.IsEmptyIgnoreFilter)
-            {
-                removedCount += query.CalculateEntityCount();
-                entityManager.RemoveComponent<Components.CustomPhaseData>(query);
-            }
+            removedCount += ClearComponent(entityManager, ComponentType.ReadOnly<Components.CustomPhaseData>());
         }
         
         if (componentName == "All" || componentName == "TrafficGroup")
         {
-            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.TrafficGroup>());
-            if (!query.IsEmptyIgnoreFilter)
-            {
-                removedCount += query.CalculateEntityCount();
-                entityManager.RemoveComponent<Components.TrafficGroup>(query);
-            }
+            removedCount += ClearComponent(entityManager, ComponentType.ReadOnly<Components.TrafficGroup>());
         }
         
         if (componentName == "All" || componentName == "TrafficGroupMember")
         {
-            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.TrafficGroupMember>());
-            if (!query.IsEmptyIgnoreFilter)
-            {
-                removedCount += query.CalculateEntityCount();
-                entityManager.RemoveComponent<Components.TrafficGroupMember>(query);
-            }
+            removedCount += ClearComponent(entityManager, ComponentType.ReadOnly<Components.TrafficGroupMember>());
         }
         
         if (componentName == "All" || componentName == "EdgeGroupMask")
         {
-            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.EdgeGroupMask>());
-            if (!query.IsEmptyIgnoreFilter)
-            {
-                removedCount += query.CalculateEntityCount();
-                entityManager.RemoveComponent<Components.EdgeGroupMask>(query);
-            }
+            removedCount += ClearComponent(entityManager, ComponentType.ReadOnly<Components.EdgeGroupMask>());
         }
         
         if (componentName == "All" || componentName == "ExtraLaneSignal")
         {
-            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<Components.ExtraLaneSignal>());
-            if (!query.IsEmptyIgnoreFilter)
-            {
-                removedCount += query.CalculateEntityCount();
-                entityManager.RemoveComponent<Components.ExtraLaneSignal>(query);
-            }
+            removedCount += ClearComponent(entityManager, ComponentType.ReadOnly<Components.ExtraLaneSignal>());
         }
         
         Mod.log.Info($"Cleared {componentName} from {removedCount} entities. Save game to persist changes.");
+    }
+
+    private static int ClearComponent(EntityManager entityManager, ComponentType componentType)
+    {
+        using EntityQuery query = entityManager.CreateEntityQuery(componentType);
+        if (query.IsEmptyIgnoreFilter)
+        {
+            return 0;
+        }
+
+        int removedCount = query.CalculateEntityCount();
+        entityManager.RemoveComponent(query, componentType);
+        return removedCount;
     }
 
     [SettingsUISection(kTabGeneral, kGroupVersion)]

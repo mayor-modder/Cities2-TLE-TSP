@@ -158,25 +158,6 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                                 <>
                                     <Divider />
                                     <Title itemType="title" title="TransitSignalPriorityDiagnostics" />
-                                    {transitSignalPriorityDiagnostics.summary && (
-                                        <Row hoverEffect={false}>
-                                            <div className={styles.contentLabel}>
-                                                {translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${transitSignalPriorityDiagnostics.summary.label}]`) ?? transitSignalPriorityDiagnostics.summary.label}: {transitSignalPriorityDiagnostics.summary.value}
-                                            </div>
-                                        </Row>
-                                    )}
-                                    {transitSignalPriorityDiagnostics.events && transitSignalPriorityDiagnostics.events.length > 0 && (
-                                        <>
-                                            <Title itemType="title" title="TSPDiagnosticsEvents" />
-                                            {transitSignalPriorityDiagnostics.events.map((event) => (
-                                                <Row key={`${event.sequence}-${event.value}`} hoverEffect={false}>
-                                                    <div className={styles.contentLabel}>
-                                                        {translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${event.label}]`) ?? event.label}: {event.value}
-                                                    </div>
-                                                </Row>
-                                            ))}
-                                        </>
-                                    )}
                                     {transitSignalPriorityDiagnostics.rows.map((row) => (
                                         <Row key={row.label} hoverEffect={false}>
                                             <div className={styles.contentLabel}>
@@ -184,6 +165,22 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                                             </div>
                                         </Row>
                                     ))}
+                                    {transitSignalPriorityDiagnostics.events && transitSignalPriorityDiagnostics.events.length > 0 && (
+                                        <>
+                                            <Divider />
+                                            <Title itemType="title" title="TSPDiagnosticsEvents" />
+                                            {transitSignalPriorityDiagnostics.events.map((event) => (
+                                                <Row key={`${event.sequence}-${event.title}`} hoverEffect={false}>
+                                                    <div className={styles.diagnosticEvent}>
+                                                        <div className={styles.diagnosticEventTitle}>{event.title}</div>
+                                                        {event.detail && (
+                                                            <div className={styles.diagnosticEventDetail}>{event.detail}</div>
+                                                        )}
+                                                    </div>
+                                                </Row>
+                                            ))}
+                                        </>
+                                    )}
                                 </>
                             )}
                         </>

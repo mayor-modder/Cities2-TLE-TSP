@@ -10,6 +10,9 @@ namespace C2VM.TrafficLightsEnhancement.Utils
 	[Serializable]
 	public class UserPreset
 	{
+		private const int MinimumPhaseDuration = 2;
+		private const int MaximumPhaseDuration = 300;
+
 		public string Id { get; set; }
 		public string Name { get; set; }
 		public int MinDuration { get; set; }
@@ -42,14 +45,36 @@ namespace C2VM.TrafficLightsEnhancement.Utils
 
 		public PhaseTemplateConfig ToConfig()
 		{
+			ushort minDuration = ClampDuration(MinDuration);
+			ushort maxDuration = ClampDuration(MaxDuration);
+			if (minDuration > maxDuration)
+			{
+				maxDuration = minDuration;
+			}
+
 			return new PhaseTemplateConfig
 			{
-				MinDuration = (ushort)MinDuration,
-				MaxDuration = (ushort)MaxDuration,
+				MinDuration = minDuration,
+				MaxDuration = maxDuration,
 				WaitFlowBalance = WaitFlowBalance,
 				ChangeMetric = (CustomPhaseData.StepChangeMetric)ChangeMetric,
 				TargetDurationMultiplier = TargetDurationMultiplier
 			};
+		}
+
+		private static ushort ClampDuration(int value)
+		{
+			if (value < MinimumPhaseDuration)
+			{
+				return MinimumPhaseDuration;
+			}
+
+			if (value > MaximumPhaseDuration)
+			{
+				return MaximumPhaseDuration;
+			}
+
+			return (ushort)value;
 		}
 	}
 

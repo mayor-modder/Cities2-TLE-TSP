@@ -1,12 +1,12 @@
 ## TLE Extended
 
-TLE Extended is a compatible extended fork of Traffic Lights Enhancement for Cities: Skylines II. It starts from the rewritten TLE codebase and adds Transit Signal Priority, with a longer-term focus on compatibility, maintainability, documentation, diagnostics, and broader transit-priority work.
+TLE Extended is a compatible extended fork of Traffic Lights Enhancement for Cities: Skylines II. It starts from the rewritten TLE codebase and adds Transit Signal Priority for trams and buses, with a longer-term focus on compatibility, maintainability, documentation, diagnostics, and broader transit-priority work.
 
 Current capabilities include:
 
 * Set traffic lights to predefined signal modes.
 * Configure custom traffic-light phases at supported junctions.
-* Enable optional Transit Signal Priority for trams or buses on selected intersections.
+* Enable optional Transit Signal Priority for trams or soft bus priority on selected intersections.
 * Use opt-in diagnostics when investigating Transit Signal Priority behavior.
 
 See the [guide](GUIDE.md), [roadmap](ROADMAP.md), [TSP architecture notes](docs/tsp-architecture.md), [traffic group notes](docs/traffic-groups.md), [custom phase data flow](docs/custom-phase-data-flow.md), and [save-format contract](docs/save-format-contract.md) for the current direction of the project.

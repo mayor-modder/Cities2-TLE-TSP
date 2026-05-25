@@ -101,8 +101,8 @@ TSP settings normalize after load:
 - max green extension values above `600` clamp to `600`.
 
 Loaded TSP settings are not forced back to tram-only defaults. The serialized
-track/public-car flags are part of the payload contract even though the runtime
-currently only produces track requests.
+track/public-car flags are part of the payload contract. Public-car requests
+back the player-facing soft bus-priority feature.
 
 The migration/validation pass also repairs inherited data where possible:
 
@@ -143,10 +143,12 @@ TLE Extended should preserve these assumptions while in drop-in mode:
   non-TSP intersections.
 - TSP is additive per junction; disabling TSP removes the settings component and
   leaves inherited TLE data intact.
-- Grouped follower intersections do not run local TSP. Leader/follower TSP
-  behavior needs a new explicit design before any save fields are added.
-- Public-car/bus priority fields are reserved. Making them user-configurable may
-  need a TSP payload bump and migration notes.
+- Grouped intersections do not run local TSP, including the group leader. Any
+  future group-wide TSP behavior needs a new explicit design before save fields
+  are added.
+- Public-car/bus priority fields are active for the soft bus-priority feature.
+  Changing their serialized meaning may need a TSP payload bump and migration
+  notes.
 - Downgrading an Extended save to upstream TLE is not guaranteed after Extended
   has written components unknown to the target upstream build.
 

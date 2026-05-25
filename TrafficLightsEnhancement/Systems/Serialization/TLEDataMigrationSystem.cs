@@ -69,6 +69,16 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
             _uiSystem = World.GetOrCreateSystemManaged<Systems.UI.UISystem>();
         }
 
+        protected override void OnDestroy()
+        {
+            if (_affectedGroupsForMigration.IsCreated)
+            {
+                _affectedGroupsForMigration.Dispose();
+            }
+
+            base.OnDestroy();
+        }
+
         protected override void OnUpdate()
         {
             if (!_loaded)

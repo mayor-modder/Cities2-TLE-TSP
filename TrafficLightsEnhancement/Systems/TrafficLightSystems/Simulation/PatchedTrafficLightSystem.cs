@@ -1422,13 +1422,12 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             for (int i = 0; i < settings.Length; i++)
             {
                 Entity entity = entities[i];
-                bool isGroupedFollower = m_TrafficGroupMemberLookup.HasComponent(entity)
-                    && !m_TrafficGroupMemberLookup[entity].m_IsGroupLeader;
+                bool isGroupedIntersection = m_TrafficGroupMemberLookup.HasComponent(entity);
 
                 var logicSettings = settings[i].ToLogicSettings();
                 bool isEligible = m_RequirePublicCarRequests
-                    ? TspPolicy.IsBusApproachIndexEligibleSetting(logicSettings, isGroupedFollower)
-                    : TspPolicy.IsApproachIndexEligibleSetting(logicSettings, isGroupedFollower);
+                    ? TspPolicy.IsBusApproachIndexEligibleSetting(logicSettings, isGroupedIntersection)
+                    : TspPolicy.IsApproachIndexEligibleSetting(logicSettings, isGroupedIntersection);
 
                 if (isEligible)
                 {
