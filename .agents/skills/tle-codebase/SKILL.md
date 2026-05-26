@@ -50,7 +50,10 @@ Read the smallest useful set before editing:
 | C#, Unity ECS, traffic-light systems, TSP policy, serialization | `tle-csharp-ecs` |
 | React UI, C# UI bindings, localization keys, option text | `tle-ui-localization` |
 | Selecting tests, build commands, packaging/release checks | `tle-testing-release` |
+| Reviewing PRs/branches, coordinating reviewer agents, verifying review fixes | `tle-code-review` |
 
 ## Working Style
+
+Before implementing a feature, bugfix, or GitHub issue, create or switch to a dedicated task branch and preferably a separate git worktree. Do not edit `main` directly for issue/feature/fix work. If the tree is dirty, preserve the user's work and ask before moving or mixing unrelated changes.
 
 Start with the owning layer, then expand only when the behavior crosses boundaries. For example, a TSP policy tweak usually starts in `TrafficLightsEnhancement.Logic/Tsp`, then updates ECS integration, UI diagnostics, and docs only if the contract changes.

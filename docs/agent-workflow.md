@@ -14,8 +14,17 @@ The compatibility shim files (`CLAUDE.md`, `GEMINI.md`, `.cursor/rules/agents.md
 - `tle-csharp-ecs`: C#, Unity ECS, traffic-light simulation, Transit Signal Priority policy, save data, migrations, and build behavior.
 - `tle-ui-localization`: React UI, C# UI bindings, diagnostics panel payloads, option text, tooltips, localization keys, and `Locale.json`.
 - `tle-testing-release`: focused verification commands, mod build/toolchain expectations, packaging risk, and release-readiness checks.
+- `tle-code-review`: PR and branch review rounds, internal/external reviewer coordination, review-fix verification, and GitHub review thread hygiene.
 
 Agents should load the smallest relevant set for the task, then prefer the main project docs (`README.md`, `BUILD.md`, `GUIDE.md`, `docs/tsp-architecture.md`, `docs/save-format-contract.md`, and `docs/localization-workflow.md`) over memory.
+
+## Workspace Isolation
+
+Agents implementing features, bugfixes, or GitHub issues should work on a dedicated task branch and preferably in a separate git worktree. The shared `main` checkout should stay clean for syncing, reviewing, and emergency fixes. If an agent starts in `main`, it should create or switch to an isolated branch/worktree before editing; if the tree is dirty, it should preserve user work and ask before moving or mixing unrelated changes.
+
+## GitHub Authorship
+
+When an AI agent writes GitHub-facing text for this repository, the text should start with `*Written by <AgentName>.*` using the agent's actual name. This applies to pull request bodies, pull request comments, and review comments, so humans can distinguish automated agent notes from maintainer-written text.
 
 ## Maintenance Rules
 
