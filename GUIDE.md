@@ -1,5 +1,5 @@
 > [!NOTE]
-> Currently, the mod only supports three-way and four-way junctions. Junctions of other types will offer fewer options in the mod.
+> The available controls depend on junction topology. Vanilla and Custom Phases are offered broadly, while predefined advanced modes are hidden unless the selected junction meets their topology requirements. For example, Protected Left/Right-Turns require a four-approach junction with straight-through approaches, and split-phasing variants are unavailable on rail/track junctions or junctions with more than seven connected edges.
 
 > [!TIP]
 > Most controls change the sequencing or grouping of signals. Dynamic mode and Transit Signal Priority can also affect phase selection or timing within their configured limits.
@@ -23,7 +23,7 @@ TLE Extended introduces advanced traffic light controls for Cities: Skylines II,
 | Allow Turning on Red | Allow vehicles to turn left (in LHT) or right (in RHT) when the signal is red. |
 | Give Way to Oncoming Vehicles<br>(Only for vanilla signals) | Require vehicles to give way to oncoming traffic when turning.<br>Note: Although drivers are required to give way, their aggressive behavior may reduce the effectiveness of this option at busy junctions. |
 | Exclusive Pedestrian Phase | A dedicated phase for pedestrian crossings, stopping all vehicular traffic. |
-| Pedestrian Phase Duration | Sets the duration of the green light for pedestrians.<br>Only available when the "Exclusive Pedestrian Phase" option is enabled.<br>Note: Pedestrian traffic lights are not "smart" and will not extend the green signal. |
+| Pedestrian Phase Duration | Multiplies the base green-light duration for the exclusive pedestrian phase.<br>Only available when the "Exclusive Pedestrian Phase" option is enabled.<br>Note: Pedestrian traffic lights are not "smart" and will not extend the green signal. |
 
 ## Transit Signal Priority
 
@@ -36,7 +36,7 @@ Transit Signal Priority is configured per intersection. The panel provides separ
 
 TSP is intended to reduce avoidable transit delay, not to force every signal to flip immediately. Tram requests have higher priority than bus requests and can use stronger preemption behavior. Bus requests are softer: they can extend a compatible green or select their target group at normal transition points, while stop-aware suppression avoids holding cross traffic for buses that are boarding or likely stopping before the signal.
 
-Bus TSP has been playtested as a release-ready soft-priority feature on bus-only lanes, mixed lanes, vanilla signals, split phasing, protected turns, tram corridors, and exclusive pedestrian phases. Dedicated bus lanes usually produce cleaner detection. Mixed-lane buses are supported, but the detector is more conservative when the bus stop relationship or lane-change target is unclear.
+Bus TSP is implemented as a conservative soft-priority feature and repo notes record release-readiness playtesting on bus-only lanes, mixed lanes, vanilla signals, split phasing, protected turns, tram corridors, and exclusive pedestrian phases. Dedicated bus lanes usually produce cleaner detection. Mixed-lane buses are supported, but the detector is more conservative when the bus stop relationship or lane-change target is unclear.
 
 Traffic groups and TSP are intentionally treated as incompatible controls. When an intersection is part of a TLE traffic group, local TSP is suspended so group coordination and green-wave timing remain authoritative. The intersection's saved TSP settings are preserved and can take effect again if the intersection is removed from the group.
 
@@ -98,11 +98,14 @@ Common bus decisions:
 
 ## How To Use
 
+> [!NOTE]
+> The screenshots below are inherited from the original guide and are tracked for refresh in issue #91. They have not been replaced here because no current TLE Extended screenshots are checked into the repository.
+
 1. Open the Roads Tool, switch to the Road Services tab, and select "Traffic Lights"
 
 ![Screenshot 2023-12-10 102831](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/de6a9184-d340-4371-82c9-ef6731a69630)
 
-2. A small window should appear in the top-left corner of your screen. Move your cursor to any existing junction and press the left mouse button
+2. The TLE panel should appear from the floating Traffic Lights Enhancement button. Move your cursor to an existing signalized junction and press the left mouse button
 
 ![Screenshot 2023-12-10 103024](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/c0beae47-9175-4a31-aad4-ea169f81e1e7)
 
@@ -112,5 +115,5 @@ Common bus decisions:
 
 4. Save the selected junction. It should now operate with the chosen mode and per-intersection options.
 
-[^1]: Advanced Split Phasing and Protected Left/Right-Turns are unavailable at complex junctions, such as those with tram tracks.
+[^1]: Advanced Split Phasing and Protected Left/Right-Turns are topology-gated in the panel. Rail/track junctions and very complex junctions expose fewer predefined modes; Custom Phases remains available for manual configuration.
 [^2]: This advanced split phasing handles traffic light groups dynamically, considering traffic direction and neighboring lane groups.

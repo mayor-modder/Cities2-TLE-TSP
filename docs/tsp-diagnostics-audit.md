@@ -69,7 +69,7 @@ enabled track-capable standalone TSP setting -> scan rail transit lanes for the 
 
 Disabling TSP from the UI removes the settings component, which still avoids the
 scan for users who have no TSP-enabled intersections. The narrower gate also
-protects against stale disabled settings and future public-car-only settings.
+protects against stale disabled settings and bus/public-car-only settings.
 
 Bus indexing is built when diagnostics or bus priority need bus samples. With
 diagnostics disabled and bus priority off, panel-only bus debug work should not
