@@ -25,7 +25,7 @@ Describe what you think the mod should do in this situation, if known.
 
 ## Diagnostics
 
-For Tram Signal Priority or bus diagnostics, include:
+For Transit Signal Priority diagnostics, include:
 
 - Selected entity:
 - Signal state/current group/next group:
