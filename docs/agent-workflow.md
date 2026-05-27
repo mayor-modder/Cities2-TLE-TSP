@@ -15,6 +15,7 @@ The compatibility shim files (`CLAUDE.md`, `GEMINI.md`, `.cursor/rules/agents.md
 - `tle-ui-localization`: React UI, C# UI bindings, diagnostics panel payloads, option text, tooltips, localization keys, and `Locale.json`.
 - `tle-testing-release`: focused verification commands, mod build/toolchain expectations, packaging risk, and release-readiness checks.
 - `tle-code-review`: PR and branch review rounds, internal/external reviewer coordination, review-fix verification, and GitHub review thread hygiene.
+- `tle-code-documentation`: maintainer-facing source documentation, inherited behavior audits, inline comments/XML docs, architecture notes, evidence labels, and mystery-code follow-up issues.
 
 Agents should load the smallest relevant set for the task, then prefer the main project docs (`README.md`, `BUILD.md`, `GUIDE.md`, `docs/tsp-architecture.md`, `docs/save-format-contract.md`, and `docs/localization-workflow.md`) over memory.
 
