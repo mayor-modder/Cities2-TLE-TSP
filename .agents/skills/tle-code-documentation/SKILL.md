@@ -30,6 +30,7 @@ Core principle: map before writing, document only what evidence supports, and le
    - state, components, DTOs, or serialized data
    - data flow and transitions
    - invariants and compatibility constraints
+   - unit semantics such as simulation ticks, seconds, indexes, masks, coordinates, and multipliers
    - cross-language contracts such as C# enum values, UI binding payloads, React numeric IDs, and localization labels
    - tests and in-game evidence
    - docs/UI/localization contracts
@@ -69,6 +70,7 @@ Good comments explain:
 
 - why behavior exists
 - save or compatibility constraints
+- units and scale factors, especially simulation ticks versus wall-clock seconds
 - Cities: Skylines II API quirks
 - C# to React/UI binding contracts, especially numeric enum IDs
 - 1-based game signal groups versus 0-based policy indexes
