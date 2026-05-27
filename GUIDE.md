@@ -102,6 +102,14 @@ Most players can ignore diagnostics. They are mainly for testing, bug reports, a
 
 To use them, enable the TSP diagnostics option in the mod settings, then select an intersection. The selected-intersection panel can show live TSP state and recent decisions. The mod can also write JSONL trace lines with extra details for troubleshooting.
 
+On Windows, the active trace file is written to:
+
+```text
+C:\Users\<your user name>\AppData\LocalLow\Colossal Order\Cities Skylines II\C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl
+```
+
+When the file reaches 5 MB, the mod rotates it in the same folder with a timestamped name such as `C2VM.TrafficLightsEnhancement.TspDiagnostics.20260527091530.jsonl`. It keeps the active file plus the newest three rotated files.
+
 ### Common Diagnostics Fields
 
 | Field | What it means |
