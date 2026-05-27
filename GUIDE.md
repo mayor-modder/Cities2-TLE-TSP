@@ -42,7 +42,26 @@ Traffic groups and TSP are intentionally treated as incompatible controls. When 
 
 If the mod option for TSP diagnostics is enabled, the selected-intersection panel can show recent TSP decisions and write selected diagnostic traces for troubleshooting. Diagnostics are off by default and live in the mod options Diagnostics group.
 
-### Diagnostics Legend
+> [!WARNING]
+> There may be pedestrian pathfinding issues at junctions, potentially indicating a bug in the game's node or pathfinding system, not addressed by this mod.
+
+## How To Use
+
+1. Select the Traffic Lights Enhancement button from the top-left toolbar.
+
+<img width="500" height="195" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
+
+2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
+
+<img width="500" height="371" alt="Traffic Lights Enhancement panel before selecting an intersection" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
+
+3. Choose the signal mode and per-intersection options you prefer. Enable Transit Signal Priority for trams or buses only where that source should receive priority.
+
+<img width="420" height="767" alt="Traffic Lights Enhancement selected-intersection options" src="https://github.com/user-attachments/assets/528771b5-12d5-4536-b360-1616d0a7eea7" />
+
+4. Click Save. The selected junction should now operate with the chosen mode and per-intersection options.
+
+## Transit Signal Priority Diagnostics Legend
 
 When Transit Signal Priority diagnostics are enabled, the selected-intersection panel shows the current TSP state for the selected junction. These fields are intended for troubleshooting and are most useful while the game is paused.
 
@@ -81,7 +100,7 @@ When Transit Signal Priority diagnostics are enabled, the selected-intersection 
 
 The JSONL trace also includes lower-level troubleshooting context that is not all shown in the panel: the selected signal configuration, traffic-group membership, simulation frame, and lane signal group masks for comparing the trace to the colored lane overlay.
 
-Common bus decisions:
+### Common Bus Decisions
 
 | Decision | Meaning |
 | --- | --- |
@@ -92,25 +111,6 @@ Common bus decisions:
 | Suppressed: near-side stop | The bus likely needs to stop before the signal, so holding the light would not help. |
 | Suppressed: stop relation unknown | The stop relationship could not be determined safely. |
 | Suppressed: lane change ambiguous | The bus appears to be changing lanes, so the target group may be unreliable. |
-
-> [!WARNING]
-> There may be pedestrian pathfinding issues at junctions, potentially indicating a bug in the game's node or pathfinding system, not addressed by this mod.
-
-## How To Use
-
-1. Select the Traffic Lights Enhancement button from the top-left toolbar.
-
-<img width="500" height="195" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
-
-2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
-
-<img width="500" height="371" alt="Traffic Lights Enhancement panel before selecting an intersection" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
-
-3. Choose the signal mode and per-intersection options you prefer. Enable Transit Signal Priority for trams or buses only where that source should receive priority.
-
-<img width="420" height="767" alt="Traffic Lights Enhancement selected-intersection options" src="https://github.com/user-attachments/assets/528771b5-12d5-4536-b360-1616d0a7eea7" />
-
-4. Click Save. The selected junction should now operate with the chosen mode and per-intersection options.
 
 [^1]: Advanced Split Phasing and Protected Left/Right-Turns are topology-gated in the panel. Rail/track junctions and very complex junctions expose fewer predefined modes; Custom Phases remains available for manual configuration.
 [^2]: This advanced split phasing handles traffic light groups dynamically, considering traffic direction and neighboring lane groups.
