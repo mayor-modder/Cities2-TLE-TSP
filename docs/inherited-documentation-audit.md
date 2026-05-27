@@ -80,9 +80,10 @@ not rewritten as live user documentation.
 
 ## Still Requiring In-Game Evidence Or Follow-Up
 
-- Current GUIDE screenshots were not replaced because no current TLE Extended
-  screenshots are checked into the repository. This remains tracked by issue
-  #91.
+- The GUIDE now has a locally tracked toolbar screenshot at
+  `docs/images/guide/tle-button.png`, but the selected-panel screenshots are
+  still hosted as GitHub attachments. Refreshing and checking in the remaining
+  current screenshots remains tracked by issue #91.
 - Bus-priority release-readiness and mixed-lane behavior are supported by
   current repo playtest notes and policy tests, but this audit did not perform a
   fresh in-game playtest.

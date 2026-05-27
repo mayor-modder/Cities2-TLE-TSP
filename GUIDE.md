@@ -71,7 +71,7 @@ The custom phase editor has two timing styles:
 | Dynamic | The signal reacts to measured traffic demand. Empty or low-demand phases can be skipped when their settings allow it. |
 | Fixed Timed | The signal follows the phase order and timing more directly. Smart Phase Selection can still choose phases based on demand when enabled. |
 
-Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick Cycle uses shorter timings, Heavy Traffic uses longer timings, Pedestrian Friendly uses a more balanced timing preset, and Rail Priority uses a preset intended for track-heavy custom cycles.
+Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick Cycle uses shorter timings, Heavy Traffic uses longer timings, Pedestrian Friendly uses a more balanced timing preset, Rail Priority uses a preset intended for track-heavy custom cycles, and Night Mode uses very short timings that skip empty phases more readily.
 
 The duration controls are best treated as relative timing values, not exact real-world seconds. Bigger values make phases run longer.
 
