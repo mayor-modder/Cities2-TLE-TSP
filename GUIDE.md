@@ -1,13 +1,10 @@
-> [!NOTE]
-> The available controls depend on junction topology. Vanilla and Custom Phases are offered broadly, while predefined advanced modes are hidden unless the selected junction meets their topology requirements. For example, Protected Left/Right-Turns require a four-approach junction with straight-through approaches, and split-phasing variants are unavailable on rail/track junctions or junctions with more than seven connected edges.
-
-> [!TIP]
-> Most controls change the sequencing or grouping of signals. Dynamic mode and Transit Signal Priority can also affect phase selection or timing within their configured limits.
-
 ## Introduction
 TLE Extended introduces advanced traffic light controls for Cities: Skylines II, allowing for more explicit traffic management at supported junctions. It supports both Left-Hand Traffic (LHT) and Right-Hand Traffic (RHT), and it is intended to remain compatible with intersections already configured in Traffic Lights Enhancement.
 
 ## Modes
+
+> [!TIP]
+> Most modes change the sequencing or grouping of signals. Dynamic mode and Transit Signal Priority can also affect phase selection or timing within their configured limits.
 
 | Mode | Description |
 | --- | --- |
@@ -112,5 +109,5 @@ The JSONL trace also includes lower-level troubleshooting context that is not al
 | Suppressed: stop relation unknown | The stop relationship could not be determined safely. |
 | Suppressed: lane change ambiguous | The bus appears to be changing lanes, so the target group may be unreliable. |
 
-[^1]: Advanced Split Phasing and Protected Left/Right-Turns are topology-gated in the panel. Rail/track junctions and very complex junctions expose fewer predefined modes; Custom Phases remains available for manual configuration.
+[^1]: The available modes depend on junction topology. Vanilla and Custom Phases are offered broadly, while predefined advanced modes can be hidden unless the selected junction meets their requirements. Protected Left/Right-Turns require a four-approach junction with straight-through approaches; split-phasing variants are unavailable on rail/track junctions or junctions with more than seven connected edges.
 [^2]: This advanced split phasing handles traffic light groups dynamically, considering traffic direction and neighboring lane groups.
