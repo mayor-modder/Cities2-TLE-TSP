@@ -30,6 +30,7 @@ Core principle: map before writing, document only what evidence supports, and le
    - state, components, DTOs, or serialized data
    - data flow and transitions
    - invariants and compatibility constraints
+   - cross-language contracts such as C# enum values, UI binding payloads, React numeric IDs, and localization labels
    - tests and in-game evidence
    - docs/UI/localization contracts
    - unknowns and evidence gaps
@@ -69,6 +70,7 @@ Good comments explain:
 - why behavior exists
 - save or compatibility constraints
 - Cities: Skylines II API quirks
+- C# to React/UI binding contracts, especially numeric enum IDs
 - 1-based game signal groups versus 0-based policy indexes
 - group masks and lane matching assumptions
 - state-machine transitions
