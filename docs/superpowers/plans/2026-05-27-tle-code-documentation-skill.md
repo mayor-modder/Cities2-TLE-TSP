@@ -222,7 +222,7 @@ Issue body template:
 
 ## What We Know
 
-- 
+-
 
 ## Evidence Checked
 
@@ -234,11 +234,11 @@ Issue body template:
 
 ## Why It Matters
 
-- 
+-
 
 ## What Would Confirm It
 
-- 
+-
 ```
 
 If GitHub access is unavailable, leave this complete issue body in the final response or PR note instead of letting the mystery stay only in chat.
