@@ -30,8 +30,10 @@ not rewritten as live user documentation.
 - Protected Left/Right-Turns require a four-approach junction whose approaches
   have straight-through car/public-car/track lanes, and they are rejected for
   track-turn cases.
-- Split-phasing variants are rejected for rail/track junctions and for
-  junctions with more than seven connected edges.
+- Split-phasing variants are rejected for junctions with more than seven
+  connected edges and for connected standalone track edges exposed by the game
+  through `TrainTrack`. Roads with embedded tram lanes are evaluated by the
+  normal lane-layout checks.
 - Pedestrian Phase Duration is a multiplier. The UI uses the
   `CustomPedestrianDurationMultiplier` label and `x` suffix, and the runtime
   multiplies the base pedestrian green duration.
