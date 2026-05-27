@@ -20,4 +20,6 @@ See `docs/agent-workflow.md` for why the repo-local skills exist, what each skil
 
 When an AI agent authors GitHub-facing text, including pull request bodies, pull request comments, or review comments, prefix the text with `*Written by <AgentName>.*` using that agent's actual name, such as `Codex`, `Claude`, or `Gemini`.
 
+Pull requests should be squash-merged into `main`. Keep individual branch commits useful for review, but expect the PR title/body and final squash commit to carry the durable history. Delete merged head branches after merge unless a maintainer asks to keep one for follow-up work.
+
 Keep changes scoped and preserve user work in the current tree. This mod intentionally keeps `C2VM.TrafficLightsEnhancement` assembly/root namespace identifiers for compatibility with existing Traffic Lights Enhancement saves and configured intersections.
