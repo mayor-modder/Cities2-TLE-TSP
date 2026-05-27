@@ -100,11 +100,11 @@ Common bus decisions:
 
 1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
-<img width="720" height="281" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
+<img width="500" height="195" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
 
 2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
 
-<img width="720" height="534" alt="Traffic Lights Enhancement panel before selecting an intersection" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
+<img width="500" height="371" alt="Traffic Lights Enhancement panel before selecting an intersection" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
 
 3. Choose the signal mode and per-intersection options you prefer. Enable Transit Signal Priority for trams or buses only where that source should receive priority.
 
