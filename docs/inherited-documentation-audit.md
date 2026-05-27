@@ -30,8 +30,10 @@ not rewritten as live user documentation.
 - Protected Left/Right-Turns require a four-approach junction whose approaches
   have straight-through car/public-car/track lanes, and they are rejected for
   track-turn cases.
-- Split-phasing variants are rejected for rail/track junctions and for
-  junctions with more than seven connected edges.
+- Split-phasing variants are rejected for junctions with more than seven
+  connected edges and for connected standalone track edges exposed by the game
+  through `TrainTrack`. Roads with embedded tram lanes are evaluated by the
+  normal lane-layout checks.
 - Pedestrian Phase Duration is a multiplier. The UI uses the
   `CustomPedestrianDurationMultiplier` label and `x` suffix, and the runtime
   multiplies the base pedestrian green duration.
@@ -78,9 +80,10 @@ not rewritten as live user documentation.
 
 ## Still Requiring In-Game Evidence Or Follow-Up
 
-- Current GUIDE screenshots were not replaced because no current TLE Extended
-  screenshots are checked into the repository. This remains tracked by issue
-  #91.
+- The GUIDE now has a locally tracked toolbar screenshot at
+  `docs/images/guide/tle-button.png`, but the selected-panel screenshots are
+  still hosted as GitHub attachments. Refreshing and checking in the remaining
+  current screenshots remains tracked by issue #91.
 - Bus-priority release-readiness and mixed-lane behavior are supported by
   current repo playtest notes and policy tests, but this audit did not perform a
   fresh in-game playtest.
