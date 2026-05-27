@@ -26,6 +26,10 @@ Agents implementing features, bugfixes, or GitHub issues should work on a dedica
 
 When an AI agent writes GitHub-facing text for this repository, the text should start with `*Written by <AgentName>.*` using the agent's actual name. This applies to pull request bodies, pull request comments, and review comments, so humans can distinguish automated agent notes from maintainer-written text.
 
+## Pull Request Integration
+
+Pull requests should be squash-merged into `main`, and merged head branches should be deleted after merge unless a maintainer asks to keep one. Keep local branch commits useful for review and iteration, but treat the PR title/body, linked issues, review discussion, and final squash commit as the durable project history.
+
 ## Maintenance Rules
 
 - Keep skill bodies concise and procedural; move durable project knowledge into normal docs when humans should read it too.
