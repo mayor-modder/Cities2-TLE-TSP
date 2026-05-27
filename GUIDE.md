@@ -98,20 +98,17 @@ Common bus decisions:
 
 ## How To Use
 
-> [!NOTE]
-> The screenshots below are inherited from the original guide and are tracked for refresh in issue #91. They have not been replaced here because no current TLE Extended screenshots are checked into the repository.
+1. Select the traffic light icon from the top left corner of the screen.
 
-1. Open the Roads Tool, switch to the Road Services tab, and select "Traffic Lights"
+<img width="1193" height="553" alt="tle-button" src="https://github.com/user-attachments/assets/3e2e021e-8c37-424a-8ebc-701164ee75ba" />
 
-![Screenshot 2023-12-10 102831](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/de6a9184-d340-4371-82c9-ef6731a69630)
+2. This menu will appear. When you see it, click once on an intersection to select it.
 
-2. The TLE panel should appear from the floating Traffic Lights Enhancement button. Move your cursor to an existing signalized junction and press the left mouse button
+<img width="1193" height="553" alt="tle-button" src="https://github.com/user-attachments/assets/bdb0c129-9da6-4a91-ada7-a43714acae0f" />
 
-![Screenshot 2023-12-10 103024](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/c0beae47-9175-4a31-aad4-ea169f81e1e7)
+3. Set the options you prefer. Enable Transit Signal Priority for trams or buses only on intersections where that source should receive priority.
 
-3. Select the signal mode and options you prefer. Enable Transit Signal Priority for trams or buses only on intersections where that source should receive priority.
-
-![Screenshot 2023-12-10 103213](https://github.com/primeinc/Cities2-Various-Mods/assets/80482978/ee258c53-0ab4-43a2-a9b8-2ed07a792c1a)
+<img width="810" height="1478" alt="tle-menu" src="https://github.com/user-attachments/assets/528771b5-12d5-4536-b360-1616d0a7eea7" />
 
 4. Save the selected junction. It should now operate with the chosen mode and per-intersection options.
 
