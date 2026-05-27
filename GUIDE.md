@@ -98,19 +98,19 @@ Common bus decisions:
 
 ## How To Use
 
-1. Select the traffic light icon from the top left corner of the screen.
+1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
-<img width="1193" height="553" alt="tle-button" src="https://github.com/user-attachments/assets/3e2e021e-8c37-424a-8ebc-701164ee75ba" />
+<img width="720" height="281" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
 
-2. This menu will appear. When you see it, click once on an intersection to select it.
+2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
 
-<img width="837" height="621" alt="tle-select" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
+<img width="720" height="534" alt="Traffic Lights Enhancement panel before selecting an intersection" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
 
-3. Set the options you prefer. Enable Transit Signal Priority for trams or buses only on intersections where that source should receive priority.
+3. Choose the signal mode and per-intersection options you prefer. Enable Transit Signal Priority for trams or buses only where that source should receive priority.
 
-<img width="810" height="1478" alt="tle-menu" src="https://github.com/user-attachments/assets/528771b5-12d5-4536-b360-1616d0a7eea7" />
+<img width="420" height="767" alt="Traffic Lights Enhancement selected-intersection options" src="https://github.com/user-attachments/assets/528771b5-12d5-4536-b360-1616d0a7eea7" />
 
-4. Save the selected junction. It should now operate with the chosen mode and per-intersection options.
+4. Click Save. The selected junction should now operate with the chosen mode and per-intersection options.
 
 [^1]: Advanced Split Phasing and Protected Left/Right-Turns are topology-gated in the panel. Rail/track junctions and very complex junctions expose fewer predefined modes; Custom Phases remains available for manual configuration.
 [^2]: This advanced split phasing handles traffic light groups dynamically, considering traffic direction and neighboring lane groups.
