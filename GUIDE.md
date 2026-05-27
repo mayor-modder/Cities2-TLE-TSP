@@ -44,7 +44,7 @@ Signal modes decide which lanes get green lights together and how the signal mov
 | Split Phasing + Protected Left | A split-phasing variant that also gives protected left turns when the intersection layout supports it. |
 | Custom Phases | Lets you build the signal cycle yourself by deciding which lanes and crossings are green in each phase. This is powerful, but easier to misconfigure. |
 
-Some modes only appear for simple road intersections. Protected turn modes need a normal four-way intersection where traffic can continue straight ahead from each side. Split-phasing modes are hidden on very large intersections and places where train or tram tracks cross the road on their own, instead of being built into the road.
+Some modes only appear for simple road intersections. Protected turn modes need a normal four-way intersection where traffic can continue straight ahead from each side. Split-phasing modes are hidden on very large intersections and at crossings where a separate train or tram track crosses the road. A road with tram tracks running along it is still treated like a road.
 
 ## Extra Options
 
