@@ -104,7 +104,7 @@ Common bus decisions:
 
 2. This menu will appear. When you see it, click once on an intersection to select it.
 
-<img width="1193" height="553" alt="tle-button" src="https://github.com/user-attachments/assets/bdb0c129-9da6-4a91-ada7-a43714acae0f" />
+<img width="837" height="621" alt="tle-select" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
 
 3. Set the options you prefer. Enable Transit Signal Priority for trams or buses only on intersections where that source should receive priority.
 
