@@ -6,7 +6,7 @@ TLE Extended introduces advanced traffic light controls for Cities: Skylines II,
 | Mode | Description |
 | --- | --- |
 | Vanilla | Operates like the base game.<br>LHT: protected straight, protected left, and permissive right.<br>RHT: protected straight, protected right, and permissive left. |
-| Split-Phasing | Only one road has a green light at a time. |
+| Split-Phasing | Only one signal group receives a green light at a time. |
 | Advanced Split Phasing[^1] | Similar to Split Phasing, with additional protected turns for the other road at the same time.[^2] |
 | Protected Left/Right-Turns[^1] | LHT: Centre lanes perform a protected left turn first, followed by normal traffic flow including straight and right turns.<br>RHT: Centre lanes perform a protected right turn first, followed by normal traffic flow including straight and left turns.<br>[Video Illustration](https://www.youtube.com/watch?v=CIw0Au8qFQ8) |
 
