@@ -144,7 +144,7 @@ When the file reaches 5 MB, the mod rotates it in the same folder with a timesta
 | Request emitted | A bus sample was eligible and generated a TSP request. |
 | No eligible bus sample | No current bus sample met the detector and eligibility rules. |
 | Bus priority disabled | Bus TSP is disabled at this intersection. |
-| Suppressed: boarding | The bus appears to be boarding or stopped for service. |
+| Suppressed: boarding | The bus appears to be stopped and boarding passengers. |
 | Suppressed: near-side stop | The bus likely needs to stop before the signal, so holding the light would not help. |
 | Suppressed: stop relation unknown | The stop relationship could not be determined safely. |
 | Suppressed: lane change ambiguous | The bus appears to be changing lanes, so the target group may be unreliable. |
