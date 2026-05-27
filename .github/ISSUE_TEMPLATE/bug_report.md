@@ -47,7 +47,7 @@ If available, attach `Player.log` and relevant files from:
 %UserProfile%\AppData\LocalLow\Colossal Order\Cities Skylines II\
 ```
 
-For Tram Signal Priority issues, note whether the diagnostics option was enabled and attach the JSONL trace if relevant.
+For Transit Signal Priority issues, note whether the diagnostics option was enabled and attach the JSONL trace if relevant.
 
 ## Additional Context
 

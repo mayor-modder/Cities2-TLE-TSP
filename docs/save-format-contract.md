@@ -141,8 +141,8 @@ TLE Extended should preserve these assumptions while in drop-in mode:
 - Existing saves from supported TLE versions load without user action.
 - Existing TLE intersections without `TransitSignalPrioritySettings` behave as
   non-TSP intersections.
-- TSP is additive per junction; disabling TSP removes the settings component and
-  leaves inherited TLE data intact.
+- TSP is additive per junction; disabling both source controls removes the
+  settings component and leaves inherited TLE data intact.
 - Grouped intersections do not run local TSP, including the group leader. Any
   future group-wide TSP behavior needs a new explicit design before save fields
   are added.

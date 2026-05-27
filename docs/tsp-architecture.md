@@ -28,7 +28,7 @@ Key files:
 - [`TransitSignalPriorityRuntime.cs`](../TrafficLightsEnhancement.Logic/Tsp/TransitSignalPriorityRuntime.cs) converts normalized settings plus lane classification into a `TspRequest`. It can emit `TspSource.Track` or `TspSource.PublicCar` when the matching source flag is enabled.
 - [`TspSourcePriority.cs`](../TrafficLightsEnhancement.Logic/Tsp/TspSourcePriority.cs) is the single source of truth for source ordering. Track requests outrank public-car/bus requests, and equal-priority requests use strength as the tiebreaker.
 - [`EarlyApproachDetection.cs`](../TrafficLightsEnhancement.Logic/Tsp/EarlyApproachDetection.cs) contains pure helper policy for approach-lane resolution, tram-sample probing, early-vs-petitioner selection, and connected-edge fallback diagnostics.
-- [`TspDecisionEngine.cs`](../TrafficLightsEnhancement.Logic/Tsp/TspDecisionEngine.cs) combines and scores requests. `CombineRequests()` selects the strongest track request; `SelectNextPhase()` can extend a current track-serving phase or bias selection toward track-serving phases.
+- [`TspDecisionEngine.cs`](../TrafficLightsEnhancement.Logic/Tsp/TspDecisionEngine.cs) combines and scores requests. `CombineRequests()` selects the strongest eligible request using source priority first, then strength; `SelectNextPhase()` can extend a current phase that serves the request or bias selection toward a phase serving that source.
 - [`TspOverrideEngine.cs`](../TrafficLightsEnhancement.Logic/Tsp/TspOverrideEngine.cs) applies a selected TSP request to a base phase or signal group choice. It owns `TspSelectionReason` and `TspOverrideSelection`.
 - [`TspPreemptionPolicy.cs`](../TrafficLightsEnhancement.Logic/Tsp/TspPreemptionPolicy.cs) owns request latching, current-group hold, aggressive preemption, minimum-green override, and exclusive-pedestrian protection.
 - [`TspStatusFormatter.cs`](../TrafficLightsEnhancement.Logic/Tsp/TspStatusFormatter.cs) converts request state into UI-facing status labels.
@@ -157,7 +157,7 @@ The toggle path is also in `UISystem.UIBIndings.cs`:
 
 - The UI calls `toggleTransitSignalPriorityForTrams(...)` and `toggleTransitSignalPriorityForBuses(...)`.
 - The C# triggers `ToggleTransitSignalPriorityForTrams(...)` and `ToggleTransitSignalPriorityForBuses(...)` create or update `TransitSignalPrioritySettings` when enabled.
-- Disabling TSP removes `TransitSignalPrioritySettings` from the selected entity and marks it updated.
+- Disabling the last enabled TSP source removes `TransitSignalPrioritySettings` from the selected entity and marks it updated.
 - Intersections in TLE traffic groups cannot toggle local TSP. Runtime TSP is suspended for every group member, including the leader, so group coordination and green-wave timing remain authoritative. Saved TSP settings are preserved and can resume if the intersection leaves the group.
 
 Diagnostics are off by default. The mod option is `Settings.m_ShowTransitSignalPriorityDiagnostics`; `GetMainPanel()` only builds diagnostics when that option is true. `UISystem.SimulationUpdate()` also only auto-refreshes the selected panel for diagnostics when the same option is enabled.
@@ -195,7 +195,7 @@ TSP pure logic is covered by xUnit tests in [`TrafficLightsEnhancement.Tests/Tsp
 
 - [`TspPolicyTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspPolicyTests.cs) covers availability, grouped-intersection policy, default settings, persisted-value detection, normalization/clamping, approach-index policy, and pedestrian mask bounds.
 - [`TspEarlyDetectionTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspEarlyDetectionTests.cs) covers lane resolution, indexed probe precedence, movement suppression, early-over-petitioner selection, connected-edge fallback helpers, and upstream/path-node helpers.
-- [`TspDecisionEngineTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspDecisionEngineTests.cs) covers track-only requests, public-car non-participation, null/empty handling, extension rules, override behavior, latching/expiry, hold policy, aggressive preemption, and active pedestrian protection.
+- [`TspDecisionEngineTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspDecisionEngineTests.cs) covers track and public-car requests, null/empty handling, extension rules, override behavior, latching/expiry, hold policy, aggressive preemption, and active pedestrian protection.
 - [`TspStatusFormatterTests.cs`](../TrafficLightsEnhancement.Tests/Tsp/TspStatusFormatterTests.cs) covers status label formatting.
 
 UI-facing behavior also has Node tests in [`TrafficLightsEnhancement/UI/tests/transit-signal-priority-panel.test.mjs`](../TrafficLightsEnhancement/UI/tests/transit-signal-priority-panel.test.mjs), including panel state, diagnostics gating, trace writing, toggling, cleanup, and serialization expectations.
