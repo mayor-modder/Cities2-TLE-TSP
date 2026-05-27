@@ -44,7 +44,7 @@ Signal modes decide which lanes get green lights together and how the signal mov
 | Split Phasing + Protected Left | A split-phasing variant that also gives protected left turns when the intersection layout supports it. |
 | Custom Phases | Lets you build the signal cycle yourself by deciding which lanes and crossings are green in each phase. This is powerful, but easier to misconfigure. |
 
-Some modes only appear for simple road intersections. Protected turn modes need a normal four-way intersection where traffic can continue straight ahead from each side. Split-phasing modes are hidden on very large intersections and at crossings where train tracks or tram-only tracks cross the road.
+Some modes only appear for simple road intersections. Protected turn modes need a normal four-way intersection where traffic can continue straight ahead from each side. Split-phasing modes are hidden on intersections with more than seven connected road or track segments, and at crossings where train tracks or tram-only tracks cross the road.
 
 ## Extra Options
 
@@ -71,7 +71,7 @@ The custom phase editor has two timing styles:
 | Dynamic | The signal reacts to measured traffic demand. Empty or low-demand phases can be skipped when their settings allow it. |
 | Fixed Timed | The signal follows the phase order and timing more directly. Smart Phase Selection can still choose phases based on demand when enabled. |
 
-Timing templates are starting points for the phase settings. For example, Quick Cycle uses shorter timings, Heavy Traffic uses longer timings, Pedestrian Friendly gives more room to crossings, and Rail Priority favors track movements such as trams.
+Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick Cycle uses shorter timings, Heavy Traffic uses longer timings, Pedestrian Friendly uses a more balanced timing preset, and Rail Priority uses a preset intended for track-heavy custom cycles.
 
 The duration controls are best treated as relative timing values, not exact real-world seconds. Bigger values make phases run longer.
 
@@ -100,7 +100,7 @@ When an intersection is part of a traffic group, local TSP is paused for that in
 
 Most players can ignore diagnostics. They are mainly for testing, bug reports, and figuring out why a bus or tram did or did not receive priority.
 
-To use them, enable the TSP diagnostics option in the mod settings, then select an intersection. The selected-intersection panel can show live TSP state and recent decisions. The mod can also write JSONL trace lines with extra details for troubleshooting.
+To use them, enable the TSP diagnostics option in the mod settings, then select an intersection. The selected-intersection panel can show live TSP state and recent decisions. The same diagnostics feature writes JSONL trace lines with extra details for troubleshooting.
 
 On Windows, the active trace file is written to:
 
@@ -129,6 +129,11 @@ When the file reaches 5 MB, the mod rotates it in the same folder with a timesta
 | Decision | The final TSP decision, such as extending the current phase, selecting the target phase, or waiting. |
 | Base group | The group the signal would have served before TSP was considered. |
 | Selected group | The group selected after TSP was considered. |
+| Decision target | The group requested by the TSP decision being considered. |
+| Decision source | Whether the decision came from a tram/track request or a bus request. |
+| Exclusive pedestrian phase | Whether exclusive pedestrian phasing is enabled when pedestrian context affects the TSP decision. |
+| Active pedestrian protection | Whether an active pedestrian phase is being protected from preemption. |
+| Pedestrian phase due | Whether a waiting pedestrian phase may delay TSP so pedestrians are not starved. |
 | Recent TSP events | A short history of recent request and decision changes. The newest event appears first. |
 
 ### Bus Diagnostics
@@ -141,11 +146,12 @@ When the file reaches 5 MB, the mod rotates it in the same folder with a timesta
 | Bus hits | Number of bus samples contributing to the selected match. |
 | Bus lane type | Whether the sampled bus is in a mixed lane or bus-only lane. |
 | Bus lane change | Whether the sampled bus appears to be changing lanes. |
+| Bus speed | The sampled bus speed. |
 | Request emitted | A bus sample was eligible and generated a TSP request. |
 | No eligible bus sample | No current bus sample met the detector and eligibility rules. |
 | Bus priority disabled | Bus TSP is disabled at this intersection. |
 | Suppressed: boarding | The bus appears to be stopped and boarding passengers. |
-| Suppressed: near-side stop | The bus likely needs to stop before the signal, so holding the light would not help. |
+| Suppressed: near-side stop | Reserved for stop-aware detection. If shown, the bus is expected to stop before the signal, so holding the light would not help. |
 | Suppressed: stop relation unknown | The stop relationship could not be determined safely. |
 | Suppressed: lane change ambiguous | The bus appears to be changing lanes, so the target group may be unreliable. |
 
