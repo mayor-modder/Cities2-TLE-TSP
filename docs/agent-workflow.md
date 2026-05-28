@@ -16,6 +16,7 @@ The compatibility shim files (`CLAUDE.md`, `GEMINI.md`, `.cursor/rules/agents.md
 - `tle-testing-release`: focused verification commands, mod build/toolchain expectations, packaging risk, and release-readiness checks.
 - `tle-code-review`: PR and branch review rounds, internal/external reviewer coordination, review-fix verification, and GitHub review thread hygiene.
 - `tle-code-documentation`: maintainer-facing source documentation, inherited behavior audits, inline comments/XML docs, architecture notes, evidence labels, and mystery-code follow-up issues.
+- `tle-diagnostic-review`: live and archived TSP diagnostics review, selected-intersection JSONL trace interpretation, crash-adjacent `Player.log` correlation, and TSP arbitration explanations.
 
 Agents should load the smallest relevant set for the task, then prefer the main project docs (`README.md`, `BUILD.md`, `GUIDE.md`, `docs/tsp-architecture.md`, `docs/save-format-contract.md`, and `docs/localization-workflow.md`) over memory.
 
