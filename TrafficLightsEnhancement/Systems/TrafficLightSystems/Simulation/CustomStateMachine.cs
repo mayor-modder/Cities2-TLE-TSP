@@ -1,5 +1,6 @@
 using C2VM. TrafficLightsEnhancement. Components;
 using Game.Net;
+using TrafficLightsEnhancement.Logic.TrafficGroups;
 using TrafficLightsEnhancement.Logic.Tsp;
 using Unity.Collections;
 using Unity. Entities;
@@ -1099,17 +1100,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems. TrafficLightSystems. Simulation
         // TMPE-style: simple wrap of a 1-indexed phase into follower's valid range
         private static int WrapPhase(int phase, int phaseCount)
         {
-            if (phaseCount <= 0)
-            {
-                return 1;
-            }
-            if (phase <= 0)
-            {
-                return 1;
-            }
-            int wrapped = ((phase - 1) % phaseCount) + 1;
-            if (wrapped <= 0) wrapped += phaseCount;
-            return wrapped;
+            return TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount);
         }
 
         private static int GetSignalDelayForJunction(PatchedTrafficLightSystem.UpdateTrafficLightsJob job, Entity junctionEntity, byte currentSignalGroup, bool isClosingDelay = true)

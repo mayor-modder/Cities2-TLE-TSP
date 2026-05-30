@@ -2291,7 +2291,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 				int phaseCount = GetPhaseCount(memberEntity);
 				if (phaseCount > 0)
 				{
-					adjustedPhase = adjustedPhase % phaseCount;
+					adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount);
 				}
 
 				trafficLights.m_NextSignalGroup = (byte)(adjustedPhase + 1);

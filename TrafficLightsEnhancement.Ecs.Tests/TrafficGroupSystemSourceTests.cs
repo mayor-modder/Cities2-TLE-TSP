@@ -35,6 +35,7 @@ public sealed class TrafficGroupSystemSourceTests
         string applyCoordinationSource = ExtractMethod(source, "private void ApplyCoordination");
         string enhancedGreenWaveSource = ExtractMethod(source, "public void CalculateEnhancedGreenWaveTiming");
         string forceSyncSource = ExtractMethod(source, "public void ForceSyncToLeader");
+        string applyBestPhaseSource = ExtractMethod(source, "public void ApplyBestPhaseToGroup");
         string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
 
         Assert.Contains(
@@ -53,24 +54,55 @@ public sealed class TrafficGroupSystemSourceTests
             "group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength",
             forceSyncSource);
         Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount)",
+            applyBestPhaseSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
+            wrapPhaseSource);
+    }
+
+    [Fact]
+    public void Custom_state_machine_uses_shared_one_based_phase_wrap()
+    {
+        string source = File.ReadAllText(GetCustomStateMachinePath());
+        string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
+
+        Assert.Contains(
             "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
             wrapPhaseSource);
     }
 
     private static string GetTrafficGroupSystemPath()
     {
-        string baseDirectory = AppContext.BaseDirectory;
-        string path = Path.GetFullPath(Path.Combine(
-            baseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
+        return GetRepositorySourcePath(
             "TrafficLightsEnhancement",
             "Systems",
-            "TrafficGroupSystem.cs"));
+            "TrafficGroupSystem.cs");
+    }
 
-        Assert.True(File.Exists(path), $"Could not find TrafficGroupSystem.cs at {path}");
+    private static string GetCustomStateMachinePath()
+    {
+        return GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "CustomStateMachine.cs");
+    }
+
+    private static string GetRepositorySourcePath(params string[] segments)
+    {
+        string baseDirectory = AppContext.BaseDirectory;
+        string[] pathSegments = new string[segments.Length + 5];
+        pathSegments[0] = baseDirectory;
+        pathSegments[1] = "..";
+        pathSegments[2] = "..";
+        pathSegments[3] = "..";
+        pathSegments[4] = "..";
+        Array.Copy(segments, 0, pathSegments, 5, segments.Length);
+        string path = Path.GetFullPath(Path.Combine(pathSegments));
+
+        Assert.True(File.Exists(path), $"Could not find source file at {path}");
         return path;
     }
 

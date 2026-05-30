@@ -18,6 +18,18 @@ public class TrafficGroupTimingPolicyTests
     }
 
     [Theory]
+    [InlineData(0, 4, 0)]
+    [InlineData(3, 4, 3)]
+    [InlineData(4, 4, 0)]
+    [InlineData(-1, 4, 3)]
+    [InlineData(-2, 4, 2)]
+    [InlineData(2, 0, 0)]
+    public void Zero_based_phase_wraps_negative_offsets_into_valid_index_range(int phase, int phaseCount, int expected)
+    {
+        Assert.Equal(expected, TrafficGroupTimingPolicy.WrapZeroBasedPhase(phase, phaseCount));
+    }
+
+    [Theory]
     [InlineData(10f, 12f, 30f, 28f)]
     [InlineData(65f, 5f, 60f, 0f)]
     [InlineData(5f, 0f, 0f, 0f)]

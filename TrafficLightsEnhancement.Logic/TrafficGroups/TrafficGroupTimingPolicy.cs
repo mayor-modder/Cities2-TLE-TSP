@@ -15,6 +15,17 @@ public static class TrafficGroupTimingPolicy
         return wrapped <= 0 ? wrapped + phaseCount : wrapped;
     }
 
+    public static int WrapZeroBasedPhase(int phase, int phaseCount)
+    {
+        if (phaseCount <= 0)
+        {
+            return 0;
+        }
+
+        int wrapped = phase % phaseCount;
+        return wrapped < 0 ? wrapped + phaseCount : wrapped;
+    }
+
     public static float WrapCyclePosition(float cycleTimer, float offset, float cycleLength)
     {
         if (cycleLength <= 0f || float.IsNaN(cycleLength))
