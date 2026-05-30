@@ -132,7 +132,8 @@ test("transit signal priority diagnostics are gated by a mod option", async () =
 
   assert.match(settings, /public\s+bool\s+m_ShowTransitSignalPriorityDiagnostics\s*\{\s*get;\s*set;\s*\}/);
   assert.match(settings, /m_ShowTransitSignalPriorityDiagnostics\s*=\s*false/);
-  assert.match(uiBindings, /m_ShowTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings,\s*selectedJunction\)/);
+  assert.match(uiBindings, /bool\s+showTransitSignalPriorityDiagnostics\s*=\s*Mod\.m_Setting\s*!=\s*null\s*&&\s*Mod\.m_Setting\.m_ShowTransitSignalPriorityDiagnostics/);
+  assert.match(uiBindings, /showTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings,\s*selectedJunction\)/);
   assert.match(uiBindings, /diagnostics\s*=\s*tspDiagnostics/);
   assert.match(uiSystem, /ShouldRefreshMainPanelForDiagnostics\(\)/);
   assert.match(uiSystem, /m_MainPanelState\s*==\s*MainPanelState\.Main/);
@@ -401,7 +402,7 @@ test("backend derives selected junction panel and diagnostics from a shared snap
   assert.notEqual(traceStart, -1);
   assert.notEqual(traceEnd, -1);
   assert.match(uiBindings, /private\s+SelectedJunctionDiagnosticsSnapshot\s+GetSelectedJunctionDiagnosticsSnapshot/);
-  assert.match(mainPanelSource, /SelectedJunctionDiagnosticsSnapshot\s+selectedJunction\s*=\s*GetSelectedJunctionDiagnosticsSnapshot\(m_SelectedEntity,\s*tspSettings\)/);
+  assert.match(mainPanelSource, /SelectedJunctionDiagnosticsSnapshot\s+selectedJunction\s*=\s*GetSelectedJunctionDiagnosticsSnapshot\(\s*m_SelectedEntity,\s*tspSettings,\s*showTransitSignalPriorityDiagnostics\s*\)/);
   assert.match(traceSource, /selectedJunction\s*=\s*selectedJunction\.ToTraceObject\(\)/);
 });
 
@@ -424,6 +425,36 @@ test("backend trace includes selected junction topology and expected UI state", 
   assert.match(uiBindings, /pedestrianDurationAdjustment\s*=\s*PedestrianDurationAdjustment\.ToTraceObject\(\)/);
   assert.match(uiBindings, /tram\s*=\s*TramTransitPriority\.ToTraceObject\(\)/);
   assert.match(uiBindings, /bus\s*=\s*BusTransitPriority\.ToTraceObject\(\)/);
+});
+
+test("backend distinguishes selected junction option support from current visibility", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const snapshotStart = uiBindings.indexOf("private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+  const snapshotEnd = uiBindings.indexOf("private List<SelectedJunctionPatternSnapshot> GetAvailablePatternSnapshots", snapshotStart);
+  const snapshotSource = uiBindings.slice(snapshotStart, snapshotEnd);
+
+  assert.notEqual(snapshotStart, -1);
+  assert.notEqual(snapshotEnd, -1);
+  assert.match(snapshotSource, /bool\s+extraOptionsSupported\s*=\s*!hasTrainTrack\s*&&\s*edgeInfoArray\.Length\s*<=\s*7/);
+  assert.match(snapshotSource, /bool\s+extraOptionsVisible\s*=\s*extraOptionsSupported\s*&&\s*patternOnly\s*<\s*\(uint\)CustomTrafficLights\.Patterns\.ModDefault/);
+  assert.match(snapshotSource, /ExtraOptionsSupported\s*=\s*extraOptionsSupported/);
+  assert.match(snapshotSource, /ExtraOptionsVisible\s*=\s*extraOptionsVisible/);
+  assert.match(snapshotSource, /GetExtraOptionsReason\(patternOnly,\s*hasTrainTrack,\s*edgeInfoArray\.Length\)/);
+});
+
+test("backend only builds per-edge selected junction trace details when diagnostics are enabled", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const mainPanelStart = uiBindings.indexOf("protected string GetMainPanel()");
+  const mainPanelEnd = uiBindings.indexOf("else if (m_MainPanelState == MainPanelState.CustomPhase)", mainPanelStart);
+  const mainPanelSource = uiBindings.slice(mainPanelStart, mainPanelEnd);
+  const snapshotStart = uiBindings.indexOf("private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+  const snapshotEnd = uiBindings.indexOf("private List<SelectedJunctionPatternSnapshot> GetAvailablePatternSnapshots", snapshotStart);
+  const snapshotSource = uiBindings.slice(snapshotStart, snapshotEnd);
+
+  assert.match(mainPanelSource, /bool\s+showTransitSignalPriorityDiagnostics\s*=\s*Mod\.m_Setting\s*!=\s*null\s*&&\s*Mod\.m_Setting\.m_ShowTransitSignalPriorityDiagnostics/);
+  assert.match(mainPanelSource, /GetSelectedJunctionDiagnosticsSnapshot\(\s*m_SelectedEntity,\s*tspSettings,\s*showTransitSignalPriorityDiagnostics\s*\)/);
+  assert.match(snapshotSource, /bool\s+includeDiagnosticsDetails/);
+  assert.match(snapshotSource, /EdgeSummaries\s*=\s*includeDiagnosticsDetails\s*\?\s*GetSelectedJunctionEdgeSummaries\(edgeInfoArray\)\s*:\s*\[\]/);
 });
 
 test("runtime suspends transit signal priority for all traffic group members", async () => {

@@ -502,8 +502,12 @@ public partial class UISystem
             TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(m_SelectedEntity)
                 ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(m_SelectedEntity)
                 : TransitSignalPrioritySettings.CreateDefault();
-            SelectedJunctionDiagnosticsSnapshot selectedJunction = GetSelectedJunctionDiagnosticsSnapshot(m_SelectedEntity, tspSettings);
-            object tspDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics
+            bool showTransitSignalPriorityDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics;
+            SelectedJunctionDiagnosticsSnapshot selectedJunction = GetSelectedJunctionDiagnosticsSnapshot(
+                m_SelectedEntity,
+                tspSettings,
+                showTransitSignalPriorityDiagnostics);
+            object tspDiagnostics = showTransitSignalPriorityDiagnostics
                 ? GetTransitSignalPriorityDiagnostics(m_SelectedEntity, tspSettings, selectedJunction)
                 : null;
 
@@ -1554,7 +1558,10 @@ public partial class UISystem
         }
     }
 
-    private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot(Entity entity, TransitSignalPrioritySettings tspSettings)
+    private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot(
+        Entity entity,
+        TransitSignalPrioritySettings tspSettings,
+        bool includeDiagnosticsDetails)
     {
         NativeArray<NodeUtils.EdgeInfo> edgeInfoArray = m_EdgeInfoDictionary[entity];
         CustomTrafficLights customTrafficLights = EntityManager.TryGetComponent(entity, out CustomTrafficLights value)
@@ -1567,9 +1574,13 @@ public partial class UISystem
         bool splitPhasingSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasing);
         bool protectedCentreTurnSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.ProtectedCentreTurn);
         bool splitPhasingProtectedLeftSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasingProtectedLeft);
-        bool extraOptionsVisible = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && !hasTrainTrack;
+        bool extraOptionsSupported = !hasTrainTrack && edgeInfoArray.Length <= 7;
+        bool extraOptionsVisible = extraOptionsSupported && patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault;
         bool hasExclusivePedestrian = extraOptionsVisible && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
         string extraOptionsReason = GetExtraOptionsReason(patternOnly, hasTrainTrack, edgeInfoArray.Length);
+        string giveWayToOncomingVehiclesReason = extraOptionsVisible
+            ? (patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla ? "Visible" : "Pattern mode")
+            : extraOptionsReason;
         bool isEditable = !isTrafficGroupMember;
         string tramStatusLabel = isTrafficGroupMember ? "TramTransitPriorityGroupedUnavailable" : null;
         string busStatusLabel = isTrafficGroupMember ? "BusTransitPriorityGroupedUnavailable" : null;
@@ -1578,10 +1589,10 @@ public partial class UISystem
         {
             ConnectedEdgeCount = edgeInfoArray.Length,
             HasTrainTrack = hasTrainTrack,
-            HasTrackTurnLanes = HasTrackTurnLanes(edgeInfoArray),
-            IsQualifyingFourWay = IsQualifyingFourWay(edgeInfoArray),
+            HasTrackTurnLanes = includeDiagnosticsDetails && HasTrackTurnLanes(edgeInfoArray),
+            IsQualifyingFourWay = includeDiagnosticsDetails && IsQualifyingFourWay(edgeInfoArray),
             IsComplexJunction = edgeInfoArray.Length > 7,
-            EdgeSummaries = GetSelectedJunctionEdgeSummaries(edgeInfoArray),
+            EdgeSummaries = includeDiagnosticsDetails ? GetSelectedJunctionEdgeSummaries(edgeInfoArray) : [],
             SplitPhasingSupported = splitPhasingSupported,
             ProtectedCentreTurnSupported = protectedCentreTurnSupported,
             SplitPhasingProtectedLeftSupported = splitPhasingProtectedLeftSupported,
@@ -1589,7 +1600,7 @@ public partial class UISystem
                 splitPhasingSupported,
                 protectedCentreTurnSupported,
                 splitPhasingProtectedLeftSupported),
-            ExtraOptionsSupported = extraOptionsVisible,
+            ExtraOptionsSupported = extraOptionsSupported,
             ExtraOptionsVisible = extraOptionsVisible,
             ExtraOptionsReason = extraOptionsReason,
             TurningOnRed = new SelectedJunctionOptionSnapshot(
@@ -1603,7 +1614,7 @@ public partial class UISystem
                 ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString(CultureInfo.InvariantCulture),
                 extraOptionsVisible && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla,
                 (selectedPattern & (uint)CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0,
-                extraOptionsVisible && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla ? "Visible" : "Pattern mode"),
+                giveWayToOncomingVehiclesReason),
             ExclusivePedestrianPhase = new SelectedJunctionOptionSnapshot(
                 "ExclusivePedestrianPhase",
                 ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString(CultureInfo.InvariantCulture),
@@ -1614,7 +1625,7 @@ public partial class UISystem
                 "CustomPedestrianDurationMultiplier",
                 "CustomPedestrianDurationMultiplier",
                 hasExclusivePedestrian,
-                hasExclusivePedestrian,
+                false,
                 hasExclusivePedestrian ? "Visible" : "Exclusive pedestrian phase disabled"),
             TramTransitPriority = new SelectedJunctionTspControlSnapshot(
                 isVisible: true,
