@@ -132,7 +132,7 @@ test("transit signal priority diagnostics are gated by a mod option", async () =
 
   assert.match(settings, /public\s+bool\s+m_ShowTransitSignalPriorityDiagnostics\s*\{\s*get;\s*set;\s*\}/);
   assert.match(settings, /m_ShowTransitSignalPriorityDiagnostics\s*=\s*false/);
-  assert.match(uiBindings, /m_ShowTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings\)/);
+  assert.match(uiBindings, /m_ShowTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings,\s*selectedJunction\)/);
   assert.match(uiBindings, /diagnostics\s*=\s*tspDiagnostics/);
   assert.match(uiSystem, /ShouldRefreshMainPanelForDiagnostics\(\)/);
   assert.match(uiSystem, /m_MainPanelState\s*==\s*MainPanelState\.Main/);
@@ -318,6 +318,28 @@ test("diagnostic row labels are localized", async () => {
   );
 });
 
+test("backend exposes selected junction expected UI rows in TSP diagnostics", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const locale = JSON.parse(await repoSource("Locale.json"));
+
+  const requiredLabels = [
+    "TSPDiagnosticsJunctionTopology",
+    "TSPDiagnosticsAvailablePatterns",
+    "TSPDiagnosticsExtraOptions",
+    "TSPDiagnosticsOptionTurningOnRed",
+    "TSPDiagnosticsOptionGiveWay",
+    "TSPDiagnosticsOptionExclusivePedestrian",
+    "TSPDiagnosticsPedestrianDuration",
+    "TSPDiagnosticsTramControl",
+    "TSPDiagnosticsBusControl",
+  ];
+
+  for (const label of requiredLabels) {
+    assert.match(uiBindings, new RegExp(`label\\s*=\\s*"${label}"`));
+    assert.equal(typeof locale[`UI.LABEL[C2VM.TrafficLightsEnhancement.${label}]`], "string");
+  }
+});
+
 test("backend presents bus-originated TSP requests as bus diagnostics", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const helperStart = uiBindings.indexOf("private static string GetTspSourceName");
@@ -363,6 +385,45 @@ test("backend writes selected transit signal priority diagnostics to a trace fil
   assert.match(uiBindings, /TspDiagnosticsTraceMaxRotatedFiles/);
   assert.match(uiBindings, /PruneTspDiagnosticsTraceFiles/);
   assert.match(uiBindings, /FileMode\.Append/);
+});
+
+test("backend derives selected junction panel and diagnostics from a shared snapshot", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const mainPanelStart = uiBindings.indexOf("protected string GetMainPanel()");
+  const mainPanelEnd = uiBindings.indexOf("else if (m_MainPanelState == MainPanelState.CustomPhase)", mainPanelStart);
+  const mainPanelSource = uiBindings.slice(mainPanelStart, mainPanelEnd);
+  const traceStart = uiBindings.indexOf("private void WriteTspDiagnosticsTraceEvent");
+  const traceEnd = uiBindings.indexOf("private object GetTspSignalConfigurationTrace", traceStart);
+  const traceSource = uiBindings.slice(traceStart, traceEnd);
+
+  assert.notEqual(mainPanelStart, -1);
+  assert.notEqual(mainPanelEnd, -1);
+  assert.notEqual(traceStart, -1);
+  assert.notEqual(traceEnd, -1);
+  assert.match(uiBindings, /private\s+SelectedJunctionDiagnosticsSnapshot\s+GetSelectedJunctionDiagnosticsSnapshot/);
+  assert.match(mainPanelSource, /SelectedJunctionDiagnosticsSnapshot\s+selectedJunction\s*=\s*GetSelectedJunctionDiagnosticsSnapshot\(m_SelectedEntity,\s*tspSettings\)/);
+  assert.match(traceSource, /selectedJunction\s*=\s*selectedJunction\.ToTraceObject\(\)/);
+});
+
+test("backend trace includes selected junction topology and expected UI state", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+
+  assert.match(uiBindings, /selectedJunction\s*=\s*selectedJunction\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /connectedEdgeCount\s*=\s*ConnectedEdgeCount/);
+  assert.match(uiBindings, /hasTrainTrack\s*=\s*HasTrainTrack/);
+  assert.match(uiBindings, /hasTrackTurnLanes\s*=\s*HasTrackTurnLanes/);
+  assert.match(uiBindings, /isQualifyingFourWay\s*=\s*IsQualifyingFourWay/);
+  assert.match(uiBindings, /isComplexJunction\s*=\s*IsComplexJunction/);
+  assert.match(uiBindings, /splitPhasingSupported\s*=\s*SplitPhasingSupported/);
+  assert.match(uiBindings, /protectedCentreTurnSupported\s*=\s*ProtectedCentreTurnSupported/);
+  assert.match(uiBindings, /splitPhasingProtectedLeftSupported\s*=\s*SplitPhasingProtectedLeftSupported/);
+  assert.match(uiBindings, /availablePatterns\s*=\s*AvailablePatterns/);
+  assert.match(uiBindings, /turningOnRed\s*=\s*TurningOnRed\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /giveWayToOncomingVehicles\s*=\s*GiveWayToOncomingVehicles\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /exclusivePedestrianPhase\s*=\s*ExclusivePedestrianPhase\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /pedestrianDurationAdjustment\s*=\s*PedestrianDurationAdjustment\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /tram\s*=\s*TramTransitPriority\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /bus\s*=\s*BusTransitPriority\.ToTraceObject\(\)/);
 });
 
 test("runtime suspends transit signal priority for all traffic group members", async () => {
