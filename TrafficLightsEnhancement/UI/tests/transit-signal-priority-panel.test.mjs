@@ -478,6 +478,65 @@ test("custom phase vehicle weights expose bicycle weight control", async () => {
     "string");
 });
 
+test("traffic group and custom phase chrome text is localized", async () => {
+  const locale = JSON.parse(await repoSource("Locale.json"));
+  const trafficGroups = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.tsx");
+  const groupItem = await source("src/mods/components/traffic-groups/main-panel/GroupItemComponent/group-item.tsx");
+  const migrationModal = await source("src/mods/components/migration-issues/migration-issues-modal.tsx");
+  const customPhasePanel = await source("src/mods/components/custom-phase-tool/main-panel/sub-panel.tsx");
+  const presetManager = await source("src/mods/components/common/preset-manager/preset-manager.tsx");
+
+  const expectedKeys = [
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.AddMember]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.RemoveFromGroup]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.RemoveFromGroup]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.SelectMemberInWorld]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.SelectMemberInWorld]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesToAllMembers]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.NewGroup]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.UnnamedGroup]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupName]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupInfo]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupMembers]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.GroupMemberFoldout]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupSettings]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.EnableCoordination]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.EnableGreenWave]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.NoMembersInGroup]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.NoEdgeDataAvailable]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationIssues]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.AffectedIntersections]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.MigrationIssuesDescription]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.NavigateToIntersection]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.RemoveFromList]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.DismissAll]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.BackToGroup]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.PedestrianFriendly]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.RailPriority]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.NightMode]",
+  ];
+
+  for (const key of expectedKeys) {
+    assert.equal(typeof locale[key], "string", `${key} should be present in Locale.json`);
+    assert.notEqual(locale[key].trim(), "", `${key} should not be empty`);
+  }
+
+  assert.match(trafficGroups, /label="RemoveFromGroup"/);
+  assert.match(trafficGroups, /Tooltip\.LABEL\[C2VM\.TrafficLightsEnhancement\.RemoveFromGroup\]/);
+  assert.match(groupItem, /UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.UnnamedGroup\]/);
+  assert.match(migrationModal, /UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.DataMigrationIssues\]/);
+  assert.match(customPhasePanel, /label:\s*"StartDelay"/);
+  assert.match(presetManager, /TrafficLightsEnhancement\.\$\{template\.name\}/);
+
+  assert.doesNotMatch(trafficGroups, /label="Remove from group"|label="Add member"|label="Select member in world"|label="Copy phases to all members"/);
+  assert.doesNotMatch(migrationModal, />Data migration issues<|>Affected intersections<|>Dismiss all</);
+  assert.doesNotMatch(customPhasePanel, /"Start delay"|"End early"|"Quick cycle"|"Heavy traffic"|"Pedestrian friendly"|"Rail priority"|"Night mode"/);
+});
+
 test("backend toggle removes transit signal priority settings when all sources are disabled", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const toggleStart = uiBindings.indexOf("protected void ToggleTransitSignalPriorityForTrams(bool enabled)");

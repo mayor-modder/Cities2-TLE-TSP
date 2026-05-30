@@ -102,7 +102,11 @@ export const PresetManager = ({builtInTemplates, onApplyBuiltIn}: PresetManagerP
         const template = builtInTemplates.find(t => t.id === templateId);
         if (template) {
             onApplyBuiltIn(templateId);
-            setSelectedPreset({ id: templateId, name: template.name, isBuiltIn: true });
+            setSelectedPreset({
+                id: templateId,
+                name: translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${template.name}]`) ?? template.name,
+                isBuiltIn: true
+            });
         }
     };
 
@@ -117,8 +121,8 @@ export const PresetManager = ({builtInTemplates, onApplyBuiltIn}: PresetManagerP
                 onChange={() => handleApplyBuiltIn(template.id)}
             >
                 <div className={styles.dropdownItemContent}>
-                    <span className={styles.templateName}>{template.name}</span>
-                    <span className={styles.templateDesc}>{template.description}</span>
+                    <span className={styles.templateName}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${template.name}]`) ?? template.name}</span>
+                    <span className={styles.templateDesc}>{translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${template.description}]`) ?? template.description}</span>
                 </div>
             </DropdownItem>
         )),
@@ -175,7 +179,7 @@ export const PresetManager = ({builtInTemplates, onApplyBuiltIn}: PresetManagerP
                 </div>
                 <div className={styles.inputRow}>
                     <TextInput
-                        placeholder="Enter preset name..."
+                        placeholder={translate("UI.LABEL[C2VM.TrafficLightsEnhancement.EnterPresetName]") ?? "Enter preset name..."}
                         value={presetName}
                         onChange={(val) => setPresetName(val)}
                     />
