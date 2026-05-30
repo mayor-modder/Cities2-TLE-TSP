@@ -350,8 +350,8 @@ public partial class UISystem
             bool isCustomPhaseMode = m_CustomTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase;
             uint selectedPattern = (uint)m_CustomTrafficLights.GetPattern();
             uint patternOnly = (uint)m_CustomTrafficLights.GetPatternOnly();
-            bool hasTrainTrack = NodeUtils.HasTrainTrack(m_EdgeInfoDictionary[m_SelectedEntity]);
-            bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && !hasTrainTrack;
+            bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault
+                && PredefinedPatternsProcessor.AreExtraOptionsSupported(m_EdgeInfoDictionary[m_SelectedEntity]);
             bool hasExclusivePedestrian = showOptions && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
             bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
 

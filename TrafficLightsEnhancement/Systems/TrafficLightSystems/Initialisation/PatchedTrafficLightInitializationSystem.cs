@@ -245,11 +245,16 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                 else
                 {
                     var edgeInfoArray = NodeUtils.GetEdgeInfoList(Allocator.Temp, entityArray[i], ref this, subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i]).AsArray();
-                     var pattern = customTrafficLights.GetPattern();
+                    bool extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray);
+                    var pattern = customTrafficLights.GetPattern();
                     if (NodeUtils.HasTrainTrack(edgeInfoArray) || !PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, pattern))
                     {
                         pattern = CustomTrafficLights.Patterns.Vanilla;
                         customTrafficLights.SetPattern(pattern);
+                    }
+                    else if (!extraOptionsSupported)
+                    {
+                        customTrafficLights.SetPattern(PredefinedPatternsProcessor.ClearExtraOptions(pattern));
                     }
                     if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.SplitPhasing)
                     {

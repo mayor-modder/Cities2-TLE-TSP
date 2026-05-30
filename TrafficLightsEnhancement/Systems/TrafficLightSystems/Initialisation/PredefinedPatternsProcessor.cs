@@ -10,6 +10,21 @@ namespace C2VM.TrafficLightsEnhancement.Systems.TrafficLightSystems.Initialisati
 
 public class PredefinedPatternsProcessor
 {
+    private const CustomTrafficLights.Patterns ExtraOptionFlags =
+        CustomTrafficLights.Patterns.ExclusivePedestrian |
+        CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn |
+        CustomTrafficLights.Patterns.CentreTurnGiveWay;
+
+    public static bool AreExtraOptionsSupported(NativeArray<EdgeInfo> edgeInfoArray)
+    {
+        return !HasTrainTrack(edgeInfoArray) && edgeInfoArray.Length <= 7;
+    }
+
+    public static CustomTrafficLights.Patterns ClearExtraOptions(CustomTrafficLights.Patterns pattern)
+    {
+        return pattern & ~ExtraOptionFlags;
+    }
+
     public static bool IsValidPattern(NativeArray<EdgeInfo> edgeInfoArray, CustomTrafficLights.Patterns pattern)
     {
         if (HasTrainTrack(edgeInfoArray))
@@ -49,11 +64,8 @@ public class PredefinedPatternsProcessor
             }
             case (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft:
             {
-                if (edgeInfoArray.Length > 7)
-                {
-                    return false;
-                }
-                return true;
+                return IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasing)
+                    && IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.ProtectedCentreTurn);
             }
             default:
             {
