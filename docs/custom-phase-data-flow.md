@@ -83,6 +83,11 @@ cycles its bit for the active phase:
 If the user unlinks an edge for per-lane editing, `EdgeGroupMask.Options`
 receives `PerLaneSignal`. `SubLanePanel` then edits `SubLaneGroupMask` entries
 instead of the edge-wide mask. Linking the edge again clears `PerLaneSignal`.
+`SubLaneGroupMask` does not have a bicycle field, so bicycle service remains an
+edge-level `EdgeGroupMask.m_Bicycle` mask even when car, track, or pedestrian
+service is edited per sub-lane. See
+[`bicycle-signal-research.md`](bicycle-signal-research.md) for the current
+bicycle signal map and open risks.
 
 Generation and validation depend on positions as well as entity IDs.
 `CustomPhaseUtils.ValidateBuffer(...)` keeps masks aligned to the current
@@ -108,7 +113,8 @@ For `CustomPhase` pattern nodes with all three custom buffers available, it:
 - car lanes choose car or public-car turn masks based on public-only flags
 - track lanes use track turn masks
 - crosswalks use pedestrian masks
-- bicycle/secondary lanes fall back to the bicycle mask or straight car mask
+- bicycle/secondary lanes use the edge bicycle mask, or fall back to the
+  straight car mask when the bicycle mask is empty
 - master lanes merge the masks of their slave lanes
 
 The processor finally calls `PatchedTrafficLightSystem.UpdateLaneSignal(...)`
@@ -162,6 +168,13 @@ Vehicle weights live in `CustomPhaseData` and affect dynamic-mode waiting
 pressure only. They do not alter which lanes are served by a phase; the served
 lanes come from `EdgeGroupMask` and `SubLaneGroupMask`.
 
+Bicycle lane support is currently a custom-phase edge-mask path. Generated
+custom phases can author `EdgeGroupMask.m_Bicycle`, initialization applies it
+to non-car `SecondaryLane` lanes, and dynamic mode counts petitioning
+`SecondaryLane` lanes as bicycle demand. The code also persists bicycle delay
+fields and `CustomPhaseData.Options.PrioritiseBicycle`, but no runtime consumer
+for those priority/delay semantics has been confirmed yet.
+
 Exclusive pedestrian phase is stored as a pattern flag on `CustomTrafficLights`.
 Predefined initialization can add an exclusive pedestrian group, while custom
 phase pedestrian service is controlled by the configured pedestrian masks. TSP
@@ -194,3 +207,5 @@ Risky cleanup targets:
   configurations after road edits
 - changing duration units, because existing saves and UI labels already rely on
   raw signal update ticks even though the label says seconds
+- reordering or removing custom phases without moving every edge movement mask,
+  including `EdgeGroupMask.m_Bicycle`
