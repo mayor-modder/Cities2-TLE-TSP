@@ -123,7 +123,7 @@ test("transit signal priority has concise English base labels", async () => {
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"], "Transit Signal Priority is suspended while this intersection is in a traffic group");
 });
 
-test("transit signal priority diagnostics are gated by a mod option", async () => {
+test("selected-junction diagnostics are gated by a general TLE mod option", async () => {
   const settings = await repoSource("Settings.cs");
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const uiSystem = await repoSource("Systems/UI/UISystem.cs");
@@ -139,7 +139,8 @@ test("transit signal priority diagnostics are gated by a mod option", async () =
   assert.match(content, /const\s+transitSignalPriorityDiagnostics\s*=\s*mainData\.transitSignalPriority\?\.diagnostics/);
   assert.match(content, /transitSignalPriorityDiagnostics\.events/);
   assert.match(content, /transitSignalPriorityDiagnostics\.rows/);
-  assert.match(locale, /Show Transit Signal Priority Diagnostics/);
+  assert.match(locale, /Show TLE Diagnostics/);
+  assert.doesNotMatch(locale, /Show Transit Signal Priority Diagnostics/);
   assert.match(locale, /TSPDiagnosticsRequest/);
   assert.match(locale, /TSPDiagnosticsCurrentGroup/);
   assert.match(locale, /TSPDiagnosticsCurveApproach/);
