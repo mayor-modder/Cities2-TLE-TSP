@@ -1,107 +1,82 @@
-using System;
-using System.IO;
+using C2VM.TrafficLightsEnhancement.Components;
+using C2VM.TrafficLightsEnhancement.Systems.TrafficLightSystems.Initialisation;
 using Xunit;
 
 namespace TrafficLightsEnhancement.Ecs.Tests;
 
 public sealed class PredefinedPatternOptionSupportSourceTests
 {
-    [Fact]
-    public void Extra_options_share_topology_gate_with_simple_predefined_patterns()
+    [Theory]
+    [InlineData(7, false, true)]
+    [InlineData(8, false, false)]
+    [InlineData(4, true, false)]
+    public void Extra_options_are_supported_only_on_non_train_topologies_with_at_most_seven_edges(
+        int edgeCount,
+        bool hasTrainTrack,
+        bool expected)
     {
-        string source = File.ReadAllText(GetRepoPath(
-            "TrafficLightsEnhancement",
-            "Systems",
-            "TrafficLightSystems",
-            "Initialisation",
-            "PredefinedPatternsProcessor.cs"));
-        string supportMethod = ExtractMethod(source, "public static bool AreExtraOptionsSupported");
+        bool actual = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeCount, hasTrainTrack);
 
-        Assert.Contains("!HasTrainTrack(edgeInfoArray)", supportMethod);
-        Assert.Contains("edgeInfoArray.Length <= 7", supportMethod);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Exclusive_pedestrian_option_is_not_supported_on_highway_topologies(
+        bool hasHighwayLane,
+        bool expected)
+    {
+        bool actual = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(hasHighwayLane);
+
+        Assert.Equal(expected, actual);
     }
 
     [Fact]
-    public void Split_phasing_protected_left_uses_protected_turn_topology_gate()
+    public void Clear_extra_options_removes_only_option_flags()
     {
-        string source = File.ReadAllText(GetRepoPath(
-            "TrafficLightsEnhancement",
-            "Systems",
-            "TrafficLightSystems",
-            "Initialisation",
-            "PredefinedPatternsProcessor.cs"));
-        string validPatternSource = ExtractMethod(source, "public static bool IsValidPattern");
+        const CustomTrafficLights.Patterns pattern =
+            CustomTrafficLights.Patterns.SplitPhasingProtectedLeft |
+            CustomTrafficLights.Patterns.ExclusivePedestrian |
+            CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn |
+            CustomTrafficLights.Patterns.CentreTurnGiveWay |
+            CustomTrafficLights.Patterns.SmartPhaseSelection;
 
-        Assert.Contains("case (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft:", validPatternSource);
-        Assert.Contains("IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.ProtectedCentreTurn)", validPatternSource);
+        CustomTrafficLights.Patterns actual = PredefinedPatternsProcessor.ClearExtraOptions(pattern);
+
+        Assert.Equal(
+            CustomTrafficLights.Patterns.SplitPhasingProtectedLeft |
+            CustomTrafficLights.Patterns.SmartPhaseSelection,
+            actual);
+    }
+
+    [Theory]
+    [InlineData(4, true, true)]
+    [InlineData(3, false, false)]
+    [InlineData(8, true, false)]
+    public void Protected_turn_topology_requires_four_straight_ways(
+        int edgeCount,
+        bool includeStraightTrafficOnEveryEdge,
+        bool expected)
+    {
+        int straightWays = includeStraightTrafficOnEveryEdge ? edgeCount : 0;
+
+        bool actual = PredefinedPatternsProcessor.IsProtectedCentreTurnTopology(
+            edgeCount,
+            straightWays,
+            hasTurningTrackLane: false);
+
+        Assert.Equal(expected, actual);
     }
 
     [Fact]
-    public void Main_panel_hides_extra_options_when_topology_gate_fails()
+    public void Protected_turn_topology_rejects_turning_track_lanes()
     {
-        string source = File.ReadAllText(GetRepoPath(
-            "TrafficLightsEnhancement",
-            "Systems",
-            "UI",
-            "UISystem.UIBIndings.cs"));
-        string mainPanelSource = ExtractMethod(source, "protected string GetMainPanel");
+        bool actual = PredefinedPatternsProcessor.IsProtectedCentreTurnTopology(
+            edgeCount: 4,
+            straightWays: 4,
+            hasTurningTrackLane: true);
 
-        Assert.Contains("PredefinedPatternsProcessor.AreExtraOptionsSupported(m_EdgeInfoDictionary[m_SelectedEntity])", mainPanelSource);
-        Assert.DoesNotContain("bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && !hasTrainTrack", mainPanelSource);
-    }
-
-    [Fact]
-    public void Initialization_clears_extra_options_when_topology_gate_fails()
-    {
-        string source = File.ReadAllText(GetRepoPath(
-            "TrafficLightsEnhancement",
-            "Systems",
-            "TrafficLightSystems",
-            "Initialisation",
-            "PatchedTrafficLightInitializationSystem.cs"));
-
-        Assert.Contains("bool extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray)", source);
-        Assert.Contains("customTrafficLights.SetPattern(PredefinedPatternsProcessor.ClearExtraOptions(pattern))", source);
-    }
-
-    private static string GetRepoPath(params string[] segments)
-    {
-        string path = AppContext.BaseDirectory;
-        for (int i = 0; i < 4; i++)
-        {
-            path = Path.GetDirectoryName(path) ?? throw new DirectoryNotFoundException(path);
-        }
-
-        path = Path.Combine(path, Path.Combine(segments));
-        Assert.True(File.Exists(path), $"Could not find expected repo file at {path}");
-        return path;
-    }
-
-    private static string ExtractMethod(string source, string signature)
-    {
-        int start = source.IndexOf(signature, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"Could not find method signature: {signature}");
-
-        int braceStart = source.IndexOf('{', start);
-        Assert.True(braceStart >= 0, $"Could not find method body: {signature}");
-
-        int depth = 0;
-        for (int i = braceStart; i < source.Length; i++)
-        {
-            if (source[i] == '{')
-            {
-                depth++;
-            }
-            else if (source[i] == '}')
-            {
-                depth--;
-                if (depth == 0)
-                {
-                    return source.Substring(start, i - start + 1);
-                }
-            }
-        }
-
-        throw new InvalidOperationException($"Could not parse method body: {signature}");
+        Assert.False(actual);
     }
 }

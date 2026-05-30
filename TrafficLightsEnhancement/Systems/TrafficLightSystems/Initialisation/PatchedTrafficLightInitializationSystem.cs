@@ -244,18 +244,23 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                 }
                 else
                 {
-                    var edgeInfoArray = NodeUtils.GetEdgeInfoList(Allocator.Temp, entityArray[i], ref this, subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i]).AsArray();
-                    bool extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray);
-                    var pattern = customTrafficLights.GetPattern();
-                    if (NodeUtils.HasTrainTrack(edgeInfoArray) || !PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, pattern))
-                    {
+                  var edgeInfoArray = NodeUtils.GetEdgeInfoList(Allocator.Temp, entityArray[i], ref this, subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i]).AsArray();
+                  bool extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray);
+                  bool exclusivePedestrianOptionSupported = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(edgeInfoArray);
+                  var pattern = customTrafficLights.GetPattern();
+                  if (NodeUtils.HasTrainTrack(edgeInfoArray) || !PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, pattern))
+                  {
                         pattern = CustomTrafficLights.Patterns.Vanilla;
                         customTrafficLights.SetPattern(pattern);
                     }
-                    else if (!extraOptionsSupported)
-                    {
-                        customTrafficLights.SetPattern(PredefinedPatternsProcessor.ClearExtraOptions(pattern));
-                    }
+                  else if (!extraOptionsSupported)
+                  {
+                      customTrafficLights.SetPattern(PredefinedPatternsProcessor.ClearExtraOptions(pattern));
+                  }
+                  else if (!exclusivePedestrianOptionSupported)
+                  {
+                      customTrafficLights.SetPattern(PredefinedPatternsProcessor.ClearExclusivePedestrianOption(pattern));
+                  }
                     if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.SplitPhasing)
                     {
                         PredefinedPatternsProcessor.SetupSplitPhasing(ref this, connectedEdgeAccessor[i], subLanes, out groupCount, ref trafficLights);

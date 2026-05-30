@@ -17,12 +17,44 @@ public class PredefinedPatternsProcessor
 
     public static bool AreExtraOptionsSupported(NativeArray<EdgeInfo> edgeInfoArray)
     {
-        return !HasTrainTrack(edgeInfoArray) && edgeInfoArray.Length <= 7;
+        return AreExtraOptionsSupported(edgeInfoArray.Length, HasTrainTrack(edgeInfoArray));
+    }
+
+    public static bool AreExtraOptionsSupported(int edgeCount, bool hasTrainTrack)
+    {
+        return !hasTrainTrack && edgeCount <= 7;
     }
 
     public static CustomTrafficLights.Patterns ClearExtraOptions(CustomTrafficLights.Patterns pattern)
     {
         return pattern & ~ExtraOptionFlags;
+    }
+
+    public static CustomTrafficLights.Patterns ClearExclusivePedestrianOption(CustomTrafficLights.Patterns pattern)
+    {
+        return pattern & ~CustomTrafficLights.Patterns.ExclusivePedestrian;
+    }
+
+    public static bool IsExclusivePedestrianOptionSupported(NativeArray<EdgeInfo> edgeInfoArray)
+    {
+        return IsExclusivePedestrianOptionSupported(HasHighwayLane(edgeInfoArray));
+    }
+
+    public static bool IsExclusivePedestrianOptionSupported(bool hasHighwayLane)
+    {
+        return !hasHighwayLane;
+    }
+
+    public static bool HasHighwayLane(NativeArray<EdgeInfo> edgeInfoArray)
+    {
+        foreach (var edgeInfo in edgeInfoArray)
+        {
+            if (edgeInfo.m_HighwayLaneCount > 0)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static bool IsValidPattern(NativeArray<EdgeInfo> edgeInfoArray, CustomTrafficLights.Patterns pattern)
@@ -45,22 +77,19 @@ public class PredefinedPatternsProcessor
             case (uint)CustomTrafficLights.Patterns.ProtectedCentreTurn:
             {
                 int ways = 0;
+                bool hasTurningTrackLane = false;
                 foreach (var edgeInfo in edgeInfoArray)
                 {
                     if (edgeInfo.m_TrackLaneLeftCount + edgeInfo.m_TrackLaneRightCount > 0)
                     {
-                        return false;
+                        hasTurningTrackLane = true;
                     }
                     if (edgeInfo.m_CarLaneStraightCount + edgeInfo.m_PublicCarLaneStraightCount + edgeInfo.m_TrackLaneStraightCount > 0)
                     {
                         ways++;
                     }
                 }
-                if (ways == 4 && edgeInfoArray.Length == ways)
-                {
-                    return true;
-                }
-                return false;
+                return IsProtectedCentreTurnTopology(edgeInfoArray.Length, ways, hasTurningTrackLane);
             }
             case (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft:
             {
@@ -72,6 +101,11 @@ public class PredefinedPatternsProcessor
                 return true;
             }
         }
+    }
+
+    public static bool IsProtectedCentreTurnTopology(int edgeCount, int straightWays, bool hasTurningTrackLane)
+    {
+        return !hasTurningTrackLane && straightWays == 4 && edgeCount == straightWays;
     }
 
     public static void SetupSplitPhasing(ref InitializeTrafficLightsJob job, DynamicBuffer<ConnectedEdge> connectedEdges, DynamicBuffer<SubLane> subLanes, out int groupCount, ref TrafficLights trafficLights)
