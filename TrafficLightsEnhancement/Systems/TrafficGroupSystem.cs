@@ -1117,13 +1117,8 @@ public partial class TrafficGroupSystem : GameSystemBase
 			// Initialize the per-member cycle timer from the group timer and signal delay
 			if (group.m_GreenWaveEnabled && group.m_CycleLength > 0)
 			{
-				float memberCyclePos = group.m_CycleTimer - memberData.m_SignalDelay;
-				memberCyclePos = memberCyclePos % group.m_CycleLength;
-				if (memberCyclePos < 0f)
-				{
-					memberCyclePos += group.m_CycleLength;
-				}
-				memberData.m_MemberCycleTimer = memberCyclePos;
+				memberData.m_MemberCycleTimer = TrafficGroupTimingPolicy.WrapCyclePosition(
+					group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength);
 				EntityManager.SetComponentData(memberEntity, memberData);
 			}
 

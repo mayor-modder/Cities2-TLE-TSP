@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace TrafficLightsEnhancement.Logic.TrafficGroups;
 
@@ -34,9 +33,7 @@ public static class TrafficGroupTimingPolicy
             return 0;
         }
 
-        int offset = (int)(arrivalTime / cycleLength * phaseCount);
-        offset %= Math.Max(1, phaseCount);
-        return offset < 0 ? offset + phaseCount : offset;
+        return (int)(arrivalTime / cycleLength * phaseCount) % Math.Max(1, phaseCount);
     }
 
     public static int DetermineOneBasedPhaseFromEvenCycle(float cyclePosition, float cycleLength, int signalGroupCount)
@@ -49,26 +46,6 @@ public static class TrafficGroupTimingPolicy
         float phaseLength = cycleLength / signalGroupCount;
         int phase = (int)(cyclePosition / Math.Max(1f, phaseLength)) + 1;
         return Clamp(phase, 1, signalGroupCount);
-    }
-
-    public static int DetermineOneBasedPhaseFromDurations(float cyclePosition, IReadOnlyList<float> maximumDurations)
-    {
-        if (maximumDurations.Count == 0)
-        {
-            return 1;
-        }
-
-        float accumulated = 0f;
-        for (int i = 0; i < maximumDurations.Count; i++)
-        {
-            accumulated += maximumDurations[i];
-            if (cyclePosition < accumulated)
-            {
-                return i + 1;
-            }
-        }
-
-        return 1;
     }
 
     private static int Clamp(int value, int minimum, int maximum)

@@ -130,7 +130,9 @@ Verified from code and tests: green-wave cycle wrapping and phase-offset math
 are centralized in `TrafficGroupTimingPolicy`. That helper intentionally keeps
 traffic-group phase numbers one-based when talking to `TrafficLights`, while
 enhanced green-wave offsets remain zero-based because they are later added to a
-zero-based phase index.
+zero-based phase index. Negative enhanced offsets preserve C# remainder
+semantics from the inherited inline implementation, so they can remain negative
+until the later phase-wrap step.
 
 `CalculateGreenWaveTiming(...)` is the simple distance-based path:
 

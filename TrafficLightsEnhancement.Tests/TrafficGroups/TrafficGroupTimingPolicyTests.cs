@@ -31,8 +31,9 @@ public class TrafficGroupTimingPolicyTests
     [InlineData(15f, 60f, 4, 1)]
     [InlineData(59.9f, 60f, 4, 3)]
     [InlineData(75f, 60f, 4, 1)]
+    [InlineData(-30f, 60f, 4, -2)]
     [InlineData(10f, 0f, 4, 0)]
-    public void Phase_offset_is_zero_based_and_wraps_inside_member_phase_count(float arrivalTime, float cycleLength, int phaseCount, int expected)
+    public void Phase_offset_is_zero_based_and_preserves_csharp_remainder_semantics(float arrivalTime, float cycleLength, int phaseCount, int expected)
     {
         Assert.Equal(expected, TrafficGroupTimingPolicy.CalculateZeroBasedPhaseOffset(arrivalTime, cycleLength, phaseCount));
     }
@@ -49,17 +50,4 @@ public class TrafficGroupTimingPolicyTests
         Assert.Equal(expected, TrafficGroupTimingPolicy.DetermineOneBasedPhaseFromEvenCycle(cyclePosition, cycleLength, groupCount));
     }
 
-    [Theory]
-    [InlineData(0f, 1)]
-    [InlineData(9.9f, 1)]
-    [InlineData(10f, 2)]
-    [InlineData(29.9f, 2)]
-    [InlineData(30f, 3)]
-    [InlineData(60f, 1)]
-    public void Duration_based_phase_selection_uses_maximum_duration_windows(float cyclePosition, int expected)
-    {
-        float[] maximumDurations = { 10f, 20f, 30f };
-
-        Assert.Equal(expected, TrafficGroupTimingPolicy.DetermineOneBasedPhaseFromDurations(cyclePosition, maximumDurations));
-    }
 }

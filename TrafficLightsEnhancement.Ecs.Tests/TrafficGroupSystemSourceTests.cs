@@ -34,6 +34,7 @@ public sealed class TrafficGroupSystemSourceTests
         string calculateGreenWaveSource = ExtractMethod(source, "public void CalculateGreenWaveTiming");
         string applyCoordinationSource = ExtractMethod(source, "private void ApplyCoordination");
         string enhancedGreenWaveSource = ExtractMethod(source, "public void CalculateEnhancedGreenWaveTiming");
+        string forceSyncSource = ExtractMethod(source, "public void ForceSyncToLeader");
         string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
 
         Assert.Contains(
@@ -45,6 +46,12 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains(
             "TrafficGroupTimingPolicy.CalculateZeroBasedPhaseOffset(arrivalTime, leaderCycleLength, GetPhaseCount(memberEntity))",
             enhancedGreenWaveSource);
+        Assert.Contains(
+            "memberData.m_MemberCycleTimer = TrafficGroupTimingPolicy.WrapCyclePosition(",
+            forceSyncSource);
+        Assert.Contains(
+            "group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength",
+            forceSyncSource);
         Assert.Contains(
             "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
             wrapPhaseSource);
