@@ -100,7 +100,8 @@ demand and priority:
 - resets occupied-lane counters
 - reads lane petitioners and priorities
 - counts cars, public cars, tracks, pedestrians, and bicycle lanes per signal
-  group
+  group; bicycle demand is currently counted from petitioning `SecondaryLane`
+  sublanes
 - calculates weighted waiting and flow/wait ratios
 
 `CalculateFlow(...)` samples lane flow history only for lanes served by the
@@ -129,7 +130,9 @@ is recalculated when either duration changes.
 
 The data model also contains `m_BicycleWeight`, the shared update helper applies
 the `BicycleWeight` key, and the dynamic-mode vehicle-weight foldout exposes a
-visible Bicycle Weight slider.
+visible Bicycle Weight slider. `m_BicycleLaneOccupied` is included in the C#
+and TypeScript payloads, but the current statistics foldout does not display a
+separate bicycle waiting row.
 
 ## TSP Interaction
 
