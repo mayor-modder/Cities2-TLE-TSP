@@ -123,7 +123,7 @@ export const PresetManager = ({builtInTemplates, onApplyBuiltIn}: PresetManagerP
             </DropdownItem>
         )),
         ...(presets.length > 0 ? [
-            <div key="separator" className={styles.separator}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.UserPresets]") ?? "User Presets"}</div>
+            <div key="separator" className={styles.separator}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.UserPresets]") ?? "User presets"}</div>
         ] : []),
         ...presets.map((preset) => (
             <div key={`user-${preset.Id}`} className={styles.presetRow}>
@@ -171,7 +171,7 @@ export const PresetManager = ({builtInTemplates, onApplyBuiltIn}: PresetManagerP
         return (
             <div className={styles.container}>
                 <div className={styles.header}>
-                    {isEditing ? (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.EditPreset]") ?? "Edit Preset") : (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.NewPreset]") ?? "New Preset")}
+                    {isEditing ? (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.EditPreset]") ?? "Edit preset") : (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.NewPreset]") ?? "New preset")}
                 </div>
                 <div className={styles.inputRow}>
                     <TextInput
@@ -201,12 +201,12 @@ export const PresetManager = ({builtInTemplates, onApplyBuiltIn}: PresetManagerP
         <div className={styles.container}>
             <Dropdown theme={DropdownStyle} content={dropdownContent}>
                 <DropdownToggle>
-                    {selectedPreset ? `${selectedPreset.name}` : (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ApplyTemplate]") ?? "Apply Template...")}
+                    {selectedPreset ? `${selectedPreset.name}` : (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ApplyTemplate]") ?? "Apply template...")}
                 </DropdownToggle>
             </Dropdown>
             <div className={styles.buttonRow}>
                 <Button variant="flat" onSelect={() => setIsCreating(true)} className={styles.buttonStyle}>
-                    {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SaveCurrentAsPreset]") ?? "Save Current as Preset"}
+                    {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SaveCurrentAsPreset]") ?? "Save current as preset"}
                 </Button>
             </div>
         </div>

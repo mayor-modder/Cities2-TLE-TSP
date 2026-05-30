@@ -65,7 +65,7 @@ const ItemTitle = (props: {title: string, secondaryText?: string, tooltip?: Reac
 
 const CreateGroupButton = () => {
 	const clickHandler = () => {
-		callCreateTrafficGroup(JSON.stringify({ name: "New Group" }));
+		callCreateTrafficGroup(JSON.stringify({ name: "New group" }));
 	};
 	return (
 		<Row hoverEffect={true}>
@@ -81,7 +81,7 @@ const RemoveFromGroupButton = () => {
 	return (
 		
 			<Row hoverEffect={true}>				
-					<Button label="Remove From Group" onClick={clickHandler} tooltip="To remove member from a group: click a member from a group then click this button" />					
+					<Button label="Remove from group" onClick={clickHandler} tooltip="To remove a member from a group, click a member from a group, then click this button." />
 			</Row>
 	);
 };
@@ -92,7 +92,7 @@ const CustomPhaseEditorButton = () => {
 	};
 	return (
 		<Row hoverEffect={true}>
-			<Button label="Custom Phase Editor" onClick={clickHandler} />
+			<Button label="Custom phase editor" onClick={clickHandler} />
 		</Row>
 	);
 };
@@ -154,7 +154,7 @@ const MemberPatternSelector = ({
 	return (
 		<>
 			<Row hoverEffect={true}>
-				<Button label="Custom Phase Editor" onClick={openCustomPhaseEditor} />
+			<Button label="Custom phase editor" onClick={openCustomPhaseEditor} />
 			</Row>
 		</>
 	);
@@ -180,10 +180,10 @@ const MemberFoldout = ({
 			onClick={(e) => { e.stopPropagation(); onMemberClick(member); }}
 			style={{ cursor: 'pointer' }}
 		>
-			{member.isLeader && <span className={styles.leaderBadge}>(Leader) </span>}
+			{member.isLeader && <span className={styles.leaderBadge}>(leader) </span>}
 			Intersection {member.index}
-			{member.isCurrentJunction && <span className={styles.youBadge}> (You)</span>}
-			{isFollowerInLockstep && <span style={{ color: 'var(--textColorDim)', fontStyle: 'italic', marginLeft: '4rem' }}> - Synced</span>}
+			{member.isCurrentJunction && <span className={styles.youBadge}> (you)</span>}
+			{isFollowerInLockstep && <span style={{ color: 'var(--textColorDim)', fontStyle: 'italic', marginLeft: '4rem' }}> - synced</span>}
 		</div>
 	);
 
@@ -195,11 +195,11 @@ const MemberFoldout = ({
 		>
 			{isFollowerInLockstep ? (
 				<div className={styles.infoText} style={{ fontStyle: 'italic', padding: '0.5em' }}>
-					Controlled by Leader - phases are synced in lockstep
+					Controlled by leader: phases are synced in lockstep.
 				</div>
 			) : (
 				<>
-					<div className={styles.sectionTitle}>Traffic Signal</div>
+					<div className={styles.sectionTitle}>Traffic signal</div>
 					<MemberPatternSelector
 						memberIndex={member.index}
 						memberVersion={member.version}
@@ -222,7 +222,7 @@ const AddMemberButton = ({ currentGroup }: { currentGroup: MainPanelItemTrafficG
 	
 	return (
 		<Row hoverEffect={true}>
-			<Button label="Add Member" onClick={clickHandler} />
+			<Button label="Add member" onClick={clickHandler} />
 		</Row>
 	);
 };
@@ -240,7 +240,7 @@ const SelectMemberInWorldButton = ({ currentGroup }: { currentGroup: MainPanelIt
 	return (
 		<Row hoverEffect={true}>
 			<Tooltip tooltip="Click to select a group member in the world. Only existing members can be selected (orange highlight)." direction="up">
-				<Button label="Select Member In World" onClick={clickHandler} />
+				<Button label="Select member in world" onClick={clickHandler} />
 			</Tooltip>
 		</Row>
 	);
@@ -273,7 +273,7 @@ const CopyPhasesToMemberButton = ({
 	
 	return (
 		<Row hoverEffect={true}>
-			<Button label="Copy Phases to All Members" onClick={copyToAllMembers} />
+			<Button label="Copy phases to all members" onClick={copyToAllMembers} />
 		</Row>
 	);
 };
@@ -344,7 +344,7 @@ const MemberSignalEditor = ({
 	onSignalUpdate: (junctionIndex: number, junctionVersion: number, edgeGroupMask: EdgeGroupMask) => void;
 }) => {
 	if (memberEdges.length === 0) {
-		return <div className={styles.infoText} style={{marginLeft: "2rem", fontSize: "0.9em"}}>No edge data available</div>;
+		return <div className={styles.infoText} style={{marginLeft: "2rem", fontSize: "0.9em"}}>No edge data available.</div>;
 	}
 
 	const handleSignalClick = (edge: EdgeInfo, laneType: string, direction: string) => {
@@ -454,7 +454,7 @@ const MemberSignalEditor = ({
 	return (
 		<div className={styles.memberSignalEditor}>
 			<div className={styles.signalEditorHeader}>
-				<span>Phase {phaseIndex + 1} Signals</span>
+				<span>Phase {phaseIndex + 1} signals</span>
 				<span className={styles.signalLegend}>
 					<span style={{color: "#388e3c"}}>●Go</span>
 					<span style={{color: "#f9a825"}}>●Yield</span>
@@ -593,14 +593,14 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 				<Scrollable ref={rightPanelScrollRef} style={{ flex: 1 }} contentStyle={{ flex: 1 }} trackStyle={{ marginLeft: "0.25em" }}>
 					{displayedGroup ? (
 						<>
-							<div className={styles.sectionTitle}>Group Info</div>
+							<div className={styles.sectionTitle}>Group info</div>
 							<div className={styles.statRow}>
 								<div className={styles.statLabel}>Name</div>
 								<div className={styles.nameInputContainer}>
 									<TextInput
 										value={displayedGroup.name}
 										onChange={handleNameChange}
-										placeholder="Group Name"
+										placeholder="Group name"
 									/>
 								</div>
 							</div>
@@ -611,14 +611,14 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							
 						
 							<Divider />
-							<div className={styles.sectionTitle}>Group Members</div>
+							<div className={styles.sectionTitle}>Group members</div>
 							
 							{displayedGroup.members && displayedGroup.members.length > 0 ? (
 								<>
 									
 									{displayedGroup.members.map((member) => (
 								<FocusDisabled>
-									<Tooltip tooltip="Click member name to select the junction and click the foldout to show its options" direction="right">
+									<Tooltip tooltip="Click a member name to select the junction, and click the foldout to show its options." direction="right">
 										<MemberFoldout
 											key={`${member.index}-${member.version}`}
 											member={member}
@@ -632,12 +632,12 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							))}
 								</>
 							) : (
-								<div className={styles.infoText}>No members in this group</div>
+								<div className={styles.infoText}>No members in this group.</div>
 							)}
 
 							{displayedGroup.isCoordinated && !displayedGroup.greenWaveEnabled && (
 								<div className={styles.infoText} style={{ fontStyle: 'italic', color: 'var(--accentColorNormal)' }}>
-									Lockstep Mode: Leader controls all phases
+									Lockstep mode: leader controls all phases.
 								</div>
 							)}
 							<AddMemberButton currentGroup={displayedGroup} />
@@ -668,7 +668,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 								return null;
 							})()}
 							<Divider />
-							<div className={styles.sectionTitle}>Group Settings</div>
+							<div className={styles.sectionTitle}>Group settings</div>
 							
 									<Row hoverEffect={true} className={styles.hover} data={{
 									itemType: "checkbox",
@@ -680,7 +680,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 									engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetCoordinated",
 								}}>
 									<Checkbox isChecked={displayedGroup.isCoordinated} />
-									<div className={styles.dimLabel}>Enable Coordination</div>
+									<div className={styles.dimLabel}>Enable coordination</div>
 								</Row>
 								<Row hoverEffect={true} className={styles.hover} data={{
 									itemType: "checkbox",
@@ -692,7 +692,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 								engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetGreenWaveEnabled"
 								}}>
 									<Checkbox isChecked={displayedGroup.greenWaveEnabled} />
-									<div className={styles.dimLabel}>Enable Green Wave</div>
+									<div className={styles.dimLabel}>Enable green wave</div>
 								</Row>
 
 							{displayedGroup.greenWaveEnabled && (
@@ -711,7 +711,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 										enableTextField: true,
 										textFieldRegExp: "^\\d{0,3}$",
 										engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetGreenWaveSpeed",
-										tooltip: "Sets the target speed for the green wave coordination.  Higher speeds mean traffic lights will change earlier to accommodate faster-moving vehicles."
+										tooltip: "Sets the target speed for the green wave coordination. Higher speeds mean traffic lights will change earlier to accommodate faster-moving vehicles."
 									}} />
 
 									<MainPanelRange data={{
@@ -728,7 +728,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 										enableTextField: true,
 										textFieldRegExp: "^-? \\d{0,2}$",
 										engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetGreenWaveOffset",
-										tooltip: "Adjusts the timing offset for the green wave.  Positive values delay the wave, negative values advance it.  Use this to fine-tune coordination."
+										tooltip: "Adjusts the timing offset for the green wave. Positive values delay the wave, negative values advance it. Use this to fine-tune coordination."
 									}} />
 								</>
 							)}
@@ -738,7 +738,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							<ItemTitle title="Statistics" />
 							<ItemTitle title="Group ID" secondaryText={`${displayedGroup.groupIndex}:${displayedGroup.groupVersion}`} dim={true} />
 							<ItemTitle title="Coordinated" secondaryText={displayedGroup.isCoordinated ? "Yes" : "No"} dim={true} />
-							<ItemTitle title="Green Wave" secondaryText={displayedGroup.greenWaveEnabled ? "Enabled" : "Disabled"} dim={true} />
+							<ItemTitle title="Green wave" secondaryText={displayedGroup.greenWaveEnabled ? "Enabled" : "Disabled"} dim={true} />
 							{displayedGroup.greenWaveEnabled && (
 								<>
 									<ItemTitle title="Speed" secondaryText={`${displayedGroup.greenWaveSpeed} u/s`} dim={true} />
@@ -746,22 +746,22 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 								</>
 							)}
 							{displayedGroup.isCoordinated && (
-								<ItemTitle title="Sync Mode" secondaryText={displayedGroup.greenWaveEnabled ? "Green Wave" : "Lockstep"} dim={true} />
+								<ItemTitle title="Sync mode" secondaryText={displayedGroup.greenWaveEnabled ? "Green wave" : "Lockstep"} dim={true} />
 							)}
 							{displayedGroup.isCurrentJunctionInGroup && (
 								<>
-									<ItemTitle title="Junction Role" secondaryText={displayedGroup.isCurrentJunctionLeader ? "Leader" : "Follower"} dim={true} />
+									<ItemTitle title="Junction role" secondaryText={displayedGroup.isCurrentJunctionLeader ? "Leader" : "Follower"} dim={true} />
 									{!displayedGroup.isCurrentJunctionLeader && displayedGroup.distanceToLeader !== undefined && (
-										<ItemTitle title="Distance to Leader" secondaryText={`${displayedGroup.distanceToLeader.toFixed(1)}m`} dim={true} />
+										<ItemTitle title="Distance to leader" secondaryText={`${displayedGroup.distanceToLeader.toFixed(1)}m`} dim={true} />
 									)}
 									{displayedGroup.greenWaveEnabled && !displayedGroup.isCurrentJunctionLeader && displayedGroup.signalDelay !== undefined && displayedGroup.signalDelay !== 0 && (
-										<ItemTitle title="Signal Delay" secondaryText={`${displayedGroup.signalDelay}s`} dim={true} />
+										<ItemTitle title="Signal delay" secondaryText={`${displayedGroup.signalDelay}s`} dim={true} />
 									)}
 								</>
 							)}
 						</>
 					) : (
-						<div className={styles.infoText}>Select a group to add this junction, or create a new group. </div>
+						<div className={styles.infoText}>Select a group to add this junction, or create a new group.</div>
 					)}
 				</Scrollable>
 			</div>

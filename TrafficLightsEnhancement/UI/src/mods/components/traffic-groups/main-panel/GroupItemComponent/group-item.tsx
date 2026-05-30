@@ -44,7 +44,7 @@ export default function GroupItem(props: {
 		onView?.(data.groupIndex, data.groupVersion);
 	};
 
-	const displayName = data.name || "Unnamed Group";
+	const displayName = data.name || "Unnamed group";
 
 	return (
 		<Tooltip tooltip={`${displayName} (${data.memberCount})`}>

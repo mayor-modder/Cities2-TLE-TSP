@@ -43,7 +43,7 @@ export const MigrationIssuesModal = () => {
 					<Icon src="Media/Game/Icons/TrafficLights.svg" className={styles.icon} />
 				</div>
 				<div className={styles.headerTitle}>
-					<span className={styles.title}>Data Migration Issues</span>
+					<span className={styles.title}>Data migration issues</span>
 					<span className={styles.subtitle}>Traffic Lights Enhancement</span>
 				</div>
 				<div className={styles.headerActions}>
@@ -55,13 +55,13 @@ export const MigrationIssuesModal = () => {
 
 			<div className={styles.content}>
 						<div className={styles.sectionHeader}>
-							<span className={styles.sectionTitle}>Affected Intersections</span>
+							<span className={styles.sectionTitle}>Affected intersections</span>
 							<span className={styles.badge}>{entities.length}</span>
 						</div>
 						<p cohinline="cohinline" className={styles.sectionDescription}>
-								Use the list below to quickly access affected intersections. 
-								These intersections have been reset to default: 
-								you will need to reconfigure these intersections manually
+								Use the list below to quickly access affected intersections.
+								These intersections have been reset to default:
+								you will need to reconfigure these intersections manually.
 							</p>
 						<div className={styles.listContainer}>
 							<Scrollable trackVisibility="scrollable" smooth vertical >
@@ -102,7 +102,7 @@ export const MigrationIssuesModal = () => {
 					className={styles.dismissButton} 
 					onSelect={handleDismissAll}
 				>
-					Dismiss All
+					Dismiss all
 				</Button>
 			</div>
 		</div>

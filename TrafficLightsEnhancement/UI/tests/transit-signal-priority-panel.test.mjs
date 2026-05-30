@@ -116,11 +116,11 @@ test("backend exposes separate tram and bus transit priority controls", async ()
 test("transit signal priority has concise English base labels", async () => {
   const locale = JSON.parse(await repoSource("Locale.json"));
 
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriority]"], "Transit Signal Priority");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriority]"], "Transit signal priority");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForTrams]"], "Enable for trams");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForBuses]"], "Enable for buses");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriorityDiagnostics]"], "Diagnostics");
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"], "Transit Signal Priority is suspended while this intersection is in a traffic group");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"], "Transit signal priority is suspended while this intersection is in a traffic group.");
 });
 
 test("transit signal priority diagnostics are gated by a mod option", async () => {
@@ -139,7 +139,7 @@ test("transit signal priority diagnostics are gated by a mod option", async () =
   assert.match(content, /const\s+transitSignalPriorityDiagnostics\s*=\s*mainData\.transitSignalPriority\?\.diagnostics/);
   assert.match(content, /transitSignalPriorityDiagnostics\.events/);
   assert.match(content, /transitSignalPriorityDiagnostics\.rows/);
-  assert.match(locale, /Show Transit Signal Priority Diagnostics/);
+  assert.match(locale, /Show transit signal priority diagnostics/);
   assert.match(locale, /TSPDiagnosticsRequest/);
   assert.match(locale, /TSPDiagnosticsCurrentGroup/);
   assert.match(locale, /TSPDiagnosticsCurveApproach/);
@@ -472,7 +472,7 @@ test("custom phase vehicle weights expose bicycle weight control", async () => {
   assert.match(subPanel, /label="BicycleWeight"/);
   assert.match(subPanel, /value=\{data\.bicycleWeight\}/);
   assert.match(subPanel, /Tooltip\.LABEL\[C2VM\.TrafficLightsEnhancement\.BicycleWeight\]/);
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BicycleWeight]"], "Bicycle Weight");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BicycleWeight]"], "Bicycle weight");
   assert.equal(
     typeof locale["Tooltip.LABEL[C2VM.TrafficLightsEnhancement.BicycleWeight]"],
     "string");

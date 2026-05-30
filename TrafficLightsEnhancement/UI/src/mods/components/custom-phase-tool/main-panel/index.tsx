@@ -55,7 +55,7 @@ const BackButton = () => {
 
 const BackToGroupsButton = () => {
   return (
-    <Row hoverEffect={true}><Button label="Back to Group" onClick={() => setPanelState(MainPanelState.TrafficGroups)} /></Row>
+    <Row hoverEffect={true}><Button label="Back to group" onClick={() => setPanelState(MainPanelState.TrafficGroups)} /></Row>
   );
 };
 
@@ -66,7 +66,7 @@ const ManualControlButton = (props: {currentSignalGroup: number}) => {
   };
   return (
     <Row hoverEffect={true}>
-      <Button label="Manual Control" onClick={clickHandler} />
+      <Button label="Manual control" onClick={clickHandler} />
     </Row>
   );
 };
