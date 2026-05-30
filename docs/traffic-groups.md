@@ -27,6 +27,12 @@ not an idealized design.
 - `TrafficLightsEnhancement/Systems/TrafficLightSystems/Simulation/CustomStateMachine.cs`
   and `PatchedTrafficLightSystem.cs` use the group state when updating signal
   phases.
+- `TrafficLightsEnhancement.Logic/TrafficGroups/TrafficGroupTimingPolicy.cs`
+  owns pure timing helpers for phase wrapping, cycle-position wrapping, and
+  green-wave phase-offset math.
+- `TrafficLightsEnhancement.Tests/TrafficGroups/TrafficGroupTimingPolicyTests.cs`
+  covers the pure timing helpers. `TrafficGroupSystemSourceTests.cs` verifies
+  that the runtime system still uses those helpers in the key green-wave paths.
 
 Related docs:
 
@@ -100,7 +106,10 @@ the group.
 
 ## Runtime Behavior
 
-`TrafficGroupSystem.OnUpdate()` runs for coordinated groups. Each tick it:
+Verified from code: `TrafficGroupSystem` is registered at
+`SystemUpdatePhase.ModificationEnd` and `TrafficGroupSystem.OnUpdate()` only
+advances groups whose `TrafficGroup.m_IsCoordinated` flag is true. Each system
+update it:
 
 1. Advances the group cycle timer.
 2. Captures the leader's current signal group, next signal group, state, timer,
@@ -111,9 +120,44 @@ When green wave is disabled, followers use the job-level
 `SyncSignalGroupWithLeader(...)` path and copy the leader phase/state/timers
 directly.
 
-When green wave is enabled, followers use offset-based timing. Signal delays and
-phase offsets are used to stagger member cycle positions while staying tied to
-the leader's cycle.
+When green wave is enabled, followers use offset-based timing instead of direct
+lockstep copying. Signal delays and phase offsets stagger member cycle
+positions while staying tied to the leader's cycle.
+
+## Green-Wave Timing
+
+Verified from code and tests: green-wave cycle wrapping and phase-offset math
+are centralized in `TrafficGroupTimingPolicy`. That helper intentionally keeps
+traffic-group phase numbers one-based when talking to `TrafficLights`, while
+enhanced green-wave offsets remain zero-based because they are later added to a
+zero-based phase index.
+
+`CalculateGreenWaveTiming(...)` is the simple distance-based path:
+
+- skips invalid groups, disabled green wave, and missing leaders
+- sets the leader member's cycle timer to `0`
+- measures each member's distance from the leader node
+- uses explicit `TrafficGroupMember.m_SignalDelay` when present
+- otherwise rounds `distance / group.m_GreenWaveSpeed + group.m_GreenWaveOffset`
+  into a delay/offset
+- stores distance, phase offset, and wrapped member cycle position on the
+  member component
+
+`CalculateEnhancedGreenWaveTiming(...)` is the custom-phase-aware path:
+
+- gets the leader's cycle length from the leader's `CustomPhaseData` maximum
+  durations
+- falls back to `CalculateGreenWaveTiming(...)` when the leader has no usable
+  custom cycle length
+- computes the configured main phase's start time inside the leader cycle
+- converts arrival time into a zero-based member phase offset
+- wraps the member cycle position against the leader cycle length
+
+`ApplyCoordination(...)` is narrower than its name suggests. In green-wave mode
+it refreshes each follower's `m_MemberCycleTimer` from the group cycle timer and
+the member's signal delay. It does not directly select the next signal group;
+custom signal synchronization later consumes the stored master-clock and member
+offset data.
 
 Adding a junction to a group also ensures the junction has the core TLE custom
 traffic-light data it needs:
@@ -125,6 +169,32 @@ traffic-light data it needs:
 
 If the junction is already in a custom traffic mode that is not dynamic or fixed
 timed, the group system switches it to dynamic mode.
+
+## Phase Copying And Geometry Matching
+
+Inferred from current behavior: traffic groups include helpers for copying a
+leader's custom phase setup to member junctions, but this is more topology
+sensitive than the green-wave timing math.
+
+`CopyPhasesToJunction(...)` first checks a coarse compatibility boundary, then
+copies or creates `CustomTrafficLights`, `CustomPhaseData`, `EdgeGroupMask`, and
+`SubLaneGroupMask` data on the target junction.
+
+`CopyEdgeGroupMaskWithDirectionMatching(...)` tries two edge-matching strategies:
+
+- path-following through connected edges for nearby source/target junctions
+- angle matching around the source and target junction centers as a fallback
+
+`CopySubLaneGroupMaskWithLaneTypeMatching(...)` maps sub-lane masks after edge
+matching. It scores candidate source lanes by turn type first, then by lane
+position. Car and track lane flags are classified as straight, left, right,
+U-turn, or other.
+
+Needs in-game evidence: the code documents the intended matching strategy, but
+the repository does not currently have a full ECS/in-game topology harness that
+proves copied edge and sub-lane masks are correct across different junction
+shapes, tram tracks, bike lanes, or asymmetric lane counts. Treat changes here
+as high-risk until backed by focused diagnostics or playtesting.
 
 ## TSP Interaction
 
@@ -191,3 +261,12 @@ Compatibility rules for future work:
   save compatibility first.
 - Group behavior is hard to reason about without in-game context. Prefer adding
   pure tests and small docs before changing runtime behavior.
+- The best-tested traffic-group behavior today is serialization, stale member
+  reuse, and pure timing math. Leader election, actual follower signal sync,
+  and phase-copy geometry matching still need stronger runtime or in-game
+  evidence.
+- Future hardening should extract more pure helpers only when their behavior can
+  be described without Unity ECS state. Good candidates are phase metric
+  selection, green-wave delay selection, and lane/edge matching scoring. Avoid
+  broad refactors that change saved components or group semantics at the same
+  time.

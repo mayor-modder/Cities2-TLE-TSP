@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using C2VM.TrafficLightsEnhancement.Domain;
 using Colossal.Entities;
 using Game.SceneFlow;
+using TrafficLightsEnhancement.Logic.TrafficGroups;
 
 namespace C2VM.TrafficLightsEnhancement.Systems;
 
@@ -449,13 +450,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 				phaseOffset = (int)math.round(travelTimeSeconds + group.m_GreenWaveOffset);
 			}
 
-			// Initialize the per-member cycle timer offset
-			float memberCyclePos = group.m_CycleTimer - phaseOffset;
-			memberCyclePos = memberCyclePos % group.m_CycleLength;
-			if (memberCyclePos < 0f)
-			{
-				memberCyclePos += group.m_CycleLength;
-			}
+			float memberCyclePos = TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, phaseOffset, group.m_CycleLength);
 
 			memberData.m_DistanceToLeader = distance;
 			memberData.m_PhaseOffset = phaseOffset;
@@ -761,13 +756,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 				continue;
 			}
 
-			// Time-based staggering: compute this member's position in the cycle
-			float memberCyclePos = group.m_CycleTimer - memberData.m_SignalDelay;
-			memberCyclePos = memberCyclePos % group.m_CycleLength;
-			if (memberCyclePos < 0f)
-			{
-				memberCyclePos += group.m_CycleLength;
-			}
+			float memberCyclePos = TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength);
 
 			memberData.m_MemberCycleTimer = memberCyclePos;
 			EntityManager.SetComponentData(memberEntity, memberData);
@@ -779,17 +768,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 	// TMPE-style: simple wrap of a 1-indexed phase into a valid range
 	private static int WrapPhase(int phase, int phaseCount)
 	{
-		if (phaseCount <= 0)
-		{
-			return 1;
-		}
-		if (phase <= 0)
-		{
-			return 1;
-		}
-		int wrapped = ((phase - 1) % phaseCount) + 1;
-		if (wrapped <= 0) wrapped += phaseCount;
-		return wrapped;
+		return TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount);
 	}
 
 	
@@ -987,16 +966,9 @@ public partial class TrafficGroupSystem : GameSystemBase
 			int signalDelay = (int)math.round(travelTimeSeconds + group.m_GreenWaveOffset);
 			
 			float arrivalTime = mainPhaseStartTime + signalDelay;
-			int phaseOffset = (int)(arrivalTime / leaderCycleLength * GetPhaseCount(memberEntity));
-			phaseOffset = phaseOffset % math.max(1, GetPhaseCount(memberEntity));
+			int phaseOffset = TrafficGroupTimingPolicy.CalculateZeroBasedPhaseOffset(arrivalTime, leaderCycleLength, GetPhaseCount(memberEntity));
 
-			// Initialize the per-member cycle timer offset
-			float memberCyclePos = group.m_CycleTimer - signalDelay;
-			memberCyclePos = memberCyclePos % leaderCycleLength;
-			if (memberCyclePos < 0f)
-			{
-				memberCyclePos += leaderCycleLength;
-			}
+			float memberCyclePos = TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, signalDelay, leaderCycleLength);
 
 			var memberData = EntityManager.GetComponentData<TrafficGroupMember>(memberEntity);
 			memberData.m_DistanceToLeader = distance;
@@ -1033,9 +1005,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 				var tl = EntityManager.GetComponentData<TrafficLights>(memberEntity);
 				if (tl.m_SignalGroupCount > 0)
 				{
-					float phaseLen = cycleLength / tl.m_SignalGroupCount;
-					int phase = (int)(cyclePosition / math.max(1f, phaseLen)) + 1;
-					return math.clamp(phase, 1, tl.m_SignalGroupCount);
+					return TrafficGroupTimingPolicy.DetermineOneBasedPhaseFromEvenCycle(cyclePosition, cycleLength, tl.m_SignalGroupCount);
 				}
 			}
 			return 1;

@@ -27,6 +27,29 @@ public sealed class TrafficGroupSystemSourceTests
             setOrAddSource);
     }
 
+    [Fact]
+    public void Green_wave_paths_use_shared_timing_policy()
+    {
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string calculateGreenWaveSource = ExtractMethod(source, "public void CalculateGreenWaveTiming");
+        string applyCoordinationSource = ExtractMethod(source, "private void ApplyCoordination");
+        string enhancedGreenWaveSource = ExtractMethod(source, "public void CalculateEnhancedGreenWaveTiming");
+        string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
+
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, phaseOffset, group.m_CycleLength)",
+            calculateGreenWaveSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength)",
+            applyCoordinationSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.CalculateZeroBasedPhaseOffset(arrivalTime, leaderCycleLength, GetPhaseCount(memberEntity))",
+            enhancedGreenWaveSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
+            wrapPhaseSource);
+    }
+
     private static string GetTrafficGroupSystemPath()
     {
         string baseDirectory = AppContext.BaseDirectory;
