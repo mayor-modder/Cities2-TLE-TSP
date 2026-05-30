@@ -72,7 +72,9 @@ default to zero.
 `GroupMask.Signal` reads `V1` payloads by defaulting open/close delays to zero.
 
 `TrafficGroupMember` reads `V1` payloads by defaulting
-`m_MemberCycleTimer` to `0`.
+`m_MemberCycleTimer` to `0`. `m_PhaseOffset` is a signed zero-based phase
+offset; runtime consumers must wrap it before converting it to a one-based
+`TrafficLights` signal group.
 
 `TrafficGroup` currently writes `V1`, but reads and discards one extra bool for
 payloads marked `V2` or newer. Older TSP builds serialized group propagation in
@@ -107,8 +109,8 @@ back the player-facing soft bus-priority feature.
 The migration/validation pass also repairs inherited data where possible:
 
 - invalid signal-delay edges are removed and delay values clamp to `0..300`,
-- invalid `TrafficGroupMember` references or negative values are removed or
-  reset,
+- invalid `TrafficGroupMember` references or out-of-range values are removed or
+  reset. Signed phase offsets in `-16..16` are valid,
 - invalid `TrafficGroup` timing/distances reset to defaults,
 - invalid `CustomTrafficLights` enum values reset and affected intersections
   are recorded for UI notice,

@@ -2286,14 +2286,13 @@ public partial class TrafficGroupSystem : GameSystemBase
 				var memberData = EntityManager.GetComponentData<TrafficGroupMember>(memberEntity);
 				var trafficLights = EntityManager.GetComponentData<TrafficLights>(memberEntity);
 
-				
-				int adjustedPhase = bestPhase + memberData.m_PhaseOffset;
 				int phaseCount = GetPhaseCount(memberEntity);
-				if (phaseCount > 0)
+				if (phaseCount <= 0)
 				{
-					adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount);
+					continue;
 				}
 
+				int adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount);
 				trafficLights.m_NextSignalGroup = (byte)(adjustedPhase + 1);
 				EntityManager.SetComponentData(memberEntity, trafficLights);
 			}

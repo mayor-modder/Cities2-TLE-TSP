@@ -54,7 +54,10 @@ public sealed class TrafficGroupSystemSourceTests
             "group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength",
             forceSyncSource);
         Assert.Contains(
-            "TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount)",
+            "if (phaseCount <= 0)",
+            applyBestPhaseSource);
+        Assert.Contains(
+            "adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount)",
             applyBestPhaseSource);
         Assert.Contains(
             "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
@@ -70,6 +73,26 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains(
             "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
             wrapPhaseSource);
+    }
+
+    [Fact]
+    public void Traffic_group_member_validation_accepts_signed_phase_offsets()
+    {
+        string migrationJobsSource = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "Serialization",
+            "TLEDataMigrationJobs.cs"));
+        string migrationSystemSource = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "Serialization",
+            "TLEDataMigrationSystem.cs"));
+
+        Assert.DoesNotContain("member.m_PhaseOffset < 0", migrationJobsSource);
+        Assert.DoesNotContain("member.m_PhaseOffset < 0", migrationSystemSource);
+        Assert.Contains("member.m_PhaseOffset < -16 || member.m_PhaseOffset > 16", migrationJobsSource);
+        Assert.Contains("member.m_PhaseOffset < -16 || member.m_PhaseOffset > 16", migrationSystemSource);
     }
 
     private static string GetTrafficGroupSystemPath()
