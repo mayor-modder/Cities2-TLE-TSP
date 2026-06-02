@@ -119,7 +119,7 @@ The migration/validation pass also repairs inherited data where possible:
 
 - invalid signal-delay edges are removed and delay values clamp to `0..300`,
 - invalid `TrafficGroupMember` references or out-of-range values are removed or
-  reset. Signed phase offsets in `-16..16` are valid,
+  reset. Signed phase offsets in `-300..300` are valid,
 - invalid `TrafficGroup` timing/distances reset to defaults,
 - invalid `CustomTrafficLights` enum values reset and affected intersections
   are recorded for UI notice,

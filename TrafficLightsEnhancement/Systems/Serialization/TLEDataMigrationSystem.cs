@@ -452,7 +452,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                     bool needsUpdate = false;
                     
                     
-                    if (member.m_PhaseOffset < -16 || member.m_PhaseOffset > 16)
+                    if (member.m_PhaseOffset < -300 || member.m_PhaseOffset > 300)
                     {
                         member.m_PhaseOffset = 0;
                         needsUpdate = true;

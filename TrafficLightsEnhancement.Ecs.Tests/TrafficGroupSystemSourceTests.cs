@@ -101,8 +101,8 @@ public sealed class TrafficGroupSystemSourceTests
 
         Assert.DoesNotContain("member.m_PhaseOffset < 0", migrationJobsSource);
         Assert.DoesNotContain("member.m_PhaseOffset < 0", migrationSystemSource);
-        Assert.Contains("member.m_PhaseOffset < -16 || member.m_PhaseOffset > 16", migrationJobsSource);
-        Assert.Contains("member.m_PhaseOffset < -16 || member.m_PhaseOffset > 16", migrationSystemSource);
+        Assert.Contains("member.m_PhaseOffset < -300 || member.m_PhaseOffset > 300", migrationJobsSource);
+        Assert.Contains("member.m_PhaseOffset < -300 || member.m_PhaseOffset > 300", migrationSystemSource);
     }
 
     private static string GetTrafficGroupSystemPath()
