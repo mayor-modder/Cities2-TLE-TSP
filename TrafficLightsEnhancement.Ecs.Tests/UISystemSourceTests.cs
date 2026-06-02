@@ -27,6 +27,17 @@ public sealed class UISystemSourceTests
         Assert.True(updateEdgeInfoIndex < setMainPanelIndex, "UpdateEdgeInfo(entity) must occur before SetMainPanelState(MainPanelState.Main).");
     }
 
+    [Fact]
+    public void GetSelectedJunctionDiagnosticsSnapshot_gates_tram_tsp_visibility_by_tram_track_presence()
+    {
+        string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
+        string getSnapshotSource = ExtractMethod(source, "private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+
+        Assert.Contains("TramTransitPriority = new SelectedJunctionTspControlSnapshot(", getSnapshotSource);
+        Assert.Contains("isVisible: HasTramTrack(edgeInfoArray),", getSnapshotSource);
+        Assert.Contains("private bool HasTramTrack(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)", source);
+    }
+
     private static string GetRepoPath(params string[] segments)
     {
         string path = AppContext.BaseDirectory;
