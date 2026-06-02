@@ -49,6 +49,155 @@ public partial class UISystem
         public string Value { get; }
     }
 
+    private sealed class SelectedJunctionDiagnosticsSnapshot
+    {
+        public int ConnectedEdgeCount;
+        public bool HasTrainTrack;
+        public bool HasTrackTurnLanes;
+        public bool IsQualifyingFourWay;
+        public bool IsComplexJunction;
+        public ArrayList EdgeSummaries = [];
+        public bool SplitPhasingSupported;
+        public bool ProtectedCentreTurnSupported;
+        public bool SplitPhasingProtectedLeftSupported;
+        public List<SelectedJunctionPatternSnapshot> AvailablePatternSnapshots = [];
+        public bool ExtraOptionsSupported;
+        public bool ExtraOptionsVisible;
+        public string ExtraOptionsReason = "Supported";
+        public SelectedJunctionOptionSnapshot TurningOnRed;
+        public SelectedJunctionOptionSnapshot GiveWayToOncomingVehicles;
+        public SelectedJunctionOptionSnapshot ExclusivePedestrianPhase;
+        public SelectedJunctionOptionSnapshot PedestrianDurationAdjustment;
+        public SelectedJunctionTspControlSnapshot TramTransitPriority;
+        public SelectedJunctionTspControlSnapshot BusTransitPriority;
+
+        public ArrayList AvailablePatterns
+        {
+            get
+            {
+                var patterns = new ArrayList();
+                foreach (SelectedJunctionPatternSnapshot pattern in AvailablePatternSnapshots)
+                {
+                    patterns.Add(pattern.ToPanelObject());
+                }
+
+                return patterns;
+            }
+        }
+
+        public object ToTraceObject() => new
+        {
+            topology = new
+            {
+                connectedEdgeCount = ConnectedEdgeCount,
+                hasTrainTrack = HasTrainTrack,
+                hasTrackTurnLanes = HasTrackTurnLanes,
+                isQualifyingFourWay = IsQualifyingFourWay,
+                isComplexJunction = IsComplexJunction,
+                edges = EdgeSummaries,
+            },
+            patterns = new
+            {
+                splitPhasingSupported = SplitPhasingSupported,
+                protectedCentreTurnSupported = ProtectedCentreTurnSupported,
+                splitPhasingProtectedLeftSupported = SplitPhasingProtectedLeftSupported,
+                availablePatterns = AvailablePatterns,
+            },
+            extraOptions = new
+            {
+                supported = ExtraOptionsSupported,
+                visible = ExtraOptionsVisible,
+                reason = ExtraOptionsReason,
+                turningOnRed = TurningOnRed.ToTraceObject(),
+                giveWayToOncomingVehicles = GiveWayToOncomingVehicles.ToTraceObject(),
+                exclusivePedestrianPhase = ExclusivePedestrianPhase.ToTraceObject(),
+                pedestrianDurationAdjustment = PedestrianDurationAdjustment.ToTraceObject(),
+            },
+            transitSignalPriority = new
+            {
+                tram = TramTransitPriority.ToTraceObject(),
+                bus = BusTransitPriority.ToTraceObject(),
+            },
+        };
+    }
+
+    private readonly struct SelectedJunctionPatternSnapshot
+    {
+        public SelectedJunctionPatternSnapshot(string name, uint value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        public string Name { get; }
+
+        public uint Value { get; }
+
+        public object ToPanelObject() => new { name = Name, value = Value };
+    }
+
+    private readonly struct SelectedJunctionOptionSnapshot
+    {
+        public SelectedJunctionOptionSnapshot(string label, string key, bool isVisible, bool isChecked, string reason)
+        {
+            Label = label;
+            Key = key;
+            IsVisible = isVisible;
+            IsChecked = isChecked;
+            Reason = reason;
+        }
+
+        public string Label { get; }
+
+        public string Key { get; }
+
+        public bool IsVisible { get; }
+
+        public bool IsChecked { get; }
+
+        public string Reason { get; }
+
+        public object ToPanelOption() => new { label = Label, isChecked = IsChecked, key = Key };
+
+        public object ToTraceObject() => new
+        {
+            visible = IsVisible,
+            @checked = IsChecked,
+            reason = Reason,
+        };
+    }
+
+    private readonly struct SelectedJunctionTspControlSnapshot
+    {
+        public SelectedJunctionTspControlSnapshot(bool isVisible, bool isEditable, bool isChecked, string statusLabel, string reason)
+        {
+            IsVisible = isVisible;
+            IsEditable = isEditable;
+            IsChecked = isChecked;
+            StatusLabel = statusLabel;
+            Reason = reason;
+        }
+
+        public bool IsVisible { get; }
+
+        public bool IsEditable { get; }
+
+        public bool IsChecked { get; }
+
+        public string StatusLabel { get; }
+
+        public string Reason { get; }
+
+        public object ToTraceObject() => new
+        {
+            visible = IsVisible,
+            editable = IsEditable,
+            @checked = IsChecked,
+            statusLabel = StatusLabel,
+            reason = Reason,
+        };
+    }
+
     public static GetterValueBinding<string> m_MainPanelBinding { get; private set; }
 
     private static GetterValueBinding<string> m_LocaleBinding;
@@ -349,52 +498,43 @@ public partial class UISystem
             bool isGroupMember = EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
             bool isCustomPhaseMode = m_CustomTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase;
             uint selectedPattern = (uint)m_CustomTrafficLights.GetPattern();
-            uint patternOnly = (uint)m_CustomTrafficLights.GetPatternOnly();
-            bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault
-                && PredefinedPatternsProcessor.AreExtraOptionsSupported(m_EdgeInfoDictionary[m_SelectedEntity]);
-            bool exclusivePedestrianOptionSupported = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(m_EdgeInfoDictionary[m_SelectedEntity]);
-            bool hasExclusivePedestrian = showOptions
-                && exclusivePedestrianOptionSupported
-                && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
-            bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
 
             TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(m_SelectedEntity)
                 ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(m_SelectedEntity)
                 : TransitSignalPrioritySettings.CreateDefault();
-            string tramStatusLabel = isTrafficGroupMember ? "TramTransitPriorityGroupedUnavailable" : null;
-            string busStatusLabel = isTrafficGroupMember ? "BusTransitPriorityGroupedUnavailable" : null;
-            object tspDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics
-                ? GetTransitSignalPriorityDiagnostics(m_SelectedEntity, tspSettings)
+            bool showTransitSignalPriorityDiagnostics = Mod.m_Setting != null && Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics;
+            SelectedJunctionDiagnosticsSnapshot selectedJunction = GetSelectedJunctionDiagnosticsSnapshot(
+                m_SelectedEntity,
+                tspSettings,
+                showTransitSignalPriorityDiagnostics);
+            object tspDiagnostics = showTransitSignalPriorityDiagnostics
+                ? GetTransitSignalPriorityDiagnostics(m_SelectedEntity, tspSettings, selectedJunction)
                 : null;
 
-            var availablePatterns = new ArrayList();
-            availablePatterns.Add(new { name = "Vanilla", value = (uint)CustomTrafficLights.Patterns.Vanilla });
-            if (PredefinedPatternsProcessor.IsValidPattern(m_EdgeInfoDictionary[m_SelectedEntity], CustomTrafficLights.Patterns.SplitPhasing))
-                availablePatterns.Add(new { name = "SplitPhasing", value = (uint)CustomTrafficLights.Patterns.SplitPhasing });
-            if (PredefinedPatternsProcessor.IsValidPattern(m_EdgeInfoDictionary[m_SelectedEntity], CustomTrafficLights.Patterns.ProtectedCentreTurn))
-                availablePatterns.Add(new { name = m_CityConfigurationSystem.leftHandTraffic ? "ProtectedRightTurns" : "ProtectedLeftTurns", value = (uint)CustomTrafficLights.Patterns.ProtectedCentreTurn });
-            if (PredefinedPatternsProcessor.IsValidPattern(m_EdgeInfoDictionary[m_SelectedEntity], CustomTrafficLights.Patterns.SplitPhasingProtectedLeft))
-                availablePatterns.Add(new { name = "SplitPhasingProtectedLeft", value = (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft });
-            availablePatterns.Add(new { name = "CustomPhases", value = (uint)CustomTrafficLights.Patterns.CustomPhase });
-
             var options = new ArrayList();
-            if (showOptions)
+            if (selectedJunction.TurningOnRed.IsVisible)
             {
-                options.Add(new { label = "AllowTurningOnRed", isChecked = (selectedPattern & (uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn) != 0, key = ((uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn).ToString() });
-                if (patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla)
-                    options.Add(new { label = "GiveWayToOncomingVehicles", isChecked = (selectedPattern & (uint)CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0, key = ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString() });
-                if (exclusivePedestrianOptionSupported)
-                    options.Add(new { label = "ExclusivePedestrianPhase", isChecked = hasExclusivePedestrian, key = ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString() });
+                options.Add(selectedJunction.TurningOnRed.ToPanelOption());
+            }
+
+            if (selectedJunction.GiveWayToOncomingVehicles.IsVisible)
+            {
+                options.Add(selectedJunction.GiveWayToOncomingVehicles.ToPanelOption());
+            }
+
+            if (selectedJunction.ExclusivePedestrianPhase.IsVisible)
+            {
+                options.Add(selectedJunction.ExclusivePedestrianPhase.ToPanelOption());
             }
 
             mainData = new
             {
                 isGroupMember,
                 selectedPattern,
-                availablePatterns,
+                availablePatterns = selectedJunction.AvailablePatterns,
                 options,
-                showOptions,
-                showPedestrianDuration = hasExclusivePedestrian,
+                showOptions = selectedJunction.ExtraOptionsVisible,
+                showPedestrianDuration = selectedJunction.PedestrianDurationAdjustment.IsVisible,
                 pedestrianDurationMultiplier = m_CustomTrafficLights.m_PedestrianPhaseDurationMultiplier,
                 hasLaneDirectionTool = EntityManager.HasBuffer<C2VM.CommonLibraries.LaneSystem.CustomLaneDirection>(m_SelectedEntity),
                 hasUnsavedChanges = m_ShowNotificationUnsaved,
@@ -403,17 +543,17 @@ public partial class UISystem
                 {
                     tram = new
                     {
-                        isVisible = true,
-                        isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
-                        isEditable = !isTrafficGroupMember,
-                        statusLabel = tramStatusLabel
+                        isVisible = selectedJunction.TramTransitPriority.IsVisible,
+                        isEnabled = selectedJunction.TramTransitPriority.IsChecked,
+                        isEditable = selectedJunction.TramTransitPriority.IsEditable,
+                        statusLabel = selectedJunction.TramTransitPriority.StatusLabel
                     },
                     bus = new
                     {
-                        isVisible = true,
-                        isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
-                        isEditable = !isTrafficGroupMember,
-                        statusLabel = busStatusLabel
+                        isVisible = selectedJunction.BusTransitPriority.IsVisible,
+                        isEnabled = selectedJunction.BusTransitPriority.IsChecked,
+                        isEditable = selectedJunction.BusTransitPriority.IsEditable,
+                        statusLabel = selectedJunction.BusTransitPriority.StatusLabel
                     },
                     diagnostics = tspDiagnostics
                 }
@@ -918,7 +1058,10 @@ public partial class UISystem
         m_MainPanelBinding.Update();
     }
 
-    private object GetTransitSignalPriorityDiagnostics(Entity entity, TransitSignalPrioritySettings settings)
+    private object GetTransitSignalPriorityDiagnostics(
+        Entity entity,
+        TransitSignalPrioritySettings settings,
+        SelectedJunctionDiagnosticsSnapshot selectedJunction)
     {
         bool hasTrafficLights = EntityManager.TryGetComponent(entity, out TrafficLights trafficLights);
         bool hasRuntimeDebug = EntityManager.TryGetComponent(entity, out TransitSignalPriorityRuntimeDebugInfo runtimeDebug);
@@ -944,12 +1087,22 @@ public partial class UISystem
             hasBusApproachDebug,
             busApproachDebug,
             hasDecisionTrace,
-            decisionTrace);
+            decisionTrace,
+            selectedJunction);
 
         var rows = new ArrayList
         {
             new { label = "TSPDiagnosticsEnabled", value = settings.m_Enabled ? "Yes" : "No" }
         };
+        rows.Add(new { label = "TSPDiagnosticsJunctionTopology", value = FormatSelectedJunctionTopology(selectedJunction) });
+        rows.Add(new { label = "TSPDiagnosticsAvailablePatterns", value = FormatAvailablePatterns(selectedJunction.AvailablePatternSnapshots) });
+        rows.Add(new { label = "TSPDiagnosticsExtraOptions", value = $"{FormatVisible(selectedJunction.ExtraOptionsVisible)}, {selectedJunction.ExtraOptionsReason}" });
+        rows.Add(new { label = "TSPDiagnosticsOptionTurningOnRed", value = FormatOptionSnapshot(selectedJunction.TurningOnRed) });
+        rows.Add(new { label = "TSPDiagnosticsOptionGiveWay", value = FormatOptionSnapshot(selectedJunction.GiveWayToOncomingVehicles) });
+        rows.Add(new { label = "TSPDiagnosticsOptionExclusivePedestrian", value = FormatOptionSnapshot(selectedJunction.ExclusivePedestrianPhase) });
+        rows.Add(new { label = "TSPDiagnosticsPedestrianDuration", value = FormatOptionSnapshot(selectedJunction.PedestrianDurationAdjustment) });
+        rows.Add(new { label = "TSPDiagnosticsTramControl", value = FormatTspControlSnapshot(selectedJunction.TramTransitPriority) });
+        rows.Add(new { label = "TSPDiagnosticsBusControl", value = FormatTspControlSnapshot(selectedJunction.BusTransitPriority) });
 
         if (hasTrafficLights)
         {
@@ -1162,7 +1315,8 @@ public partial class UISystem
         bool hasBusApproachDebug,
         TransitSignalPriorityBusApproachDebugInfo busApproachDebug,
         bool hasDecisionTrace,
-        TransitSignalPriorityDecisionTrace decisionTrace)
+        TransitSignalPriorityDecisionTrace decisionTrace,
+        SelectedJunctionDiagnosticsSnapshot selectedJunction)
     {
         PruneTspDiagnosticsEvents();
 
@@ -1202,7 +1356,8 @@ public partial class UISystem
                 hasBusApproachDebug,
                 busApproachDebug,
                 hasDecisionTrace,
-                decisionTrace);
+                decisionTrace,
+                selectedJunction);
             RecordTspDiagnosticsEvent(history, summary);
         }
 
@@ -1293,7 +1448,8 @@ public partial class UISystem
         bool hasBusApproachDebug,
         TransitSignalPriorityBusApproachDebugInfo busApproachDebug,
         bool hasDecisionTrace,
-        TransitSignalPriorityDecisionTrace decisionTrace)
+        TransitSignalPriorityDecisionTrace decisionTrace,
+        SelectedJunctionDiagnosticsSnapshot selectedJunction)
     {
         try
         {
@@ -1304,9 +1460,8 @@ public partial class UISystem
                 simulationFrame = m_SimulationSystem.frameIndex,
                 selectedEntity = new { index = entity.Index, version = entity.Version },
                 signalConfiguration = GetTspSignalConfigurationTrace(entity),
+                selectedJunction = selectedJunction.ToTraceObject(),
                 trafficGroup = GetTspTrafficGroupTrace(entity),
-                selectedTopology = GetSelectedTopologyTrace(entity),
-                expectedUiState = GetExpectedUiStateTrace(entity),
                 laneSignals = GetTspLaneSignalTrace(entity, hasTrafficLights, trafficLights, hasRuntimeDebug, runtimeDebug),
                 summary,
                 trafficLights = hasTrafficLights
@@ -1403,155 +1558,202 @@ public partial class UISystem
         }
     }
 
-    private object GetSelectedTopologyTrace(Entity entity)
+    private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot(
+        Entity entity,
+        TransitSignalPrioritySettings tspSettings,
+        bool includeDiagnosticsDetails)
     {
-        if (!m_EdgeInfoDictionary.TryGetValue(entity, out NativeArray<NodeUtils.EdgeInfo> edgeInfoArray))
-        {
-            return new
-            {
-                edgeCount = 0,
-                hasTrainTrack = false,
-                hasHighwayLane = false,
-                straightWayCount = 0,
-                hasTurningTrackLane = false,
-            };
-        }
-
-        int straightWayCount = 0;
-        bool hasTurningTrackLane = false;
-        foreach (var edgeInfo in edgeInfoArray)
-        {
-            if (edgeInfo.m_CarLaneStraightCount + edgeInfo.m_PublicCarLaneStraightCount + edgeInfo.m_TrackLaneStraightCount > 0)
-            {
-                straightWayCount++;
-            }
-            if (edgeInfo.m_TrackLaneLeftCount + edgeInfo.m_TrackLaneRightCount > 0)
-            {
-                hasTurningTrackLane = true;
-            }
-        }
-
-        return new
-        {
-            edgeCount = edgeInfoArray.Length,
-            hasTrainTrack = NodeUtils.HasTrainTrack(edgeInfoArray),
-            hasHighwayLane = HasHighwayLane(edgeInfoArray),
-            straightWayCount,
-            hasTurningTrackLane,
-        };
-    }
-
-    private object GetExpectedUiStateTrace(Entity entity)
-    {
+        NativeArray<NodeUtils.EdgeInfo> edgeInfoArray = m_EdgeInfoDictionary[entity];
         CustomTrafficLights customTrafficLights = EntityManager.TryGetComponent(entity, out CustomTrafficLights value)
             ? value
             : new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla);
-        CustomTrafficLights.Patterns selectedPattern = customTrafficLights.GetPattern();
+        uint selectedPattern = (uint)customTrafficLights.GetPattern();
         uint patternOnly = (uint)customTrafficLights.GetPatternOnly();
-        bool hasEdgeInfo = m_EdgeInfoDictionary.TryGetValue(entity, out NativeArray<NodeUtils.EdgeInfo> edgeInfoArray);
-        bool extraOptionsSupported = false;
-        bool exclusivePedestrianOptionSupported = false;
-        if (hasEdgeInfo)
+        bool hasTrainTrack = NodeUtils.HasTrainTrack(edgeInfoArray);
+        bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(entity);
+        bool splitPhasingSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasing);
+        bool protectedCentreTurnSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.ProtectedCentreTurn);
+        bool splitPhasingProtectedLeftSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasingProtectedLeft);
+        bool extraOptionsSupported = !hasTrainTrack && edgeInfoArray.Length <= 7;
+        bool extraOptionsVisible = extraOptionsSupported && patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault;
+        bool hasExclusivePedestrian = extraOptionsVisible && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
+        string extraOptionsReason = GetExtraOptionsReason(patternOnly, hasTrainTrack, edgeInfoArray.Length);
+        string giveWayToOncomingVehiclesReason = extraOptionsVisible
+            ? (patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla ? "Visible" : "Pattern mode")
+            : extraOptionsReason;
+        bool isEditable = !isTrafficGroupMember;
+        string tramStatusLabel = isTrafficGroupMember ? "TramTransitPriorityGroupedUnavailable" : null;
+        string busStatusLabel = isTrafficGroupMember ? "BusTransitPriorityGroupedUnavailable" : null;
+
+        return new SelectedJunctionDiagnosticsSnapshot
         {
-            extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray);
-            exclusivePedestrianOptionSupported = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(edgeInfoArray);
+            ConnectedEdgeCount = edgeInfoArray.Length,
+            HasTrainTrack = hasTrainTrack,
+            HasTrackTurnLanes = includeDiagnosticsDetails && HasTrackTurnLanes(edgeInfoArray),
+            IsQualifyingFourWay = includeDiagnosticsDetails && IsQualifyingFourWay(edgeInfoArray),
+            IsComplexJunction = edgeInfoArray.Length > 7,
+            EdgeSummaries = includeDiagnosticsDetails ? GetSelectedJunctionEdgeSummaries(edgeInfoArray) : [],
+            SplitPhasingSupported = splitPhasingSupported,
+            ProtectedCentreTurnSupported = protectedCentreTurnSupported,
+            SplitPhasingProtectedLeftSupported = splitPhasingProtectedLeftSupported,
+            AvailablePatternSnapshots = GetAvailablePatternSnapshots(
+                splitPhasingSupported,
+                protectedCentreTurnSupported,
+                splitPhasingProtectedLeftSupported),
+            ExtraOptionsSupported = extraOptionsSupported,
+            ExtraOptionsVisible = extraOptionsVisible,
+            ExtraOptionsReason = extraOptionsReason,
+            TurningOnRed = new SelectedJunctionOptionSnapshot(
+                "AllowTurningOnRed",
+                ((uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn).ToString(CultureInfo.InvariantCulture),
+                extraOptionsVisible,
+                (selectedPattern & (uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn) != 0,
+                extraOptionsVisible ? "Visible" : extraOptionsReason),
+            GiveWayToOncomingVehicles = new SelectedJunctionOptionSnapshot(
+                "GiveWayToOncomingVehicles",
+                ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString(CultureInfo.InvariantCulture),
+                extraOptionsVisible && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla,
+                (selectedPattern & (uint)CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0,
+                giveWayToOncomingVehiclesReason),
+            ExclusivePedestrianPhase = new SelectedJunctionOptionSnapshot(
+                "ExclusivePedestrianPhase",
+                ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString(CultureInfo.InvariantCulture),
+                extraOptionsVisible,
+                hasExclusivePedestrian,
+                extraOptionsVisible ? "Visible" : extraOptionsReason),
+            PedestrianDurationAdjustment = new SelectedJunctionOptionSnapshot(
+                "CustomPedestrianDurationMultiplier",
+                "CustomPedestrianDurationMultiplier",
+                hasExclusivePedestrian,
+                false,
+                hasExclusivePedestrian ? "Visible" : "Exclusive pedestrian phase disabled"),
+            TramTransitPriority = new SelectedJunctionTspControlSnapshot(
+                isVisible: true,
+                isEditable: isEditable,
+                isChecked: tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
+                statusLabel: tramStatusLabel,
+                reason: isTrafficGroupMember ? "Traffic group member" : "Editable"),
+            BusTransitPriority = new SelectedJunctionTspControlSnapshot(
+                isVisible: true,
+                isEditable: isEditable,
+                isChecked: tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
+                statusLabel: busStatusLabel,
+                reason: isTrafficGroupMember ? "Traffic group member" : "Editable"),
+        };
+    }
+
+    private List<SelectedJunctionPatternSnapshot> GetAvailablePatternSnapshots(
+        bool splitPhasingSupported,
+        bool protectedCentreTurnSupported,
+        bool splitPhasingProtectedLeftSupported)
+    {
+        var availablePatterns = new List<SelectedJunctionPatternSnapshot>
+        {
+            new("Vanilla", (uint)CustomTrafficLights.Patterns.Vanilla),
+        };
+
+        if (splitPhasingSupported)
+        {
+            availablePatterns.Add(new SelectedJunctionPatternSnapshot("SplitPhasing", (uint)CustomTrafficLights.Patterns.SplitPhasing));
         }
-        bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && extraOptionsSupported;
-        bool hasExclusivePedestrian = showOptions
-            && exclusivePedestrianOptionSupported
-            && (selectedPattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
 
-        return new
+        if (protectedCentreTurnSupported)
         {
-            patternOnly,
-            availablePatterns = hasEdgeInfo ? GetExpectedAvailablePatternsTrace(edgeInfoArray) : new ArrayList(),
-            extraOptionsSupported,
-            exclusivePedestrianOptionSupported,
-            showOptions,
-            expectedOptions = GetExpectedOptionsTrace(selectedPattern, patternOnly, showOptions, exclusivePedestrianOptionSupported),
-            showPedestrianDuration = hasExclusivePedestrian,
-            pedestrianDurationMultiplier = customTrafficLights.m_PedestrianPhaseDurationMultiplier,
-            transitSignalPriority = GetExpectedTransitSignalPriorityUiStateTrace(entity),
-        };
-    }
+            string protectedTurnName = m_CityConfigurationSystem.leftHandTraffic ? "ProtectedRightTurns" : "ProtectedLeftTurns";
+            availablePatterns.Add(new SelectedJunctionPatternSnapshot(protectedTurnName, (uint)CustomTrafficLights.Patterns.ProtectedCentreTurn));
+        }
 
-    private static bool HasHighwayLane(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
-    {
-        return PredefinedPatternsProcessor.HasHighwayLane(edgeInfoArray);
-    }
-
-    private ArrayList GetExpectedAvailablePatternsTrace(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
-    {
-        var availablePatterns = new ArrayList
+        if (splitPhasingProtectedLeftSupported)
         {
-            new { name = "Vanilla", value = (uint)CustomTrafficLights.Patterns.Vanilla }
-        };
-        if (PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasing))
-            availablePatterns.Add(new { name = "SplitPhasing", value = (uint)CustomTrafficLights.Patterns.SplitPhasing });
-        if (PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.ProtectedCentreTurn))
-            availablePatterns.Add(new { name = m_CityConfigurationSystem.leftHandTraffic ? "ProtectedRightTurns" : "ProtectedLeftTurns", value = (uint)CustomTrafficLights.Patterns.ProtectedCentreTurn });
-        if (PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasingProtectedLeft))
-            availablePatterns.Add(new { name = "SplitPhasingProtectedLeft", value = (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft });
-        availablePatterns.Add(new { name = "CustomPhases", value = (uint)CustomTrafficLights.Patterns.CustomPhase });
+            availablePatterns.Add(new SelectedJunctionPatternSnapshot("SplitPhasingProtectedLeft", (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft));
+        }
+
+        availablePatterns.Add(new SelectedJunctionPatternSnapshot("CustomPhases", (uint)CustomTrafficLights.Patterns.CustomPhase));
         return availablePatterns;
     }
 
-    private static ArrayList GetExpectedOptionsTrace(
-        CustomTrafficLights.Patterns selectedPattern,
-        uint patternOnly,
-        bool showOptions,
-        bool exclusivePedestrianOptionSupported)
+    private static ArrayList GetSelectedJunctionEdgeSummaries(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
     {
-        return
-        [
-            new
+        var edges = new ArrayList();
+        foreach (NodeUtils.EdgeInfo edgeInfo in edgeInfoArray)
+        {
+            int carLaneCount =
+                edgeInfo.m_CarLaneLeftCount
+                + edgeInfo.m_CarLaneRightCount
+                + edgeInfo.m_CarLaneStraightCount
+                + edgeInfo.m_CarLaneUTurnCount;
+            int publicCarLaneCount =
+                edgeInfo.m_PublicCarLaneLeftCount
+                + edgeInfo.m_PublicCarLaneRightCount
+                + edgeInfo.m_PublicCarLaneStraightCount
+                + edgeInfo.m_PublicCarLaneUTurnCount;
+            int trackLaneCount =
+                edgeInfo.m_TrackLaneLeftCount
+                + edgeInfo.m_TrackLaneRightCount
+                + edgeInfo.m_TrackLaneStraightCount;
+
+            edges.Add(new
             {
-                label = "AllowTurningOnRed",
-                key = ((uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn).ToString(),
-                isVisible = showOptions,
-                isChecked = showOptions && (selectedPattern & CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn) != 0,
-            },
-            new
-            {
-                label = "GiveWayToOncomingVehicles",
-                key = ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString(),
-                isVisible = showOptions && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla,
-                isChecked = showOptions && (selectedPattern & CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0,
-            },
-            new
-            {
-                label = "ExclusivePedestrianPhase",
-                key = ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString(),
-                isVisible = showOptions && exclusivePedestrianOptionSupported,
-                isChecked = showOptions
-                    && exclusivePedestrianOptionSupported
-                    && (selectedPattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0,
-            },
-        ];
+                edge = FormatEntity(edgeInfo.m_Edge),
+                position = edgeInfo.m_Position.ToString(),
+                carLanes = carLaneCount,
+                publicCarLanes = publicCarLaneCount,
+                trackLanes = trackLaneCount,
+                trainTracks = edgeInfo.m_TrainTrackCount,
+                bicycleLanes = edgeInfo.m_BicycleLaneCount,
+                pedestrianStopLineLanes = edgeInfo.m_PedestrianLaneStopLineCount,
+                pedestrianNonStopLineLanes = edgeInfo.m_PedestrianLaneNonStopLineCount,
+            });
+        }
+
+        return edges;
     }
 
-    private object GetExpectedTransitSignalPriorityUiStateTrace(Entity entity)
+    private static bool HasTrackTurnLanes(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
     {
-        TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(entity)
-            ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(entity)
-            : TransitSignalPrioritySettings.CreateDefault();
-        bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(entity);
-
-        return new
+        foreach (NodeUtils.EdgeInfo edgeInfo in edgeInfoArray)
         {
-            tram = new
+            if (edgeInfo.m_TrackLaneLeftCount + edgeInfo.m_TrackLaneRightCount > 0)
             {
-                isVisible = true,
-                isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
-                isEditable = !isTrafficGroupMember,
-            },
-            bus = new
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsQualifyingFourWay(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
+    {
+        int ways = 0;
+        foreach (NodeUtils.EdgeInfo edgeInfo in edgeInfoArray)
+        {
+            if (edgeInfo.m_CarLaneStraightCount + edgeInfo.m_PublicCarLaneStraightCount + edgeInfo.m_TrackLaneStraightCount > 0)
             {
-                isVisible = true,
-                isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
-                isEditable = !isTrafficGroupMember,
-            },
-        };
+                ways++;
+            }
+        }
+
+        return ways == 4 && edgeInfoArray.Length == ways;
+    }
+
+    private static string GetExtraOptionsReason(uint patternOnly, bool hasTrainTrack, int connectedEdgeCount)
+    {
+        if (hasTrainTrack)
+        {
+            return "Train track topology";
+        }
+
+        if (connectedEdgeCount > 7)
+        {
+            return "Too many connected edges";
+        }
+
+        if (patternOnly >= (uint)CustomTrafficLights.Patterns.ModDefault)
+        {
+            return "Pattern mode";
+        }
+
+        return "Supported";
     }
 
     private object GetTspSignalConfigurationTrace(Entity entity)
@@ -1744,6 +1946,37 @@ public partial class UISystem
     }
 
     private static string FormatByteValue(byte value) => value > 0 ? value.ToString(CultureInfo.InvariantCulture) : "-";
+
+    private static string FormatSelectedJunctionTopology(SelectedJunctionDiagnosticsSnapshot selectedJunction)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "edges={0}, train={1}, track turns={2}, four-way={3}, complex={4}",
+            selectedJunction.ConnectedEdgeCount,
+            FormatYesNo(selectedJunction.HasTrainTrack),
+            FormatYesNo(selectedJunction.HasTrackTurnLanes),
+            FormatYesNo(selectedJunction.IsQualifyingFourWay),
+            FormatYesNo(selectedJunction.IsComplexJunction));
+    }
+
+    private static string FormatAvailablePatterns(IEnumerable<SelectedJunctionPatternSnapshot> availablePatterns)
+    {
+        return string.Join(", ", availablePatterns.Select(pattern => pattern.Name));
+    }
+
+    private static string FormatOptionSnapshot(SelectedJunctionOptionSnapshot option)
+    {
+        return $"{FormatVisible(option.IsVisible)}, checked={FormatYesNo(option.IsChecked)}, {option.Reason}";
+    }
+
+    private static string FormatTspControlSnapshot(SelectedJunctionTspControlSnapshot control)
+    {
+        return $"{FormatVisible(control.IsVisible)}, editable={FormatYesNo(control.IsEditable)}, checked={FormatYesNo(control.IsChecked)}, {control.Reason}";
+    }
+
+    private static string FormatVisible(bool isVisible) => isVisible ? "Visible" : "Hidden";
+
+    private static string FormatYesNo(bool value) => value ? "Yes" : "No";
 
     private static string FormatCurvePosition(TransitSignalPriorityTrackProbeResult probeResult, float value)
     {

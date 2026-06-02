@@ -120,6 +120,10 @@ The file name still uses the original `TspDiagnostics` name for compatibility wi
 | Next group | The lane group the controller is preparing to serve next. `-` means no next group is selected yet. |
 | Timer | The current signal timer value. |
 | Signal groups | How many lane groups the selected intersection has. |
+| Junction topology | Connected edge count and compact topology flags used when checking pattern and option availability. |
+| Available patterns | Predefined signal patterns the selected junction can use. |
+| Extra options | Whether the extra Options section and each option should be visible, checked, or hidden. |
+| Tram control / Bus control | Whether the TSP source row is visible, editable, and checked for the selected junction. |
 | Request | The active TSP request. `Early` means a fresh approaching vehicle was detected. `Latched` means a recent request is being held briefly after the sample disappeared. `None` means there is no active request. |
 | Source | The request source, usually `Track` for trams or `Bus` for bus TSP. |
 | Target group | The lane group the transit vehicle wants served. |
