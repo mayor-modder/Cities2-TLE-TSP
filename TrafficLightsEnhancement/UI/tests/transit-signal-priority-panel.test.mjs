@@ -132,7 +132,8 @@ test("selected-junction diagnostics are gated by a general TLE mod option", asyn
 
   assert.match(settings, /public\s+bool\s+m_ShowTransitSignalPriorityDiagnostics\s*\{\s*get;\s*set;\s*\}/);
   assert.match(settings, /m_ShowTransitSignalPriorityDiagnostics\s*=\s*false/);
-  assert.match(uiBindings, /m_ShowTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings\)/);
+  assert.match(uiBindings, /bool\s+showTransitSignalPriorityDiagnostics\s*=\s*Mod\.m_Setting\s*!=\s*null\s*&&\s*Mod\.m_Setting\.m_ShowTransitSignalPriorityDiagnostics/);
+  assert.match(uiBindings, /showTransitSignalPriorityDiagnostics\s*\?\s*GetTransitSignalPriorityDiagnostics\(m_SelectedEntity,\s*tspSettings,\s*selectedJunction\)/);
   assert.match(uiBindings, /diagnostics\s*=\s*tspDiagnostics/);
   assert.match(uiSystem, /ShouldRefreshMainPanelForDiagnostics\(\)/);
   assert.match(uiSystem, /m_MainPanelState\s*==\s*MainPanelState\.Main/);
@@ -319,6 +320,28 @@ test("diagnostic row labels are localized", async () => {
   );
 });
 
+test("backend exposes selected junction expected UI rows in TSP diagnostics", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const locale = JSON.parse(await repoSource("Locale.json"));
+
+  const requiredLabels = [
+    "TSPDiagnosticsJunctionTopology",
+    "TSPDiagnosticsAvailablePatterns",
+    "TSPDiagnosticsExtraOptions",
+    "TSPDiagnosticsOptionTurningOnRed",
+    "TSPDiagnosticsOptionGiveWay",
+    "TSPDiagnosticsOptionExclusivePedestrian",
+    "TSPDiagnosticsPedestrianDuration",
+    "TSPDiagnosticsTramControl",
+    "TSPDiagnosticsBusControl",
+  ];
+
+  for (const label of requiredLabels) {
+    assert.match(uiBindings, new RegExp(`label\\s*=\\s*"${label}"`));
+    assert.equal(typeof locale[`UI.LABEL[C2VM.TrafficLightsEnhancement.${label}]`], "string");
+  }
+});
+
 test("backend presents bus-originated TSP requests as bus diagnostics", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const helperStart = uiBindings.indexOf("private static string GetTspSourceName");
@@ -366,31 +389,73 @@ test("backend writes selected transit signal priority diagnostics to a trace fil
   assert.match(uiBindings, /FileMode\.Append/);
 });
 
-test("backend trace includes selected topology and expected UI option state", async () => {
+test("backend derives selected junction panel and diagnostics from a shared snapshot", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const mainPanelStart = uiBindings.indexOf("protected string GetMainPanel()");
+  const mainPanelEnd = uiBindings.indexOf("else if (m_MainPanelState == MainPanelState.CustomPhase)", mainPanelStart);
+  const mainPanelSource = uiBindings.slice(mainPanelStart, mainPanelEnd);
   const traceStart = uiBindings.indexOf("private void WriteTspDiagnosticsTraceEvent");
   const traceEnd = uiBindings.indexOf("private object GetTspSignalConfigurationTrace", traceStart);
   const traceSource = uiBindings.slice(traceStart, traceEnd);
 
+  assert.notEqual(mainPanelStart, -1);
+  assert.notEqual(mainPanelEnd, -1);
   assert.notEqual(traceStart, -1);
   assert.notEqual(traceEnd, -1);
-  assert.match(traceSource, /selectedTopology\s*=\s*GetSelectedTopologyTrace\(entity\)/);
-  assert.match(traceSource, /expectedUiState\s*=\s*GetExpectedUiStateTrace\(entity\)/);
-  assert.match(uiBindings, /edgeCount\s*=\s*edgeInfoArray\.Length/);
-  assert.match(uiBindings, /hasHighwayLane\s*=\s*HasHighwayLane\(edgeInfoArray\)/);
-  assert.match(uiBindings, /hasTrainTrack\s*=\s*NodeUtils\.HasTrainTrack\(edgeInfoArray\)/);
-  assert.match(uiBindings, /extraOptionsSupported\s*=\s*PredefinedPatternsProcessor\.AreExtraOptionsSupported\(edgeInfoArray\)/);
-  assert.match(uiBindings, /exclusivePedestrianOptionSupported\s*=\s*PredefinedPatternsProcessor\.IsExclusivePedestrianOptionSupported\(edgeInfoArray\)/);
-  assert.match(uiBindings, /options\.Add\(new\s*\{\s*label\s*=\s*"ExclusivePedestrianPhase"[\s\S]*?\}\);/);
-  assert.match(uiBindings, /if\s*\(\s*exclusivePedestrianOptionSupported\s*\)\s*[\r\n\s]*options\.Add\(new\s*\{\s*label\s*=\s*"ExclusivePedestrianPhase"/);
-  assert.match(uiBindings, /showOptions\s*=\s*patternOnly\s*<\s*\(uint\)CustomTrafficLights\.Patterns\.ModDefault\s*&&\s*extraOptionsSupported/);
-  assert.match(uiBindings, /expectedOptions/);
-  assert.match(uiBindings, /AllowTurningOnRed/);
-  assert.match(uiBindings, /GiveWayToOncomingVehicles/);
-  assert.match(uiBindings, /ExclusivePedestrianPhase/);
-  assert.match(uiBindings, /pedestrianDurationMultiplier\s*=\s*customTrafficLights\.m_PedestrianPhaseDurationMultiplier/);
-  assert.match(uiBindings, /showPedestrianDuration\s*=\s*hasExclusivePedestrian/);
-  assert.match(uiBindings, /transitSignalPriority\s*=\s*GetExpectedTransitSignalPriorityUiStateTrace/);
+  assert.match(uiBindings, /private\s+SelectedJunctionDiagnosticsSnapshot\s+GetSelectedJunctionDiagnosticsSnapshot/);
+  assert.match(mainPanelSource, /SelectedJunctionDiagnosticsSnapshot\s+selectedJunction\s*=\s*GetSelectedJunctionDiagnosticsSnapshot\(\s*m_SelectedEntity,\s*tspSettings,\s*showTransitSignalPriorityDiagnostics\s*\)/);
+  assert.match(traceSource, /selectedJunction\s*=\s*selectedJunction\.ToTraceObject\(\)/);
+});
+
+test("backend trace includes selected junction topology and expected UI state", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+
+  assert.match(uiBindings, /selectedJunction\s*=\s*selectedJunction\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /connectedEdgeCount\s*=\s*ConnectedEdgeCount/);
+  assert.match(uiBindings, /hasTrainTrack\s*=\s*HasTrainTrack/);
+  assert.match(uiBindings, /hasTrackTurnLanes\s*=\s*HasTrackTurnLanes/);
+  assert.match(uiBindings, /isQualifyingFourWay\s*=\s*IsQualifyingFourWay/);
+  assert.match(uiBindings, /isComplexJunction\s*=\s*IsComplexJunction/);
+  assert.match(uiBindings, /splitPhasingSupported\s*=\s*SplitPhasingSupported/);
+  assert.match(uiBindings, /protectedCentreTurnSupported\s*=\s*ProtectedCentreTurnSupported/);
+  assert.match(uiBindings, /splitPhasingProtectedLeftSupported\s*=\s*SplitPhasingProtectedLeftSupported/);
+  assert.match(uiBindings, /availablePatterns\s*=\s*AvailablePatterns/);
+  assert.match(uiBindings, /turningOnRed\s*=\s*TurningOnRed\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /giveWayToOncomingVehicles\s*=\s*GiveWayToOncomingVehicles\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /exclusivePedestrianPhase\s*=\s*ExclusivePedestrianPhase\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /pedestrianDurationAdjustment\s*=\s*PedestrianDurationAdjustment\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /tram\s*=\s*TramTransitPriority\.ToTraceObject\(\)/);
+  assert.match(uiBindings, /bus\s*=\s*BusTransitPriority\.ToTraceObject\(\)/);
+});
+
+test("backend distinguishes selected junction option support from current visibility", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const snapshotStart = uiBindings.indexOf("private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+  const snapshotEnd = uiBindings.indexOf("private List<SelectedJunctionPatternSnapshot> GetAvailablePatternSnapshots", snapshotStart);
+  const snapshotSource = uiBindings.slice(snapshotStart, snapshotEnd);
+
+  assert.notEqual(snapshotStart, -1);
+  assert.notEqual(snapshotEnd, -1);
+  assert.match(snapshotSource, /bool\s+extraOptionsSupported\s*=\s*!hasTrainTrack\s*&&\s*edgeInfoArray\.Length\s*<=\s*7/);
+  assert.match(snapshotSource, /bool\s+extraOptionsVisible\s*=\s*extraOptionsSupported\s*&&\s*patternOnly\s*<\s*\(uint\)CustomTrafficLights\.Patterns\.ModDefault/);
+  assert.match(snapshotSource, /ExtraOptionsSupported\s*=\s*extraOptionsSupported/);
+  assert.match(snapshotSource, /ExtraOptionsVisible\s*=\s*extraOptionsVisible/);
+  assert.match(snapshotSource, /GetExtraOptionsReason\(patternOnly,\s*hasTrainTrack,\s*edgeInfoArray\.Length\)/);
+});
+
+test("backend only builds per-edge selected junction trace details when diagnostics are enabled", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const mainPanelStart = uiBindings.indexOf("protected string GetMainPanel()");
+  const mainPanelEnd = uiBindings.indexOf("else if (m_MainPanelState == MainPanelState.CustomPhase)", mainPanelStart);
+  const mainPanelSource = uiBindings.slice(mainPanelStart, mainPanelEnd);
+  const snapshotStart = uiBindings.indexOf("private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+  const snapshotEnd = uiBindings.indexOf("private List<SelectedJunctionPatternSnapshot> GetAvailablePatternSnapshots", snapshotStart);
+  const snapshotSource = uiBindings.slice(snapshotStart, snapshotEnd);
+
+  assert.match(mainPanelSource, /bool\s+showTransitSignalPriorityDiagnostics\s*=\s*Mod\.m_Setting\s*!=\s*null\s*&&\s*Mod\.m_Setting\.m_ShowTransitSignalPriorityDiagnostics/);
+  assert.match(mainPanelSource, /GetSelectedJunctionDiagnosticsSnapshot\(\s*m_SelectedEntity,\s*tspSettings,\s*showTransitSignalPriorityDiagnostics\s*\)/);
+  assert.match(snapshotSource, /bool\s+includeDiagnosticsDetails/);
+  assert.match(snapshotSource, /EdgeSummaries\s*=\s*includeDiagnosticsDetails\s*\?\s*GetSelectedJunctionEdgeSummaries\(edgeInfoArray\)\s*:\s*\[\]/);
 });
 
 test("runtime suspends transit signal priority for all traffic group members", async () => {

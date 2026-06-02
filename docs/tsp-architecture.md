@@ -187,6 +187,8 @@ When diagnostics are enabled and the selected panel asks for diagnostics, `UISys
 - dedupe: `TspDiagnosticsHistory.LastSignature` suppresses repeated identical selected-entity summaries.
 - event filter: trace writes follow the same meaningful-activity filter as the visible recent-event list, so non-TSP selected intersections do not log ordinary signal changes.
 
+Trace events also include a `selectedJunction` object. It mirrors the selected-panel topology and expected UI state used for option-gating QA: connected edge summary, predefined pattern availability, extra option visibility and checked state, pedestrian duration visibility, and tram/bus TSP control editability.
+
 The trace is a debugging aid, not gameplay state. It should remain safe to disable, delete, or rotate without affecting TSP behavior.
 
 ## Test Coverage
