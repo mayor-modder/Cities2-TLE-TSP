@@ -89,6 +89,7 @@
 
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]": "Traffic signal",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.ModDefault]": "Default",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.Default]": "Default",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.Vanilla]": "Vanilla",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.SplitPhasing]": "Split phasing",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.ProtectedRightTurns]": "Protected right turns",
