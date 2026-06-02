@@ -365,6 +365,33 @@ test("backend writes selected transit signal priority diagnostics to a trace fil
   assert.match(uiBindings, /FileMode\.Append/);
 });
 
+test("backend trace includes selected topology and expected UI option state", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const traceStart = uiBindings.indexOf("private void WriteTspDiagnosticsTraceEvent");
+  const traceEnd = uiBindings.indexOf("private object GetTspSignalConfigurationTrace", traceStart);
+  const traceSource = uiBindings.slice(traceStart, traceEnd);
+
+  assert.notEqual(traceStart, -1);
+  assert.notEqual(traceEnd, -1);
+  assert.match(traceSource, /selectedTopology\s*=\s*GetSelectedTopologyTrace\(entity\)/);
+  assert.match(traceSource, /expectedUiState\s*=\s*GetExpectedUiStateTrace\(entity\)/);
+  assert.match(uiBindings, /edgeCount\s*=\s*edgeInfoArray\.Length/);
+  assert.match(uiBindings, /hasHighwayLane\s*=\s*HasHighwayLane\(edgeInfoArray\)/);
+  assert.match(uiBindings, /hasTrainTrack\s*=\s*NodeUtils\.HasTrainTrack\(edgeInfoArray\)/);
+  assert.match(uiBindings, /extraOptionsSupported\s*=\s*PredefinedPatternsProcessor\.AreExtraOptionsSupported\(edgeInfoArray\)/);
+  assert.match(uiBindings, /exclusivePedestrianOptionSupported\s*=\s*PredefinedPatternsProcessor\.IsExclusivePedestrianOptionSupported\(edgeInfoArray\)/);
+  assert.match(uiBindings, /options\.Add\(new\s*\{\s*label\s*=\s*"ExclusivePedestrianPhase"[\s\S]*?\}\);/);
+  assert.match(uiBindings, /if\s*\(\s*exclusivePedestrianOptionSupported\s*\)\s*[\r\n\s]*options\.Add\(new\s*\{\s*label\s*=\s*"ExclusivePedestrianPhase"/);
+  assert.match(uiBindings, /showOptions\s*=\s*patternOnly\s*<\s*\(uint\)CustomTrafficLights\.Patterns\.ModDefault\s*&&\s*extraOptionsSupported/);
+  assert.match(uiBindings, /expectedOptions/);
+  assert.match(uiBindings, /AllowTurningOnRed/);
+  assert.match(uiBindings, /GiveWayToOncomingVehicles/);
+  assert.match(uiBindings, /ExclusivePedestrianPhase/);
+  assert.match(uiBindings, /pedestrianDurationMultiplier\s*=\s*customTrafficLights\.m_PedestrianPhaseDurationMultiplier/);
+  assert.match(uiBindings, /showPedestrianDuration\s*=\s*hasExclusivePedestrian/);
+  assert.match(uiBindings, /transitSignalPriority\s*=\s*GetExpectedTransitSignalPriorityUiStateTrace/);
+});
+
 test("runtime suspends transit signal priority for all traffic group members", async () => {
   const runtime = await repoSource("Systems/TrafficLightSystems/Simulation/TransitSignalPriorityRuntime.cs");
   const patchedSystem = await repoSource("Systems/TrafficLightSystems/Simulation/PatchedTrafficLightSystem.cs");

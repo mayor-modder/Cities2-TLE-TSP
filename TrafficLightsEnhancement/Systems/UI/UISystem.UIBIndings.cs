@@ -350,9 +350,12 @@ public partial class UISystem
             bool isCustomPhaseMode = m_CustomTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase;
             uint selectedPattern = (uint)m_CustomTrafficLights.GetPattern();
             uint patternOnly = (uint)m_CustomTrafficLights.GetPatternOnly();
-            bool hasTrainTrack = NodeUtils.HasTrainTrack(m_EdgeInfoDictionary[m_SelectedEntity]);
-            bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && !hasTrainTrack;
-            bool hasExclusivePedestrian = showOptions && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
+            bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault
+                && PredefinedPatternsProcessor.AreExtraOptionsSupported(m_EdgeInfoDictionary[m_SelectedEntity]);
+            bool exclusivePedestrianOptionSupported = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(m_EdgeInfoDictionary[m_SelectedEntity]);
+            bool hasExclusivePedestrian = showOptions
+                && exclusivePedestrianOptionSupported
+                && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
             bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(m_SelectedEntity);
 
             TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(m_SelectedEntity)
@@ -380,7 +383,8 @@ public partial class UISystem
                 options.Add(new { label = "AllowTurningOnRed", isChecked = (selectedPattern & (uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn) != 0, key = ((uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn).ToString() });
                 if (patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla)
                     options.Add(new { label = "GiveWayToOncomingVehicles", isChecked = (selectedPattern & (uint)CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0, key = ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString() });
-                options.Add(new { label = "ExclusivePedestrianPhase", isChecked = hasExclusivePedestrian, key = ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString() });
+                if (exclusivePedestrianOptionSupported)
+                    options.Add(new { label = "ExclusivePedestrianPhase", isChecked = hasExclusivePedestrian, key = ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString() });
             }
 
             mainData = new
@@ -1301,6 +1305,8 @@ public partial class UISystem
                 selectedEntity = new { index = entity.Index, version = entity.Version },
                 signalConfiguration = GetTspSignalConfigurationTrace(entity),
                 trafficGroup = GetTspTrafficGroupTrace(entity),
+                selectedTopology = GetSelectedTopologyTrace(entity),
+                expectedUiState = GetExpectedUiStateTrace(entity),
                 laneSignals = GetTspLaneSignalTrace(entity, hasTrafficLights, trafficLights, hasRuntimeDebug, runtimeDebug),
                 summary,
                 trafficLights = hasTrafficLights
@@ -1397,6 +1403,157 @@ public partial class UISystem
         }
     }
 
+    private object GetSelectedTopologyTrace(Entity entity)
+    {
+        if (!m_EdgeInfoDictionary.TryGetValue(entity, out NativeArray<NodeUtils.EdgeInfo> edgeInfoArray))
+        {
+            return new
+            {
+                edgeCount = 0,
+                hasTrainTrack = false,
+                hasHighwayLane = false,
+                straightWayCount = 0,
+                hasTurningTrackLane = false,
+            };
+        }
+
+        int straightWayCount = 0;
+        bool hasTurningTrackLane = false;
+        foreach (var edgeInfo in edgeInfoArray)
+        {
+            if (edgeInfo.m_CarLaneStraightCount + edgeInfo.m_PublicCarLaneStraightCount + edgeInfo.m_TrackLaneStraightCount > 0)
+            {
+                straightWayCount++;
+            }
+            if (edgeInfo.m_TrackLaneLeftCount + edgeInfo.m_TrackLaneRightCount > 0)
+            {
+                hasTurningTrackLane = true;
+            }
+        }
+
+        return new
+        {
+            edgeCount = edgeInfoArray.Length,
+            hasTrainTrack = NodeUtils.HasTrainTrack(edgeInfoArray),
+            hasHighwayLane = HasHighwayLane(edgeInfoArray),
+            straightWayCount,
+            hasTurningTrackLane,
+        };
+    }
+
+    private object GetExpectedUiStateTrace(Entity entity)
+    {
+        CustomTrafficLights customTrafficLights = EntityManager.TryGetComponent(entity, out CustomTrafficLights value)
+            ? value
+            : new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla);
+        CustomTrafficLights.Patterns selectedPattern = customTrafficLights.GetPattern();
+        uint patternOnly = (uint)customTrafficLights.GetPatternOnly();
+        bool hasEdgeInfo = m_EdgeInfoDictionary.TryGetValue(entity, out NativeArray<NodeUtils.EdgeInfo> edgeInfoArray);
+        bool extraOptionsSupported = false;
+        bool exclusivePedestrianOptionSupported = false;
+        if (hasEdgeInfo)
+        {
+            extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray);
+            exclusivePedestrianOptionSupported = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(edgeInfoArray);
+        }
+        bool showOptions = patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault && extraOptionsSupported;
+        bool hasExclusivePedestrian = showOptions
+            && exclusivePedestrianOptionSupported
+            && (selectedPattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
+
+        return new
+        {
+            patternOnly,
+            availablePatterns = hasEdgeInfo ? GetExpectedAvailablePatternsTrace(edgeInfoArray) : new ArrayList(),
+            extraOptionsSupported,
+            exclusivePedestrianOptionSupported,
+            showOptions,
+            expectedOptions = GetExpectedOptionsTrace(selectedPattern, patternOnly, showOptions, exclusivePedestrianOptionSupported),
+            showPedestrianDuration = hasExclusivePedestrian,
+            pedestrianDurationMultiplier = customTrafficLights.m_PedestrianPhaseDurationMultiplier,
+            transitSignalPriority = GetExpectedTransitSignalPriorityUiStateTrace(entity),
+        };
+    }
+
+    private static bool HasHighwayLane(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
+    {
+        return PredefinedPatternsProcessor.HasHighwayLane(edgeInfoArray);
+    }
+
+    private ArrayList GetExpectedAvailablePatternsTrace(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
+    {
+        var availablePatterns = new ArrayList
+        {
+            new { name = "Vanilla", value = (uint)CustomTrafficLights.Patterns.Vanilla }
+        };
+        if (PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasing))
+            availablePatterns.Add(new { name = "SplitPhasing", value = (uint)CustomTrafficLights.Patterns.SplitPhasing });
+        if (PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.ProtectedCentreTurn))
+            availablePatterns.Add(new { name = m_CityConfigurationSystem.leftHandTraffic ? "ProtectedRightTurns" : "ProtectedLeftTurns", value = (uint)CustomTrafficLights.Patterns.ProtectedCentreTurn });
+        if (PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasingProtectedLeft))
+            availablePatterns.Add(new { name = "SplitPhasingProtectedLeft", value = (uint)CustomTrafficLights.Patterns.SplitPhasingProtectedLeft });
+        availablePatterns.Add(new { name = "CustomPhases", value = (uint)CustomTrafficLights.Patterns.CustomPhase });
+        return availablePatterns;
+    }
+
+    private static ArrayList GetExpectedOptionsTrace(
+        CustomTrafficLights.Patterns selectedPattern,
+        uint patternOnly,
+        bool showOptions,
+        bool exclusivePedestrianOptionSupported)
+    {
+        return
+        [
+            new
+            {
+                label = "AllowTurningOnRed",
+                key = ((uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn).ToString(),
+                isVisible = showOptions,
+                isChecked = showOptions && (selectedPattern & CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn) != 0,
+            },
+            new
+            {
+                label = "GiveWayToOncomingVehicles",
+                key = ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString(),
+                isVisible = showOptions && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla,
+                isChecked = showOptions && (selectedPattern & CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0,
+            },
+            new
+            {
+                label = "ExclusivePedestrianPhase",
+                key = ((uint)CustomTrafficLights.Patterns.ExclusivePedestrian).ToString(),
+                isVisible = showOptions && exclusivePedestrianOptionSupported,
+                isChecked = showOptions
+                    && exclusivePedestrianOptionSupported
+                    && (selectedPattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0,
+            },
+        ];
+    }
+
+    private object GetExpectedTransitSignalPriorityUiStateTrace(Entity entity)
+    {
+        TransitSignalPrioritySettings tspSettings = EntityManager.HasComponent<TransitSignalPrioritySettings>(entity)
+            ? EntityManager.GetComponentData<TransitSignalPrioritySettings>(entity)
+            : TransitSignalPrioritySettings.CreateDefault();
+        bool isTrafficGroupMember = EntityManager.HasComponent<TrafficGroupMember>(entity);
+
+        return new
+        {
+            tram = new
+            {
+                isVisible = true,
+                isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
+                isEditable = !isTrafficGroupMember,
+            },
+            bus = new
+            {
+                isVisible = true,
+                isEnabled = tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
+                isEditable = !isTrafficGroupMember,
+            },
+        };
+    }
+
     private object GetTspSignalConfigurationTrace(Entity entity)
     {
         CustomTrafficLights customTrafficLights = EntityManager.TryGetComponent(entity, out CustomTrafficLights value)
@@ -1418,6 +1575,7 @@ public partial class UISystem
             optionsName = options.ToString(),
             exclusivePedestrian = (pattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0,
             smartPhaseSelection = (options & CustomTrafficLights.TrafficOptions.SmartPhaseSelection) != 0,
+            pedestrianDurationMultiplier = customTrafficLights.m_PedestrianPhaseDurationMultiplier,
             pedestrianPhaseGroupMask = customTrafficLights.m_PedestrianPhaseGroupMask,
         };
     }

@@ -27,6 +27,16 @@ public sealed class TrafficGroupSystemSourceTests
             setOrAddSource);
     }
 
+    [Fact]
+    public void Propagating_pattern_to_members_marks_each_member_updated()
+    {
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string propagateSource = ExtractMethod(source, "public void PropagatePatternToMembers");
+
+        Assert.Contains("memberLights.SetPattern(pattern)", propagateSource);
+        Assert.Contains("EntityManager.AddComponentData(memberEntity, default(Updated))", propagateSource);
+    }
+
     private static string GetTrafficGroupSystemPath()
     {
         string baseDirectory = AppContext.BaseDirectory;

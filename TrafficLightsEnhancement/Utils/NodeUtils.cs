@@ -117,6 +117,8 @@ public partial struct NodeUtils
                         {
                             carLaneLookup.TryGetComponent(laneConnection.m_SourceSubLane, out var edgeCarLane);
                             bool isPublicOnly = (edgeCarLane.m_Flags & CarLaneFlags.PublicOnly) != 0;
+                            bool isHighway = (edgeCarLane.m_Flags & CarLaneFlags.Highway) != 0 ||
+                                (nodeCarLane.m_Flags & CarLaneFlags.Highway) != 0;
                             bool isUTurn = (nodeCarLane.m_Flags & (CarLaneFlags.UTurnLeft | CarLaneFlags.UTurnRight)) != 0;
                             if (!isUTurn && (nodeCarLane.m_Flags & (CarLaneFlags.TurnLeft | CarLaneFlags.GentleTurnLeft)) != 0)
                             {
@@ -142,6 +144,7 @@ public partial struct NodeUtils
                                 edgeInfo.m_CarLaneUTurnCount += System.Convert.ToInt32(!isPublicOnly);
                                 sourceSubLaneInfo.m_CarLaneUTurnCount++;
                             }
+                            edgeInfo.m_HighwayLaneCount += System.Convert.ToInt32(isHighway);
                             subLaneMap[laneConnection.m_SourceSubLane] = sourceSubLaneInfo;
                         }
                     }
