@@ -263,7 +263,7 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                                 .map((member) => (
                                     <div key={`${member.index}-${member.version}`} className={styles.memberListItem}>
                                         Intersection {member.index} {member.isLeader &&
-                                        <span className={styles.leaderBadge}>(Leader)</span>}
+                                        <span className={styles.leaderBadge}>(leader)</span>}
                                     </div>
                                 ))}
                             <Divider />
