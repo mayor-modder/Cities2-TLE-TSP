@@ -10,6 +10,7 @@ import Car from '../common/icons/car';
 import Train from '../common/icons/train';
 import Walk from '../common/icons/walk';
 import BusSide from '../common/icons/bus-side';
+import Bicycle from '../common/icons/bike';
 
 import TrafficSignTooltip from './tooltips/traffic-sign';
 import { CustomPhaseSignalState, CustomPhaseLane, CustomPhaseLaneType, CustomPhaseLaneDirection } from 'mods/general';
@@ -62,17 +63,25 @@ export default function Lane(props: {
   const cityConfiguration = useContext(CityConfigurationContext);
   return (
     <Container>
-      {["pedestrianLaneStopLine", "pedestrianLaneNonStopLine"].includes(props.data.type) ? <>
+      {["bicycleLane", "pedestrianLaneStopLine", "pedestrianLaneNonStopLine"].includes(props.data.type) ? <>
+        {props.data.type == "bicycleLane" && props.showIcon && <Box><IconContainer><Bicycle style={{color: "var(--textColor)"}} /></IconContainer></Box>}
         {props.data.type == "pedestrianLaneStopLine" && props.showIcon && <Box><IconContainer><Walk stopLine={true} style={{color: "var(--textColor)"}} /></IconContainer></Box>}
         {props.data.type == "pedestrianLaneNonStopLine" && props.showIcon && <Box><IconContainer><Walk stopLine={false} style={{color: "var(--textColor)"}} /></IconContainer></Box>}
         <Box state={props.data.all}>
-          <TrafficSignButton
+          {props.data.type == "bicycleLane" && <TrafficSignButton
+            allow={false}
+            variant="traffic-light"
+            sign="↑"
+            state={props.data.all}
+            onClick={() => props.onClick(props.index, props.data.type, "all", props.data.all)}
+          />}
+          {props.data.type != "bicycleLane" && <TrafficSignButton
             allow={false}
             variant="pedestrian"
             sign="↑"
             state={props.data.all}
             onClick={() => props.onClick(props.index, props.data.type, "all", props.data.all)}
-          />
+          />}
         </Box>
         <Filler />
       </> : <>

@@ -4,6 +4,9 @@ using TrafficLightsEnhancement.Logic.Tsp;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using CarLaneData = Game.Prefabs.CarLaneData;
+using PrefabRef = Game.Prefabs.PrefabRef;
+using RoadTypes = Game.Net.RoadTypes;
 using static C2VM.TrafficLightsEnhancement.Systems.TrafficLightSystems.Initialisation.PatchedTrafficLightInitializationSystem;
 
 namespace C2VM.TrafficLightsEnhancement.Utils;
@@ -48,7 +51,9 @@ public partial struct NodeUtils
         ComponentLookup<CarLane> carLaneLookup,
         ComponentLookup<Curve> curveLookup,
         ComponentLookup<TrainTrack> trainTrackLookup,
-        ComponentLookup<SecondaryLane> secondaryLaneLookup
+        ComponentLookup<SecondaryLane> secondaryLaneLookup,
+        ComponentLookup<PrefabRef> prefabRefLookup,
+        ComponentLookup<CarLaneData> carLaneDataLookup
     )
     {
         NativeList<EdgeInfo> edgeInfoList = new(4, allocator);
@@ -107,7 +112,15 @@ public partial struct NodeUtils
                             }
                             subLaneMap[laneConnection.m_SourceSubLane] = sourceSubLaneInfo;
                         }
-                        if (secondaryLaneLookup.HasComponent(nodeSubLane.m_SubLane) || secondaryLaneLookup.HasComponent(laneConnection.m_SourceSubLane))
+                        bool isSecondaryBicycleLane =
+                            secondaryLaneLookup.HasComponent(nodeSubLane.m_SubLane) ||
+                            secondaryLaneLookup.HasComponent(laneConnection.m_SourceSubLane);
+                        bool isBicycleOnlyRoadLane =
+                            IsBicycleOnlyRoadLane(nodeSubLane.m_SubLane, prefabRefLookup, carLaneDataLookup) ||
+                            IsBicycleOnlyRoadLane(laneConnection.m_SourceSubLane, prefabRefLookup, carLaneDataLookup);
+                        bool isBicycleLane = isSecondaryBicycleLane || isBicycleOnlyRoadLane;
+
+                        if (isBicycleLane)
                         {
                             edgeInfo.m_BicycleLaneCount++;
                             sourceSubLaneInfo.m_BicycleLaneCount++;
@@ -217,7 +230,9 @@ public partial struct NodeUtils
             uISystem.m_TypeHandle.m_CarLane,
             uISystem.m_TypeHandle.m_Curve,
             uISystem.m_TypeHandle.m_TrainTrack,
-            uISystem.m_TypeHandle.m_SecondaryLane
+            uISystem.m_TypeHandle.m_SecondaryLane,
+            uISystem.m_TypeHandle.m_PrefabRef,
+            uISystem.m_TypeHandle.m_CarLaneData
         );
     }
 
@@ -242,8 +257,29 @@ public partial struct NodeUtils
             job.m_CarLaneData,
             job.m_CurveData,
             job.m_ExtraTypeHandle.m_TrainTrack,
-            job.m_ExtraTypeHandle.m_SecondaryLane
+            job.m_ExtraTypeHandle.m_SecondaryLane,
+            job.m_PrefabRefData,
+            job.m_PrefabCarLaneData
         );
+    }
+
+    public static bool IsBicycleOnlyRoadLane(
+        Entity subLane,
+        ComponentLookup<PrefabRef> prefabRefLookup,
+        ComponentLookup<CarLaneData> carLaneDataLookup)
+    {
+        if (subLane == Entity.Null || !prefabRefLookup.TryGetComponent(subLane, out PrefabRef prefabRef))
+        {
+            return false;
+        }
+        if (!carLaneDataLookup.TryGetComponent(prefabRef.m_Prefab, out CarLaneData carLaneData))
+        {
+            return false;
+        }
+
+        bool allowsBicycle = (carLaneData.m_RoadTypes & RoadTypes.Bicycle) != 0;
+        bool allowsCars = (carLaneData.m_RoadTypes & RoadTypes.Car) != 0;
+        return allowsBicycle && !allowsCars;
     }
 
     public static void Dispose(NativeArray<EdgeInfo> edgeInfoList)

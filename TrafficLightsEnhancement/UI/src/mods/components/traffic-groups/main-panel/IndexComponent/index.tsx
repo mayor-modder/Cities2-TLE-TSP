@@ -34,6 +34,7 @@ import Title from "mods/components/main-panel/items/title";
 import TitleDim from "mods/components/main-panel/items/title-dim";
 import { Entity } from "cs2/bindings";
 import { FocusDisabled } from "cs2/input";
+import Bicycle from "mods/components/common/icons/bike";
 
 enum MainPanelState {
 	Hidden = 0,
@@ -445,10 +446,20 @@ const MemberSignalEditor = ({
 					{hasPedestrianLanes && (
 						<div className={styles.laneTypeGroup}>
 							<span className={styles.laneTypeLabel}>🚶</span>
-							<SignalButton 
+							<SignalButton
 								state={getSignalState(edge.m_EdgeGroupMask.m_Pedestrian.m_GoGroupMask, 0, phaseIndex)}
 								direction="all"
 								onClick={() => handleSignalClick(edge, "pedestrian", "all")}
+							/>
+						</div>
+					)}
+					{hasBicycleLanes && (
+						<div className={styles.laneTypeGroup}>
+							<span className={styles.laneTypeLabel}><Bicycle /></span>
+							<SignalButton
+								state={getSignalState(edge.m_EdgeGroupMask.m_Bicycle.m_GoGroupMask, 0, phaseIndex)}
+								direction="all"
+								onClick={() => handleSignalClick(edge, "bicycle", "all")}
 							/>
 						</div>
 					)}
