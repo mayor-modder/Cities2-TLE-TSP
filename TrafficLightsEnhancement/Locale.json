@@ -31,7 +31,7 @@
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]": "Exclusive pedestrian phase",
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]": "Add an exclusive pedestrian phase at all traffic lights without custom configurations. It applies to newly built roads and will apply to existing roads upon a game state update.",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian].tooltip": "Add an exclusive pedestrian phase at all traffic lights without custom configurations. It applies to newly built roads and will apply to existing roads upon a game state update.",
-    "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]": "Show TLE diagnostics",
+    "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]": "Show diagnostics",
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]": "Adds a read-only diagnostics section to the junction panel and writes selected-intersection trace events for traffic signal, option-gating, and transit priority troubleshooting.",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics].tooltip": "Adds a read-only diagnostics section to the junction panel and writes selected-intersection trace events for traffic signal, option-gating, and transit priority troubleshooting.",
 

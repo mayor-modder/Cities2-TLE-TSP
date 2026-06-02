@@ -139,7 +139,7 @@ test("selected-junction diagnostics are gated by a general TLE mod option", asyn
   assert.match(content, /const\s+transitSignalPriorityDiagnostics\s*=\s*mainData\.transitSignalPriority\?\.diagnostics/);
   assert.match(content, /transitSignalPriorityDiagnostics\.events/);
   assert.match(content, /transitSignalPriorityDiagnostics\.rows/);
-  assert.match(locale, /Show TLE diagnostics/);
+  assert.match(locale, /Show diagnostics/);
   assert.doesNotMatch(locale, /Show transit signal priority diagnostics/);
   assert.match(locale, /TSPDiagnosticsRequest/);
   assert.match(locale, /TSPDiagnosticsCurrentGroup/);
