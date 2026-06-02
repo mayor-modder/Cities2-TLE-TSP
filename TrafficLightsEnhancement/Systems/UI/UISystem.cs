@@ -247,7 +247,7 @@ public partial class UISystem: ExtendedUISystemBase
         
         ClearEdgeInfo();
         
-        m_EdgeInfoDictionary[node] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, node, this).AsArray();
+        m_EdgeInfoDictionary[node] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, node, this);
         
         if (EntityManager.HasComponent<TrafficGroupMember>(node))
         {
@@ -267,7 +267,7 @@ public partial class UISystem: ExtendedUISystemBase
                         
                         if (hasPhases)
                         {
-                            m_EdgeInfoDictionary[memberEntity] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, memberEntity, this).AsArray();
+                            m_EdgeInfoDictionary[memberEntity] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, memberEntity, this);
                         }
                     }
                 }

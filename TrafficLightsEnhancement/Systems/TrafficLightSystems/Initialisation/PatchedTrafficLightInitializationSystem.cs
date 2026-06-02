@@ -244,7 +244,7 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                 }
                 else
                 {
-                  var edgeInfoArray = NodeUtils.GetEdgeInfoList(Allocator.Temp, entityArray[i], ref this, subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i]).AsArray();
+                  var edgeInfoArray = NodeUtils.GetEdgeInfoList(Allocator.Temp, entityArray[i], ref this, subLanes, connectedEdgeAccessor[i], edgeGroupMaskAccessor[i], subLaneGroupMaskAccessor[i]);
                   bool extraOptionsSupported = PredefinedPatternsProcessor.AreExtraOptionsSupported(edgeInfoArray);
                   bool exclusivePedestrianOptionSupported = PredefinedPatternsProcessor.IsExclusivePedestrianOptionSupported(edgeInfoArray);
                   var pattern = customTrafficLights.GetPattern();
@@ -261,6 +261,7 @@ public partial class PatchedTrafficLightInitializationSystem : Game.GameSystemBa
                   {
                       customTrafficLights.SetPattern(PredefinedPatternsProcessor.ClearExclusivePedestrianOption(pattern));
                   }
+                  NodeUtils.Dispose(edgeInfoArray);
                     if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.SplitPhasing)
                     {
                         PredefinedPatternsProcessor.SetupSplitPhasing(ref this, connectedEdgeAccessor[i], subLanes, out groupCount, ref trafficLights);
