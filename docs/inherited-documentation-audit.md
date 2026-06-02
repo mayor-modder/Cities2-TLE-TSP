@@ -47,9 +47,9 @@ not rewritten as live user documentation.
 - Bus priority is represented internally as `TspSource.PublicCar`, has lower
   source priority than tram/track requests, and does not use the tram-only
   aggressive preemption path.
-- TSP diagnostics are off by default, gated by
-  `Settings.m_ShowTransitSignalPriorityDiagnostics`, and exposed through
-  selected-intersection rows and optional JSONL trace output.
+- TLE diagnostics are off by default, still backed by the legacy
+  `Settings.m_ShowTransitSignalPriorityDiagnostics` setting name, and exposed
+  through selected-intersection rows and optional JSONL trace output.
 - Traffic-group members, including leaders, cannot toggle or run local TSP
   while grouped. Saved TSP settings are preserved for use after removal from the
   group.

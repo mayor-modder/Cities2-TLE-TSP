@@ -1596,6 +1596,11 @@ public partial class TrafficGroupSystem : GameSystemBase
 			
 			
 			CopySubLaneGroupMaskWithLaneTypeMatching(leaderEntity, memberEntity);
+
+			if (!EntityManager.HasComponent<Updated>(memberEntity))
+			{
+				EntityManager.AddComponentData(memberEntity, default(Updated));
+			}
 		}
 
 		int memberCount = members.Length;

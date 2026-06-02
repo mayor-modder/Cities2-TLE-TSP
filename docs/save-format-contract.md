@@ -51,6 +51,15 @@ compatibility must be designed explicitly.
 | `TransitSignalPrioritySettings` | component on junction node | `2` | Enabled flag, allow-track flag, allow-public-car flag, request horizon ticks, max green extension ticks. |
 | `CustomLaneDirection` | dynamic buffer from `CommonLibraries/LaneSystem` | schema `3` | Sentinel `float.MaxValue`, schema version, position, tangent, group index, lane index, four restriction booleans, owner entity. |
 
+`CustomPhaseData.Options.PrioritiseBicycle` is part of the V2 serialized surface
+and has round-trip coverage, but no current runtime or UI consumer has been
+confirmed. Treat it as reserved compatibility state unless a future change
+explicitly defines bicycle priority semantics and migration behavior.
+
+`CustomPhaseData` and `EdgeGroupMask.m_Bicycle` also persist bicycle delay
+fields. Current custom-phase runtime uses edge-wide open/close delay for group
+timing; movement-specific bicycle delay application has not been confirmed.
+
 ## Legacy Reads
 
 `CustomTrafficLights` supports several inherited payload layouts:

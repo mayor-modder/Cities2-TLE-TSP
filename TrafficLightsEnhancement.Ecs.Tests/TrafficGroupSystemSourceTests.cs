@@ -28,6 +28,16 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Propagating_pattern_to_members_marks_each_member_updated()
+    {
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string propagateSource = ExtractMethod(source, "public void PropagatePatternToMembers");
+
+        Assert.Contains("memberLights.SetPattern(pattern)", propagateSource);
+        Assert.Contains("EntityManager.AddComponentData(memberEntity, default(Updated))", propagateSource);
+    }
+
+    [Fact]
     public void Green_wave_paths_use_shared_timing_policy()
     {
         string source = File.ReadAllText(GetTrafficGroupSystemPath());

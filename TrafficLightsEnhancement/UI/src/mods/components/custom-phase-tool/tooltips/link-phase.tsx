@@ -6,8 +6,8 @@ export default function LinkPhase(props: {link: boolean}) {
   const { translate } = useLocalization();
   return (
     <TooltipContainer>
-      {props.link && (translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.LinkPhase]") ?? "Link Phase")}
-      {!props.link && (translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.UnlinkPhase]") ?? "Unlink Phase")}
+      {props.link && (translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.LinkPhase]") ?? "Link phase")}
+      {!props.link && (translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.UnlinkPhase]") ?? "Unlink phase")}
     </TooltipContainer>
   );
 }
