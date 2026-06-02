@@ -493,7 +493,7 @@ test("backend trace writes follow selected diagnostics event filtering", async (
 
   assert.notEqual(eventsStart, -1);
   assert.notEqual(eventsEnd, -1);
-  assert.match(eventsSource, /bool\s+shouldRecordEvent\s*=\s*signatureChanged\s*&&\s*ShouldRecordTspDiagnosticsEvent\(history,\s*hasRuntimeDebug\s*\|\|\s*hasBusApproachDebug\s*\|\|\s*hasDecisionTrace\)/);
+  assert.match(eventsSource, /bool\s+shouldRecordEvent\s*=\s*isNewSelection\s*\|\|\s*\(\s*signatureChanged\s*&&\s*ShouldRecordTspDiagnosticsEvent\(history,\s*hasRuntimeDebug\s*\|\|\s*hasBusApproachDebug\s*\|\|\s*hasDecisionTrace\)\s*\)/);
   assert.match(eventsSource, /if\s*\(\s*signatureChanged\s*\)/);
   assert.match(eventsSource, /if\s*\(\s*shouldRecordEvent\s*\)/);
   assert.ok(eventsSource.indexOf("bool shouldRecordEvent") < eventsSource.indexOf("WriteTspDiagnosticsTraceEvent"));
