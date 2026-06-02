@@ -1628,7 +1628,7 @@ public partial class UISystem
                 false,
                 hasExclusivePedestrian ? "Visible" : "Exclusive pedestrian phase disabled"),
             TramTransitPriority = new SelectedJunctionTspControlSnapshot(
-                isVisible: true,
+                isVisible: HasTramTrack(edgeInfoArray),
                 isEditable: isEditable,
                 isChecked: tspSettings.m_Enabled && tspSettings.m_AllowTrackRequests,
                 statusLabel: tramStatusLabel,
@@ -1640,6 +1640,39 @@ public partial class UISystem
                 statusLabel: busStatusLabel,
                 reason: isTrafficGroupMember ? "Traffic group member" : "Editable"),
         };
+    }
+
+    private bool HasTramTrack(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)
+    {
+        var trackLaneLookup = GetComponentLookup<TrackLane>(true);
+        var prefabRefLookup = GetComponentLookup<Game.Prefabs.PrefabRef>(true);
+        var trackLaneDataLookup = GetComponentLookup<Game.Prefabs.TrackLaneData>(true);
+
+        foreach (var edgeInfo in edgeInfoArray)
+        {
+            if (edgeInfo.m_SubLaneInfoList.IsCreated)
+            {
+                foreach (var subLaneInfo in edgeInfo.m_SubLaneInfoList)
+                {
+                    Entity laneEntity = subLaneInfo.m_SubLane;
+                    if (laneEntity != Entity.Null && trackLaneLookup.HasComponent(laneEntity))
+                    {
+                        if (prefabRefLookup.TryGetComponent(laneEntity, out var prefabRef))
+                        {
+                            if (trackLaneDataLookup.TryGetComponent(prefabRef.m_Prefab, out var trackLaneData))
+                            {
+                                if ((trackLaneData.m_TrackTypes & Game.Net.TrackTypes.Tram) != 0)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private List<SelectedJunctionPatternSnapshot> GetAvailablePatternSnapshots(
