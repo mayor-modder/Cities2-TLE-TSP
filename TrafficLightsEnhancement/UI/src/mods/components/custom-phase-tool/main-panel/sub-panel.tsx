@@ -21,12 +21,12 @@ import MainPanelCheckbox from "mods/components/main-panel/items/checkbox";
 import PresetManager from "../../common/preset-manager/preset-manager";
 
 const PHASE_TEMPLATES = [
-    { id: 0, name: "Default", description: "Standard timing" },
-    { id: 1, name: "Quick Cycle", description: "Short, responsive" },
-    { id: 2, name: "Heavy Traffic", description: "Long, steady flow" },
-    { id: 3, name: "Pedestrian Friendly", description: "Balanced for peds" },
-    { id: 4, name: "Rail Priority", description: "Rail-first switching" },
-    { id: 5, name: "Night Mode", description: "Very short, skips empty" },
+    { id: 0, name: "Default", description: "StandardTiming" },
+    { id: 1, name: "QuickCycle", description: "ShortResponsive" },
+    { id: 2, name: "HeavyTraffic", description: "LongSteadyFlow" },
+    { id: 3, name: "PedestrianFriendly", description: "BalancedForPeds" },
+    { id: 4, name: "RailPriority", description: "RailFirstSwitching" },
+    { id: 5, name: "NightMode", description: "VeryShortSkipsEmpty" },
 ];
 export const ItemTitle = (props: {
     title: string,
@@ -66,7 +66,7 @@ const EndPhaseButton = (props: { index: number, disabled?: boolean }) => {
 export function TrafficLightModeSelector(props: { trafficLightMode: number }) {
     const { translate } = useLocalization();
     return (
-        <PanelFoldout header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficLightMode]") ?? "Traffic Light Mode"}</div>}
+        <PanelFoldout header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficLightMode]") ?? "Traffic light mode"}</div>}
                       initialExpanded={true}>
                         <MainPanelRadio
                         keyName="TrafficLightMode"
@@ -79,7 +79,7 @@ export function TrafficLightModeSelector(props: { trafficLightMode: number }) {
                 keyName="TrafficLightMode"
                 value="1"
                 isChecked={props.trafficLightMode === 1}
-                label="Fixed Timed"
+                label="Fixed timed"
                 triggerName="CallUpdateCustomPhaseData"
             />
         </PanelFoldout>
@@ -97,6 +97,7 @@ const EdgeFoldout = ({
     isHighlighted: boolean;
     onHighlight: (edgeIndex: number, edgeVersion: number) => void;
 }) => {
+    const { translate } = useLocalization();
     const edgeName = `Edge ${edge.m_Edge.index}`;
 
     const handleHeaderClick = () => {
@@ -127,7 +128,7 @@ const EdgeFoldout = ({
                     phaseIndex: phaseIndex,
                     field: "openDelay"
                 }),
-                label: "Start Delay",
+                label: "StartDelay",
                 value: edge.m_OpenDelay ?? 0,
                 valuePrefix: "",
                 valueSuffix: "",
@@ -138,7 +139,7 @@ const EdgeFoldout = ({
                 enableTextField: true,
                 textFieldRegExp: "^\\d{0,3}$",
                 engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallUpdateEdgeDelay",
-                tooltip: "Delay before this edge's signals turn green after the phase starts."
+                tooltip: translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]") ?? "Delay before this edge's signals turn green after the phase starts."
             }}/>
             <MainPanelRange className={styles.hover} data={{
                 itemType: "range",
@@ -148,7 +149,7 @@ const EdgeFoldout = ({
                     phaseIndex: phaseIndex,
                     field: "closeDelay"
                 }),
-                label: "End Early",
+                label: "EndEarly",
                 value: edge.m_CloseDelay ?? 0,
                 valuePrefix: "",
                 valueSuffix: "",
@@ -159,7 +160,7 @@ const EdgeFoldout = ({
                 enableTextField: true,
                 textFieldRegExp: "^\\d{0,3}$",
                 engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallUpdateEdgeDelay",
-                tooltip: "Time before the phase ends when this edge's signals turn red."
+                tooltip: translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]") ?? "Time before the phase ends when this edge's signals turn red."
             }}/>
         </PanelFoldout>
     );
@@ -204,21 +205,21 @@ export default function SubPanel(props: {
                         Phase timing is controlled by the group leader. Values shown below are from the leader.
                     </div>
                     <PanelFoldout
-                        header={<div className={styles.foldoutHeader}>Leader Phase Settings (Read-Only)</div>}
+                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]") ?? "Leader phase settings (read-only)"}</div>}
                         initialExpanded={true}>
-                        <ItemTitle title="Traffic Light Mode" secondaryText={data.trafficLightMode === 0 ? "Dynamic" : "Fixed Timed"} dim={true} />
-                        <ItemTitle title="Minimum Duration" secondaryText={`${data.minimumDuration}`} dim={true} />
-                        <ItemTitle title="Maximum Duration" secondaryText={`${data.maximumDuration}`} dim={true} />
+                        <ItemTitle title="TrafficLightMode" secondaryText={data.trafficLightMode === 0 ? "Dynamic" : "FixedTimed"} dim={true} />
+                        <ItemTitle title="MinimumDuration" secondaryText={`${data.minimumDuration}`} dim={true} />
+                        <ItemTitle title="MaximumDuration" secondaryText={`${data.maximumDuration}`} dim={true} />
                         {data.trafficLightMode === 0 && <>
-                            <ItemTitle title="Target Duration Multiplier" secondaryText={`${data.targetDurationMultiplier}x`} dim={true} />
-                            <ItemTitle title="Interval Exponent" secondaryText={`${data.intervalExponent}`} dim={true} />
-                            <ItemTitle title="Phase Change Mode" secondaryText={
+                            <ItemTitle title="TargetDurationMultiplier" secondaryText={`${data.targetDurationMultiplier}x`} dim={true} />
+                            <ItemTitle title="IntervalExponent" secondaryText={`${data.intervalExponent}`} dim={true} />
+                            <ItemTitle title="PhaseChangeMode" secondaryText={
                                 data.changeMetric === 0 ? "Auto" :
-                                data.changeMetric === 1 ? "On Flow Drop" :
-                                data.changeMetric === 2 ? "On Wait Increase" :
-                                data.changeMetric === 3 ? "When Empty" : "When No Demand"
+                                data.changeMetric === 1 ? "OnFlowDrop" :
+                                data.changeMetric === 2 ? "OnWaitIncrease" :
+                                data.changeMetric === 3 ? "WhenEmpty" : "WhenNoDemand"
                             } dim={true} />
-                            <ItemTitle title="Wait Sensitivity" secondaryText={`${data.waitFlowBalance}`} dim={true} />
+                            <ItemTitle title="WaitSensitivity" secondaryText={`${data.waitFlowBalance}`} dim={true} />
                         </>}
                     </PanelFoldout>
                     <Divider />
@@ -227,7 +228,7 @@ export default function SubPanel(props: {
             {!props.statisticsOnly && !props.isCoordinatedFollower && (
                 <>
                     <PanelFoldout
-                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficLightMode]") ?? "Traffic Light Mode"}</div>}
+                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficLightMode]") ?? "Traffic light mode"}</div>}
                         initialExpanded={true}>
                         <MainPanelRadio
                             keyName="TrafficLightMode"
@@ -261,7 +262,7 @@ export default function SubPanel(props: {
 
                     <Divider/>
                     <PanelFoldout
-                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TimingTemplate]") ?? "Timing Template"}</div>}
+                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TimingTemplate]") ?? "Timing template"}</div>}
                         initialExpanded={false}>
                         <PresetManager
                             builtInTemplates={PHASE_TEMPLATES}
@@ -273,7 +274,7 @@ export default function SubPanel(props: {
 
                     <Divider/>
                     <PanelFoldout
-                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseChangeMode]") ?? "Phase Change Mode"}</div>}
+                        header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseChangeMode]") ?? "Phase change mode"}</div>}
                         initialExpanded={false}>
                         <MainPanelRadio
                             keyName="ChangeMetric"
@@ -415,7 +416,7 @@ export default function SubPanel(props: {
                     {data.trafficLightMode === 0 && <>
                         <Divider/>
                         <PanelFoldout
-                            header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.VehicleWeights]") ?? "Vehicle Weights"}</div>}
+                            header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.VehicleWeights]") ?? "Vehicle weights"}</div>}
                             initialExpanded={false}>
                             <MainPanelRange
                                 className={styles.hover}
@@ -535,7 +536,7 @@ export default function SubPanel(props: {
             {!props.statisticsOnly && <>
                 {props.edges && props.edges.length > 0 && props.phaseIndex !== undefined && <>
                     <Divider/>
-                    <PanelFoldout header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SignalDelays]") ?? "Signal Delays"}</div>}
+                    <PanelFoldout header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SignalDelays]") ?? "Signal delays"}</div>}
                                 initialExpanded={false}>
                         {props.edges.map((edge, idx) => (
                             <EdgeFoldout

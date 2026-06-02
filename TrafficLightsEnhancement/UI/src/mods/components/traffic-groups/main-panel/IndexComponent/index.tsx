@@ -6,6 +6,7 @@ import classNames from "classnames";
 import { ReactNode } from "react";
 import { trigger, useValue } from "cs2/api";
 import { Dropdown, DropdownItem, DropdownToggle, PanelFoldout, Tooltip } from "cs2/ui";
+import { useLocalization } from "cs2/l10n";
 import Divider from "mods/components/main-panel/items/divider"
 import { MainPanelItemTrafficGroup, GroupMemberInfo, MemberPhaseData, EdgeInfo, EdgeGroupMask, CustomPhaseSignalState, CustomPhaseLaneType, CustomPhaseLaneDirection, PatternInfo } from 'mods/general';
 import { 
@@ -64,8 +65,9 @@ const ItemTitle = (props: {title: string, secondaryText?: string, tooltip?: Reac
 };
 
 const CreateGroupButton = () => {
+	const { translate } = useLocalization();
 	const clickHandler = () => {
-		callCreateTrafficGroup(JSON.stringify({ name: "New Group" }));
+		callCreateTrafficGroup(JSON.stringify({ name: translate("UI.LABEL[C2VM.TrafficLightsEnhancement.NewGroup]") ?? "New group" }));
 	};
 	return (
 		<Row hoverEffect={true}>
@@ -75,13 +77,14 @@ const CreateGroupButton = () => {
 };
 
 const RemoveFromGroupButton = () => {
+	const { translate } = useLocalization();
 	const clickHandler = () => {
 		callRemoveJunctionFromGroup("{}");
 	};
 	return (
 		
 			<Row hoverEffect={true}>				
-					<Button label="Remove From Group" onClick={clickHandler} tooltip="To remove member from a group: click a member from a group then click this button" />					
+					<Button label="RemoveFromGroup" onClick={clickHandler} tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.RemoveFromGroup]") ?? "To remove a member from a group, click a member from a group, then click this button."} />
 			</Row>
 	);
 };
@@ -92,7 +95,7 @@ const CustomPhaseEditorButton = () => {
 	};
 	return (
 		<Row hoverEffect={true}>
-			<Button label="Custom Phase Editor" onClick={clickHandler} />
+			<Button label="CustomPhaseEditor" onClick={clickHandler} />
 		</Row>
 	);
 };
@@ -154,7 +157,7 @@ const MemberPatternSelector = ({
 	return (
 		<>
 			<Row hoverEffect={true}>
-				<Button label="Custom Phase Editor" onClick={openCustomPhaseEditor} />
+				<Button label="CustomPhaseEditor" onClick={openCustomPhaseEditor} />
 			</Row>
 		</>
 	);
@@ -172,6 +175,7 @@ const MemberFoldout = ({
 	currentGroup?: MainPanelItemTrafficGroup | undefined;
 	isLockstep?: boolean;
 }) => {
+	const { translate } = useLocalization();
 	const isFollowerInLockstep = isLockstep && !member.isLeader;
 
 	const headerContent = (
@@ -180,10 +184,10 @@ const MemberFoldout = ({
 			onClick={(e) => { e.stopPropagation(); onMemberClick(member); }}
 			style={{ cursor: 'pointer' }}
 		>
-			{member.isLeader && <span className={styles.leaderBadge}>(Leader) </span>}
-			Intersection {member.index}
-			{member.isCurrentJunction && <span className={styles.youBadge}> (You)</span>}
-			{isFollowerInLockstep && <span style={{ color: 'var(--textColorDim)', fontStyle: 'italic', marginLeft: '4rem' }}> - Synced</span>}
+			{member.isLeader && <span className={styles.leaderBadge}>({translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Leader]") ?? "leader"}) </span>}
+			{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Intersection]") ?? "Intersection"} {member.index}
+			{member.isCurrentJunction && <span className={styles.youBadge}> ({translate("UI.LABEL[C2VM.TrafficLightsEnhancement.You]") ?? "you"})</span>}
+			{isFollowerInLockstep && <span style={{ color: 'var(--textColorDim)', fontStyle: 'italic', marginLeft: '4rem' }}> - {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Synced]") ?? "synced"}</span>}
 		</div>
 	);
 
@@ -195,11 +199,11 @@ const MemberFoldout = ({
 		>
 			{isFollowerInLockstep ? (
 				<div className={styles.infoText} style={{ fontStyle: 'italic', padding: '0.5em' }}>
-					Controlled by Leader - phases are synced in lockstep
+					{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ControlledByLeader]") ?? "Controlled by leader: phases are synced in lockstep."}
 				</div>
 			) : (
 				<>
-					<div className={styles.sectionTitle}>Traffic Signal</div>
+					<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]") ?? "Traffic signal"}</div>
 					<MemberPatternSelector
 						memberIndex={member.index}
 						memberVersion={member.version}
@@ -222,12 +226,13 @@ const AddMemberButton = ({ currentGroup }: { currentGroup: MainPanelItemTrafficG
 	
 	return (
 		<Row hoverEffect={true}>
-			<Button label="Add Member" onClick={clickHandler} />
+			<Button label="AddMember" onClick={clickHandler} />
 		</Row>
 	);
 };
 
 const SelectMemberInWorldButton = ({ currentGroup }: { currentGroup: MainPanelItemTrafficGroup | undefined }) => {
+	const { translate } = useLocalization();
 	const clickHandler = () => {
 		if (currentGroup) {
 			callEnterSelectMemberMode(JSON.stringify({
@@ -239,8 +244,8 @@ const SelectMemberInWorldButton = ({ currentGroup }: { currentGroup: MainPanelIt
 	
 	return (
 		<Row hoverEffect={true}>
-			<Tooltip tooltip="Click to select a group member in the world. Only existing members can be selected (orange highlight)." direction="up">
-				<Button label="Select Member In World" onClick={clickHandler} />
+			<Tooltip tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.SelectMemberInWorld]") ?? "Click to select a group member in the world. Only existing members can be selected (orange highlight)."} direction="up">
+				<Button label="SelectMemberInWorld" onClick={clickHandler} />
 			</Tooltip>
 		</Row>
 	);
@@ -273,7 +278,7 @@ const CopyPhasesToMemberButton = ({
 	
 	return (
 		<Row hoverEffect={true}>
-			<Button label="Copy Phases to All Members" onClick={copyToAllMembers} />
+			<Button label="CopyPhasesToAllMembers" onClick={copyToAllMembers} />
 		</Row>
 	);
 };
@@ -343,8 +348,9 @@ const MemberSignalEditor = ({
 	phaseIndex: number;
 	onSignalUpdate: (junctionIndex: number, junctionVersion: number, edgeGroupMask: EdgeGroupMask) => void;
 }) => {
+	const { translate } = useLocalization();
 	if (memberEdges.length === 0) {
-		return <div className={styles.infoText} style={{marginLeft: "2rem", fontSize: "0.9em"}}>No edge data available</div>;
+		return <div className={styles.infoText} style={{marginLeft: "2rem", fontSize: "0.9em"}}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.NoEdgeDataAvailable]") ?? "No edge data available."}</div>;
 	}
 
 	const handleSignalClick = (edge: EdgeInfo, laneType: string, direction: string) => {
@@ -454,7 +460,7 @@ const MemberSignalEditor = ({
 	return (
 		<div className={styles.memberSignalEditor}>
 			<div className={styles.signalEditorHeader}>
-				<span>Phase {phaseIndex + 1} Signals</span>
+				<span>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Phase]") ?? "Phase"} {phaseIndex + 1} {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Signals]") ?? "signals"}</span>
 				<span className={styles.signalLegend}>
 					<span style={{color: "#388e3c"}}>●Go</span>
 					<span style={{color: "#f9a825"}}>●Yield</span>
@@ -467,6 +473,7 @@ const MemberSignalEditor = ({
 };
 
 export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTrafficGroup[] }) {
+	const { translate } = useLocalization();
 	const groups = props.groups;
 	const currentGroup = groups.find(g => g.isCurrentJunctionInGroup);
 	
@@ -593,32 +600,32 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 				<Scrollable ref={rightPanelScrollRef} style={{ flex: 1 }} contentStyle={{ flex: 1 }} trackStyle={{ marginLeft: "0.25em" }}>
 					{displayedGroup ? (
 						<>
-							<div className={styles.sectionTitle}>Group Info</div>
+							<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.GroupInfo]") ?? "Group info"}</div>
 							<div className={styles.statRow}>
-								<div className={styles.statLabel}>Name</div>
+								<div className={styles.statLabel}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Name]") ?? "Name"}</div>
 								<div className={styles.nameInputContainer}>
 									<TextInput
 										value={displayedGroup.name}
 										onChange={handleNameChange}
-										placeholder="Group Name"
+										placeholder={translate("UI.LABEL[C2VM.TrafficLightsEnhancement.GroupName]") ?? "Group name"}
 									/>
 								</div>
 							</div>
 							<div className={styles.statRow}>
-								<div className={styles.statLabel}>Members</div>
+								<div className={styles.statLabel}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Members]") ?? "Members"}</div>
 								<div className={styles.statValue}>{displayedGroup.memberCount}</div>
 							</div>
 							
 						
 							<Divider />
-							<div className={styles.sectionTitle}>Group Members</div>
+							<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.GroupMembers]") ?? "Group members"}</div>
 							
 							{displayedGroup.members && displayedGroup.members.length > 0 ? (
 								<>
 									
 									{displayedGroup.members.map((member) => (
 								<FocusDisabled>
-									<Tooltip tooltip="Click member name to select the junction and click the foldout to show its options" direction="right">
+									<Tooltip tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.GroupMemberFoldout]") ?? "Click a member name to select the junction, and click the foldout to show its options."} direction="right">
 										<MemberFoldout
 											key={`${member.index}-${member.version}`}
 											member={member}
@@ -632,12 +639,12 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							))}
 								</>
 							) : (
-								<div className={styles.infoText}>No members in this group</div>
+								<div className={styles.infoText}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.NoMembersInGroup]") ?? "No members in this group."}</div>
 							)}
 
 							{displayedGroup.isCoordinated && !displayedGroup.greenWaveEnabled && (
 								<div className={styles.infoText} style={{ fontStyle: 'italic', color: 'var(--accentColorNormal)' }}>
-									Lockstep Mode: Leader controls all phases
+									{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.LockstepModeLeaderControls]") ?? "Lockstep mode: leader controls all phases."}
 								</div>
 							)}
 							<AddMemberButton currentGroup={displayedGroup} />
@@ -668,7 +675,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 								return null;
 							})()}
 							<Divider />
-							<div className={styles.sectionTitle}>Group Settings</div>
+							<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.GroupSettings]") ?? "Group settings"}</div>
 							
 									<Row hoverEffect={true} className={styles.hover} data={{
 									itemType: "checkbox",
@@ -680,7 +687,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 									engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetCoordinated",
 								}}>
 									<Checkbox isChecked={displayedGroup.isCoordinated} />
-									<div className={styles.dimLabel}>Enable Coordination</div>
+									<div className={styles.dimLabel}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.EnableCoordination]") ?? "Enable coordination"}</div>
 								</Row>
 								<Row hoverEffect={true} className={styles.hover} data={{
 									itemType: "checkbox",
@@ -692,7 +699,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 								engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetGreenWaveEnabled"
 								}}>
 									<Checkbox isChecked={displayedGroup.greenWaveEnabled} />
-									<div className={styles.dimLabel}>Enable Green Wave</div>
+									<div className={styles.dimLabel}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.EnableGreenWave]") ?? "Enable green wave"}</div>
 								</Row>
 
 							{displayedGroup.greenWaveEnabled && (
@@ -711,7 +718,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 										enableTextField: true,
 										textFieldRegExp: "^\\d{0,3}$",
 										engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetGreenWaveSpeed",
-										tooltip: "Sets the target speed for the green wave coordination.  Higher speeds mean traffic lights will change earlier to accommodate faster-moving vehicles."
+										tooltip: translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.GreenWaveSpeed]") ?? "Sets the target speed for the green wave coordination. Higher speeds mean traffic lights will change earlier to accommodate faster-moving vehicles."
 									}} />
 
 									<MainPanelRange data={{
@@ -728,7 +735,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 										enableTextField: true,
 										textFieldRegExp: "^-? \\d{0,2}$",
 										engineEventName: "C2VM.TrafficLightsEnhancement.TRIGGER:CallSetGreenWaveOffset",
-										tooltip: "Adjusts the timing offset for the green wave.  Positive values delay the wave, negative values advance it.  Use this to fine-tune coordination."
+										tooltip: translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.GreenWaveOffset]") ?? "Adjusts the timing offset for the green wave. Positive values delay the wave, negative values advance it. Use this to fine-tune coordination."
 									}} />
 								</>
 							)}
@@ -736,9 +743,9 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							<Divider />
 						
 							<ItemTitle title="Statistics" />
-							<ItemTitle title="Group ID" secondaryText={`${displayedGroup.groupIndex}:${displayedGroup.groupVersion}`} dim={true} />
+							<ItemTitle title="GroupId" secondaryText={`${displayedGroup.groupIndex}:${displayedGroup.groupVersion}`} dim={true} />
 							<ItemTitle title="Coordinated" secondaryText={displayedGroup.isCoordinated ? "Yes" : "No"} dim={true} />
-							<ItemTitle title="Green Wave" secondaryText={displayedGroup.greenWaveEnabled ? "Enabled" : "Disabled"} dim={true} />
+							<ItemTitle title="GreenWave" secondaryText={displayedGroup.greenWaveEnabled ? "Enabled" : "Disabled"} dim={true} />
 							{displayedGroup.greenWaveEnabled && (
 								<>
 									<ItemTitle title="Speed" secondaryText={`${displayedGroup.greenWaveSpeed} u/s`} dim={true} />
@@ -746,22 +753,22 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 								</>
 							)}
 							{displayedGroup.isCoordinated && (
-								<ItemTitle title="Sync Mode" secondaryText={displayedGroup.greenWaveEnabled ? "Green Wave" : "Lockstep"} dim={true} />
+								<ItemTitle title="SyncMode" secondaryText={displayedGroup.greenWaveEnabled ? "GreenWave" : "Lockstep"} dim={true} />
 							)}
 							{displayedGroup.isCurrentJunctionInGroup && (
 								<>
-									<ItemTitle title="Junction Role" secondaryText={displayedGroup.isCurrentJunctionLeader ? "Leader" : "Follower"} dim={true} />
+									<ItemTitle title="JunctionRole" secondaryText={displayedGroup.isCurrentJunctionLeader ? "Leader" : "Follower"} dim={true} />
 									{!displayedGroup.isCurrentJunctionLeader && displayedGroup.distanceToLeader !== undefined && (
-										<ItemTitle title="Distance to Leader" secondaryText={`${displayedGroup.distanceToLeader.toFixed(1)}m`} dim={true} />
+										<ItemTitle title="DistanceToLeader" secondaryText={`${displayedGroup.distanceToLeader.toFixed(1)}m`} dim={true} />
 									)}
 									{displayedGroup.greenWaveEnabled && !displayedGroup.isCurrentJunctionLeader && displayedGroup.signalDelay !== undefined && displayedGroup.signalDelay !== 0 && (
-										<ItemTitle title="Signal Delay" secondaryText={`${displayedGroup.signalDelay}s`} dim={true} />
+										<ItemTitle title="SignalDelay" secondaryText={`${displayedGroup.signalDelay}s`} dim={true} />
 									)}
 								</>
 							)}
 						</>
 					) : (
-						<div className={styles.infoText}>Select a group to add this junction, or create a new group. </div>
+						<div className={styles.infoText}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SelectGroupToAddJunction]") ?? "Select a group to add this junction, or create a new group."}</div>
 					)}
 				</Scrollable>
 			</div>

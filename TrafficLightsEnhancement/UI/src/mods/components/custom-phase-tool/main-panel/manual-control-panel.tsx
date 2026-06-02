@@ -67,7 +67,7 @@ export default function ManualControlPanel(props: {phases: MainPanelItemCustomPh
     <>
       <Scrollable style={{flex: 1}} contentStyle={ItemContainerStyle}>
         <Row>
-          <Label dim={false}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ManualControl]") ?? "Manual Control"}</Label>
+          <Label dim={false}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ManualControl]") ?? "Manual control"}</Label>
         </Row>
         {props.phases.map(item => <Item data={item} key={item.index} />)}
       </Scrollable>

@@ -4,6 +4,7 @@ import { affectedEntities, callRemoveAffectedEntity, callNavigateToEntity } from
 import { migrationModalVisible } from "./migrationModalState";
 import styles from "./migration-issues-modal.module.scss";
 import { Button, Icon, Scrollable, Tooltip } from "cs2/ui";
+import { useLocalization } from "cs2/l10n";
 
 interface Entity {
 	index: number;
@@ -12,6 +13,7 @@ interface Entity {
 const plusSrc = "coui://uil/Standard/Plus.svg";
 const minusSrc = "coui://uil/Standard/Minus.svg";
 export const MigrationIssuesModal = () => {
+	const { translate } = useLocalization();
 	const isOpen = useValue(migrationModalVisible);
 	const entities = useValue(affectedEntities.binding) as Entity[];
 
@@ -43,7 +45,7 @@ export const MigrationIssuesModal = () => {
 					<Icon src="Media/Game/Icons/TrafficLights.svg" className={styles.icon} />
 				</div>
 				<div className={styles.headerTitle}>
-					<span className={styles.title}>Data Migration Issues</span>
+					<span className={styles.title}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationIssues]") ?? "Data migration issues"}</span>
 					<span className={styles.subtitle}>Traffic Lights Enhancement</span>
 				</div>
 				<div className={styles.headerActions}>
@@ -55,13 +57,11 @@ export const MigrationIssuesModal = () => {
 
 			<div className={styles.content}>
 						<div className={styles.sectionHeader}>
-							<span className={styles.sectionTitle}>Affected Intersections</span>
+							<span className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.AffectedIntersections]") ?? "Affected intersections"}</span>
 							<span className={styles.badge}>{entities.length}</span>
 						</div>
 						<p cohinline="cohinline" className={styles.sectionDescription}>
-								Use the list below to quickly access affected intersections. 
-								These intersections have been reset to default: 
-								you will need to reconfigure these intersections manually
+								{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.MigrationIssuesDescription]") ?? "Use the list below to quickly access affected intersections. These intersections have been reset to default: you will need to reconfigure these intersections manually."}
 							</p>
 						<div className={styles.listContainer}>
 							<Scrollable trackVisibility="scrollable" smooth vertical >
@@ -71,7 +71,7 @@ export const MigrationIssuesModal = () => {
 											<span className={styles.itemLabel}>{`Intersection #${entity.index}`}</span>
 										</div>
 										<div className={styles.itemActions}>
-											<Tooltip tooltip="Navigate to intersection">
+											<Tooltip tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.NavigateToIntersection]") ?? "Navigate to intersection"}>
 												<Button 
 													variant="icon"
 													className={styles.navigateButton}
@@ -80,7 +80,7 @@ export const MigrationIssuesModal = () => {
 													<Icon src="Media/Game/Icons/MapMarker.svg" />
 												</Button>
 											</Tooltip>
-											<Tooltip tooltip="Remove from list">
+											<Tooltip tooltip={translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.RemoveFromList]") ?? "Remove from list"}>
 												<Button 
 													variant="icon"
 													className={styles.removeButton}
@@ -102,7 +102,7 @@ export const MigrationIssuesModal = () => {
 					className={styles.dismissButton} 
 					onSelect={handleDismissAll}
 				>
-					Dismiss All
+					{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.DismissAll]") ?? "Dismiss all"}
 				</Button>
 			</div>
 		</div>
