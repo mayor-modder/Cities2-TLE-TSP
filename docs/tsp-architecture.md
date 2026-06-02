@@ -160,7 +160,7 @@ The toggle path is also in `UISystem.UIBIndings.cs`:
 - Disabling the last enabled TSP source removes `TransitSignalPrioritySettings` from the selected entity and marks it updated.
 - Intersections in TLE traffic groups cannot toggle local TSP. Runtime TSP is suspended for every group member, including the leader, so group coordination and green-wave timing remain authoritative. Saved TSP settings are preserved and can resume if the intersection leaves the group.
 
-Diagnostics are off by default. The mod option is `Settings.m_ShowTransitSignalPriorityDiagnostics`; `GetMainPanel()` only builds diagnostics when that option is true. `UISystem.SimulationUpdate()` also only auto-refreshes the selected panel for diagnostics when the same option is enabled.
+Diagnostics are off by default. The user-facing mod option is labeled as TLE diagnostics, while the backing setting remains `Settings.m_ShowTransitSignalPriorityDiagnostics` for compatibility. `GetMainPanel()` only builds diagnostics when that option is true. `UISystem.SimulationUpdate()` also only auto-refreshes the selected panel for diagnostics when the same option is enabled.
 
 `GetTransitSignalPriorityDiagnostics(...)` reads:
 
@@ -179,7 +179,7 @@ It returns:
 
 When diagnostics are enabled and the selected panel asks for diagnostics, `UISystem.UIBIndings.cs` can write a trace file:
 
-- file name: `C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl`,
+- file name: `C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl` (legacy name),
 - location: `Application.persistentDataPath`,
 - writer: `GetTspDiagnosticsEvents(...)` and related helpers,
 - rotation threshold: 5 MB,

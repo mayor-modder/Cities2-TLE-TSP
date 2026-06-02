@@ -8,6 +8,7 @@ This repository contains repo-local agent skills in `.agents/skills`. At the sta
 - `tle-testing-release` for focused test selection, build/toolchain expectations, and release checks.
 - `tle-code-review` for PR/branch review rounds, multi-agent reviewer coordination, review-fix verification, and GitHub review thread hygiene.
 - `tle-code-documentation` for maintainer-facing source documentation, inherited behavior audits, useful inline comments/XML docs, architecture notes, and mystery-code follow-up issues.
+- `tle-diagnostic-review` for live or archived TSP diagnostics, selected-intersection JSONL traces, crash-adjacent `Player.log` review, and explaining why TSP selected, extended, deferred, or ignored a phase.
 
 Prefer existing repo docs over memory. `README.md`, `BUILD.md`, `GUIDE.md`, `docs/tsp-architecture.md`, `docs/save-format-contract.md`, and `docs/localization-workflow.md` are the main source files future agents should read on demand.
 

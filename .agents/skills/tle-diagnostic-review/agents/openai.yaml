@@ -1,0 +1,4 @@
+interface:
+  display_name: "TLE Diagnostic Review"
+  short_description: "Review TLE TSP diagnostics and crash-adjacent logs."
+  default_prompt: "Review live or archived TLE diagnostics and explain selected-intersection behavior, anomalies, and crash evidence."
