@@ -374,7 +374,7 @@ public partial class UISystem: ExtendedUISystemBase
                 
                 m_ShowNotificationUnsaved = false;
                 ClearEdgeInfo();
-                UpdateEdgeInfo(entity);
+
                 m_SelectedEntity = entity;
                 
                 if (EntityManager.HasComponent<CustomTrafficLights>(entity))
@@ -385,6 +385,8 @@ public partial class UISystem: ExtendedUISystemBase
                 {
                     m_CustomTrafficLights = new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla);
                 }
+
+                UpdateEdgeInfo(entity);
                 
                 SetMainPanelState(MainPanelState.TrafficGroups);
             }
@@ -415,8 +417,7 @@ public partial class UISystem: ExtendedUISystemBase
 
             if (!entity.Equals(Entity.Null))
             {
-                UpdateEdgeInfo(entity);
-                SetMainPanelState(MainPanelState.Main);
+                m_SelectedEntity = entity;
 
                 if (EntityManager.HasComponent<CustomTrafficLights>(entity))
                 {
@@ -426,13 +427,18 @@ public partial class UISystem: ExtendedUISystemBase
                 {
                     m_CustomTrafficLights = new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla);
                 }
-            }
-            else if (m_MainPanelState != MainPanelState.Hidden)
-            {
-                SetMainPanelState(MainPanelState.Empty);
-            }
 
-            m_SelectedEntity = entity;
+                UpdateEdgeInfo(entity);
+                SetMainPanelState(MainPanelState.Main);
+            }
+            else
+            {
+                if (m_MainPanelState != MainPanelState.Hidden)
+                {
+                    SetMainPanelState(MainPanelState.Empty);
+                }
+                m_SelectedEntity = entity;
+            }
         }
     }
 }
