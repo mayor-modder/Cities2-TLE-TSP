@@ -11,6 +11,9 @@ public struct TrafficGroupMember : IComponentData, ISerializable
     public int m_GroupIndex;
     public float m_DistanceToGroupCenter;
     public float m_DistanceToLeader;
+    /// <summary>
+    /// Signed zero-based phase offset. Wrap before converting to a one-based signal group.
+    /// </summary>
     public int m_PhaseOffset;
     public int m_SignalDelay;
     public float m_MemberCycleTimer;

@@ -1,5 +1,6 @@
 using C2VM. TrafficLightsEnhancement. Components;
 using Game.Net;
+using TrafficLightsEnhancement.Logic.TrafficGroups;
 using TrafficLightsEnhancement.Logic.Tsp;
 using Unity.Collections;
 using Unity. Entities;
@@ -1069,8 +1070,8 @@ namespace C2VM.TrafficLightsEnhancement.Systems. TrafficLightSystems. Simulation
             {
                 // Green wave mode: use offset-based staggering
                 int signalDelay = GetSignalDelayForJunction(job, currentEntity, trafficLights.m_CurrentSignalGroup);
-                int mappedPhase = WrapPhase(group.m_MasterPhase + member.m_PhaseOffset, followerPhaseCount);
-                int mappedNext = WrapPhase(group.m_MasterNextPhase + member.m_PhaseOffset, followerPhaseCount);
+                int mappedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase((group.m_MasterPhase - 1) + member.m_PhaseOffset, followerPhaseCount) + 1;
+                int mappedNext = TrafficGroupTimingPolicy.WrapZeroBasedPhase((group.m_MasterNextPhase - 1) + member.m_PhaseOffset, followerPhaseCount) + 1;
 
                 trafficLights.m_State = group.m_MasterState;
                 trafficLights.m_CurrentSignalGroup = (byte)mappedPhase;
@@ -1099,17 +1100,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems. TrafficLightSystems. Simulation
         // TMPE-style: simple wrap of a 1-indexed phase into follower's valid range
         private static int WrapPhase(int phase, int phaseCount)
         {
-            if (phaseCount <= 0)
-            {
-                return 1;
-            }
-            if (phase <= 0)
-            {
-                return 1;
-            }
-            int wrapped = ((phase - 1) % phaseCount) + 1;
-            if (wrapped <= 0) wrapped += phaseCount;
-            return wrapped;
+            return TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount);
         }
 
         private static int GetSignalDelayForJunction(PatchedTrafficLightSystem.UpdateTrafficLightsJob job, Entity junctionEntity, byte currentSignalGroup, bool isClosingDelay = true)

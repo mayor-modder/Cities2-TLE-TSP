@@ -37,20 +37,105 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains("EntityManager.AddComponentData(memberEntity, default(Updated))", propagateSource);
     }
 
-    private static string GetTrafficGroupSystemPath()
+    [Fact]
+    public void Green_wave_paths_use_shared_timing_policy()
     {
-        string baseDirectory = AppContext.BaseDirectory;
-        string path = Path.GetFullPath(Path.Combine(
-            baseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string calculateGreenWaveSource = ExtractMethod(source, "public void CalculateGreenWaveTiming");
+        string applyCoordinationSource = ExtractMethod(source, "private void ApplyCoordination");
+        string enhancedGreenWaveSource = ExtractMethod(source, "public void CalculateEnhancedGreenWaveTiming");
+        string forceSyncSource = ExtractMethod(source, "public void ForceSyncToLeader");
+        string applyBestPhaseSource = ExtractMethod(source, "public void ApplyBestPhaseToGroup");
+        string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
+
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, phaseOffset, group.m_CycleLength)",
+            calculateGreenWaveSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength)",
+            applyCoordinationSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.CalculateZeroBasedPhaseOffset(arrivalTime, leaderCycleLength, GetPhaseCount(memberEntity))",
+            enhancedGreenWaveSource);
+        Assert.Contains(
+            "memberData.m_MemberCycleTimer = TrafficGroupTimingPolicy.WrapCyclePosition(",
+            forceSyncSource);
+        Assert.Contains(
+            "group.m_CycleTimer, memberData.m_SignalDelay, group.m_CycleLength",
+            forceSyncSource);
+        Assert.Contains(
+            "if (phaseCount <= 0)",
+            applyBestPhaseSource);
+        Assert.Contains(
+            "adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount)",
+            applyBestPhaseSource);
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
+            wrapPhaseSource);
+    }
+
+    [Fact]
+    public void Custom_state_machine_uses_shared_one_based_phase_wrap()
+    {
+        string source = File.ReadAllText(GetCustomStateMachinePath());
+        string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
+
+        Assert.Contains(
+            "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
+            wrapPhaseSource);
+    }
+
+    [Fact]
+    public void Traffic_group_member_validation_accepts_signed_phase_offsets()
+    {
+        string migrationJobsSource = File.ReadAllText(GetRepositorySourcePath(
             "TrafficLightsEnhancement",
             "Systems",
-            "TrafficGroupSystem.cs"));
+            "Serialization",
+            "TLEDataMigrationJobs.cs"));
+        string migrationSystemSource = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "Serialization",
+            "TLEDataMigrationSystem.cs"));
 
-        Assert.True(File.Exists(path), $"Could not find TrafficGroupSystem.cs at {path}");
+        Assert.DoesNotContain("member.m_PhaseOffset < 0", migrationJobsSource);
+        Assert.DoesNotContain("member.m_PhaseOffset < 0", migrationSystemSource);
+        Assert.Contains("member.m_PhaseOffset < -300 || member.m_PhaseOffset > 300", migrationJobsSource);
+        Assert.Contains("member.m_PhaseOffset < -300 || member.m_PhaseOffset > 300", migrationSystemSource);
+    }
+
+    private static string GetTrafficGroupSystemPath()
+    {
+        return GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficGroupSystem.cs");
+    }
+
+    private static string GetCustomStateMachinePath()
+    {
+        return GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "CustomStateMachine.cs");
+    }
+
+    private static string GetRepositorySourcePath(params string[] segments)
+    {
+        string baseDirectory = AppContext.BaseDirectory;
+        string[] pathSegments = new string[segments.Length + 5];
+        pathSegments[0] = baseDirectory;
+        pathSegments[1] = "..";
+        pathSegments[2] = "..";
+        pathSegments[3] = "..";
+        pathSegments[4] = "..";
+        Array.Copy(segments, 0, pathSegments, 5, segments.Length);
+        string path = Path.GetFullPath(Path.Combine(pathSegments));
+
+        Assert.True(File.Exists(path), $"Could not find source file at {path}");
         return path;
     }
 
