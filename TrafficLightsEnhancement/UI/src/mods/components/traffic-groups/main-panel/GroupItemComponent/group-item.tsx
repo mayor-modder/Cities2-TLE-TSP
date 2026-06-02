@@ -3,6 +3,7 @@ import styled from "styled-components";
 
 import { callAddJunctionToGroup, callDeleteTrafficGroup } from "bindings";
 import { MainPanelItemTrafficGroup } from "mods/general";
+import { useLocalization } from "cs2/l10n";
 
 import Delete from "../../../common/icons/delete";
 import Tune from "../../../common/icons/tune";
@@ -18,6 +19,7 @@ export default function GroupItem(props: {
 	isViewing?: boolean;
 	onView?: (groupIndex: number, groupVersion: number) => void;
 }) {
+	const { translate } = useLocalization();
 	const { data, isViewing, onView } = props;
 
 	const clickHandler = () => {
@@ -44,7 +46,7 @@ export default function GroupItem(props: {
 		onView?.(data.groupIndex, data.groupVersion);
 	};
 
-	const displayName = data.name || "Unnamed Group";
+	const displayName = data.name || (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.UnnamedGroup]") ?? "Unnamed group");
 
 	return (
 		<Tooltip tooltip={`${displayName} (${data.memberCount})`}>

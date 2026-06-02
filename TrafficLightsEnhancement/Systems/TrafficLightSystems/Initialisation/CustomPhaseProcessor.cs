@@ -83,31 +83,47 @@ public struct CustomPhaseProcessor
                 }
                 if (job.m_CarLaneData.TryGetComponent(subLane, out var nodeCarLane))
                 {
-                    job.m_CarLaneData.TryGetComponent(laneConnection.m_SourceSubLane, out var edgeCarLane);
-                    var turn = (edgeCarLane.m_Flags & CarLaneFlags.PublicOnly) != 0 ? groupMask.m_PublicCar : groupMask.m_Car;
-                    if ((nodeCarLane.m_Flags & (CarLaneFlags.TurnLeft | CarLaneFlags.GentleTurnLeft)) != 0)
+                    bool isBicycleOnlyRoadLane =
+                        NodeUtils.IsBicycleOnlyRoadLane(subLane, job.m_PrefabRefData, job.m_PrefabCarLaneData) ||
+                        NodeUtils.IsBicycleOnlyRoadLane(laneConnection.m_SourceSubLane, job.m_PrefabRefData, job.m_PrefabCarLaneData);
+
+                    if (isBicycleOnlyRoadLane)
                     {
-                        laneSignal.m_GroupMask = turn.m_Left.m_GoGroupMask;
-                        extraLaneSignal.m_YieldGroupMask = turn.m_Left.m_YieldGroupMask;
-                        extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_Left.m_YieldGroupMask;
-                    }
-                    else if ((nodeCarLane.m_Flags & (CarLaneFlags.TurnRight | CarLaneFlags.GentleTurnRight)) != 0)
-                    {
-                        laneSignal.m_GroupMask = turn.m_Right.m_GoGroupMask;
-                        extraLaneSignal.m_YieldGroupMask = turn.m_Right.m_YieldGroupMask;
-                        extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_Right.m_YieldGroupMask;
+                        ushort bicycleGoGroupMask = groupMask.m_Bicycle.m_GoGroupMask;
+                        if (bicycleGoGroupMask == 0)
+                        {
+                            bicycleGoGroupMask = groupMask.m_Car.m_Straight.m_GoGroupMask;
+                        }
+                        laneSignal.m_GroupMask = bicycleGoGroupMask;
                     }
                     else
                     {
-                        laneSignal.m_GroupMask = turn.m_Straight.m_GoGroupMask;
-                        extraLaneSignal.m_YieldGroupMask = turn.m_Straight.m_YieldGroupMask;
-                        extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_Straight.m_YieldGroupMask;
-                    }
-                    if ((nodeCarLane.m_Flags & (CarLaneFlags.UTurnLeft | CarLaneFlags.UTurnRight)) != 0)
-                    {
-                        laneSignal.m_GroupMask = turn.m_UTurn.m_GoGroupMask;
-                        extraLaneSignal.m_YieldGroupMask = turn.m_UTurn.m_YieldGroupMask;
-                        extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_UTurn.m_YieldGroupMask;
+                        job.m_CarLaneData.TryGetComponent(laneConnection.m_SourceSubLane, out var edgeCarLane);
+                        var turn = (edgeCarLane.m_Flags & CarLaneFlags.PublicOnly) != 0 ? groupMask.m_PublicCar : groupMask.m_Car;
+                        if ((nodeCarLane.m_Flags & (CarLaneFlags.TurnLeft | CarLaneFlags.GentleTurnLeft)) != 0)
+                        {
+                            laneSignal.m_GroupMask = turn.m_Left.m_GoGroupMask;
+                            extraLaneSignal.m_YieldGroupMask = turn.m_Left.m_YieldGroupMask;
+                            extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_Left.m_YieldGroupMask;
+                        }
+                        else if ((nodeCarLane.m_Flags & (CarLaneFlags.TurnRight | CarLaneFlags.GentleTurnRight)) != 0)
+                        {
+                            laneSignal.m_GroupMask = turn.m_Right.m_GoGroupMask;
+                            extraLaneSignal.m_YieldGroupMask = turn.m_Right.m_YieldGroupMask;
+                            extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_Right.m_YieldGroupMask;
+                        }
+                        else
+                        {
+                            laneSignal.m_GroupMask = turn.m_Straight.m_GoGroupMask;
+                            extraLaneSignal.m_YieldGroupMask = turn.m_Straight.m_YieldGroupMask;
+                            extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_Straight.m_YieldGroupMask;
+                        }
+                        if ((nodeCarLane.m_Flags & (CarLaneFlags.UTurnLeft | CarLaneFlags.UTurnRight)) != 0)
+                        {
+                            laneSignal.m_GroupMask = turn.m_UTurn.m_GoGroupMask;
+                            extraLaneSignal.m_YieldGroupMask = turn.m_UTurn.m_YieldGroupMask;
+                            extraLaneSignal.m_IgnorePriorityGroupMask = turn.m_UTurn.m_YieldGroupMask;
+                        }
                     }
                     laneSignal.m_Flags |= LaneSignalFlags.CanExtend;
                 }

@@ -137,7 +137,7 @@ priority more aggressive:
 
 ## Diagnostics and Soft MVP
 
-When the off-by-default TSP diagnostics option is enabled, `BusApproachIndex`
+When the off-by-default TLE diagnostics option is enabled, `BusApproachIndex`
 scans public-transport road vehicles with
 `PublicTransportVehicleData.m_TransportType == Bus` and records
 current/change-lane samples. This scan is intentionally independent of tram TSP

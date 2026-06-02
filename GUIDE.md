@@ -98,9 +98,9 @@ When an intersection is part of a traffic group, local TSP is paused for that in
 
 ## Diagnostics
 
-Most players can ignore diagnostics. They are mainly for testing, bug reports, and figuring out why a bus or tram did or did not receive priority.
+Most players can ignore diagnostics. They are mainly for testing, bug reports, checking which traffic-light options should be available at a selected junction, and figuring out why a bus or tram did or did not receive priority.
 
-To use them, enable the TSP diagnostics option in the mod settings, then select an intersection. The selected-intersection panel can show live TSP state and recent decisions. The same diagnostics feature writes JSONL trace lines with extra details for troubleshooting.
+To use them, enable the TLE diagnostics option in the mod settings, then select an intersection. The selected-intersection panel can show live traffic-signal state, expected option availability, topology details, TSP state, and recent decisions. The same diagnostics feature writes JSONL trace lines with extra details for troubleshooting.
 
 On Windows, the active trace file is written to:
 
@@ -108,7 +108,7 @@ On Windows, the active trace file is written to:
 C:\Users\<your user name>\AppData\LocalLow\Colossal Order\Cities Skylines II\C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl
 ```
 
-When the file reaches 5 MB, the mod rotates it in the same folder with a timestamped name such as `C2VM.TrafficLightsEnhancement.TspDiagnostics.20260527091530.jsonl`. It keeps the active file plus the newest three rotated files.
+The file name still uses the original `TspDiagnostics` name for compatibility with existing troubleshooting workflows. When the file reaches 5 MB, the mod rotates it in the same folder with a timestamped name such as `C2VM.TrafficLightsEnhancement.TspDiagnostics.20260527091530.jsonl`. It keeps the active file plus the newest three rotated files.
 
 ### Common Diagnostics Fields
 

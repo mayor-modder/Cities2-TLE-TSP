@@ -1777,6 +1777,7 @@ public partial class UISystem
             optionsName = options.ToString(),
             exclusivePedestrian = (pattern & CustomTrafficLights.Patterns.ExclusivePedestrian) != 0,
             smartPhaseSelection = (options & CustomTrafficLights.TrafficOptions.SmartPhaseSelection) != 0,
+            pedestrianDurationMultiplier = customTrafficLights.m_PedestrianPhaseDurationMultiplier,
             pedestrianPhaseGroupMask = customTrafficLights.m_PedestrianPhaseGroupMask,
         };
     }

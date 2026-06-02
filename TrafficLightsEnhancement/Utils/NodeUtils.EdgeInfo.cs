@@ -33,6 +33,8 @@ public partial struct NodeUtils
 
         public int m_PublicCarLaneUTurnCount;
 
+        public int m_HighwayLaneCount;
+
         public int m_TrackLaneLeftCount;
 
         public int m_TrackLaneStraightCount;
@@ -85,6 +87,8 @@ public partial struct NodeUtils
             writer.Write(m_PublicCarLaneRightCount);
             writer.PropertyName("m_PublicCarLaneUTurnCount");
             writer.Write(m_PublicCarLaneUTurnCount);
+            writer.PropertyName("m_HighwayLaneCount");
+            writer.Write(m_HighwayLaneCount);
             writer.PropertyName("m_TrackLaneLeftCount");
             writer.Write(m_TrackLaneLeftCount);
             writer.PropertyName("m_TrackLaneStraightCount");

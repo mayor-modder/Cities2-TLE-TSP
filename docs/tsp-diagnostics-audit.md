@@ -1,18 +1,24 @@
-# TSP Diagnostics Cost And Trace Audit
+# Diagnostics Cost And Trace Audit
 
-This document records the diagnostics audit for Transit Signal Priority (TSP).
+This document records the diagnostics audit for Traffic Lights Enhancement's
+selected-intersection diagnostics, with special attention to Transit Signal
+Priority (TSP) because TSP still owns the expensive runtime probes and most of
+the trace rows.
 
 ## Summary
 
 The selected-intersection diagnostics UI and JSONL trace writer are opt-in and
-off by default. When enabled, they are useful for live troubleshooting, but they
+off by default. When enabled, they are useful for live troubleshooting of
+traffic-signal state, option-gating expectations, and TSP decisions, but they
 also make selected-panel refresh broader than normal gameplay needs. The runtime
 tram approach index is gated separately so disabled, grouped, public-car-only,
 and stale/non-traffic-light settings do not trigger rail transit scans.
 
 ## UI Diagnostics Gating
 
-The user-facing setting is `Settings.m_ShowTransitSignalPriorityDiagnostics`.
+The user-facing setting is labeled as TLE diagnostics. The backing setting name
+is still `Settings.m_ShowTransitSignalPriorityDiagnostics` so existing local
+settings remain compatible.
 Defaults:
 
 - `false` in settings defaults
@@ -20,17 +26,20 @@ Defaults:
 - selected-panel auto-refresh for diagnostics is only active when the option is
   enabled
 
-When enabled, diagnostics are built for the selected main-panel entity. If the
-selected intersection has no TSP settings component, the UI still builds a
-disabled/default diagnostics view. That is useful when debugging why a selected
-intersection has no request. The visible recent-event list and JSONL trace only
-record meaningful TSP activity, plus one transition when activity ends.
+When enabled, diagnostics are built for the selected main-panel entity. The
+selected-junction trace can include general topology and expected UI option
+state even when no TSP request is active. If the selected intersection has no
+TSP settings component, the UI still builds a disabled/default TSP diagnostics
+view. That is useful when debugging why a selected intersection has no request.
+The visible recent-event list and JSONL trace only record meaningful TSP
+activity, selected topology or option-state changes, plus one transition when
+activity ends.
 
 ## JSONL Trace Behavior
 
 The trace file is a debugging artifact, not gameplay state.
 
-- File name: `C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl`
+- File name: `C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl` (legacy name)
 - Location: `Application.persistentDataPath`
 - Write path: selected-panel diagnostics refresh
 - Rotation threshold: 5 MB
@@ -42,7 +51,9 @@ Trace writes are lock-protected, exception-handled, and bounded by rotation plus
 retention. They are still synchronous UI-triggered file I/O, so diagnostics
 should remain opt-in. A separate "write JSONL trace" setting is not needed yet;
 the current trace follows the selected diagnostics event filter instead of
-logging every selected-panel signal change.
+logging every selected-panel signal change. The file name remains unchanged for
+now so existing playtest instructions and diagnostic collection scripts keep
+working.
 
 ## Runtime Debug Components
 
