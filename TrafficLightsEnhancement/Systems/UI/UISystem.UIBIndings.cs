@@ -1331,14 +1331,16 @@ public partial class UISystem
             hasDecisionTrace,
             decisionTrace);
 
+        bool isNewSelection = false;
         if (!m_TspDiagnosticsEvents.TryGetValue(entity, out TspDiagnosticsHistory history))
         {
             history = new TspDiagnosticsHistory();
             m_TspDiagnosticsEvents[entity] = history;
+            isNewSelection = true;
         }
 
         bool signatureChanged = history.LastSignature != signature;
-        bool shouldRecordEvent = signatureChanged && ShouldRecordTspDiagnosticsEvent(history, hasRuntimeDebug || hasBusApproachDebug || hasDecisionTrace);
+        bool shouldRecordEvent = isNewSelection || (signatureChanged && ShouldRecordTspDiagnosticsEvent(history, hasRuntimeDebug || hasBusApproachDebug || hasDecisionTrace));
         if (signatureChanged)
         {
             history.LastSignature = signature;
@@ -1359,6 +1361,11 @@ public partial class UISystem
                 decisionTrace,
                 selectedJunction);
             RecordTspDiagnosticsEvent(history, summary);
+
+            if (isNewSelection)
+            {
+                Mod.log.Info($"[TLE] Wrote initial TSP diagnostics trace for newly selected junction {entity.Index}:{entity.Version} (Simulation frame {m_SimulationSystem.frameIndex}).");
+            }
         }
 
         var events = new ArrayList();
@@ -1554,7 +1561,7 @@ public partial class UISystem
         }
         catch (Exception ex)
         {
-            Mod.log.Warn($"Failed to write TSP diagnostics trace: {ex.Message}");
+            Mod.log.Error(ex, $"[TLE] Failed to write TSP diagnostics trace for entity {entity.Index}:{entity.Version}: {ex.Message}");
         }
     }
 
