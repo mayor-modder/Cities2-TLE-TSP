@@ -500,6 +500,43 @@ test("backend trace writes follow selected diagnostics event filtering", async (
   assert.ok(eventsSource.indexOf("bool shouldRecordEvent") < eventsSource.indexOf("RecordTspDiagnosticsEvent"));
 });
 
+test("selecting a junction for the first time forces an initial diagnostics trace write", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
+  const eventsEnd = uiBindings.indexOf("private void PruneTspDiagnosticsEvents", eventsStart);
+  const eventsSource = uiBindings.slice(eventsStart, eventsEnd);
+
+  assert.notEqual(eventsStart, -1);
+  assert.notEqual(eventsEnd, -1);
+  // A junction that is not yet tracked must be flagged as a new selection so the first
+  // selection always writes an initial trace, even when the junction is idle (issue #114).
+  assert.match(eventsSource, /if\s*\(\s*!m_TspDiagnosticsEvents\.TryGetValue\(\s*entity,\s*out\s+TspDiagnosticsHistory\s+history\s*\)\s*\)/);
+  assert.match(eventsSource, /m_TspDiagnosticsEvents\[entity\]\s*=\s*history;\s*isNewSelection\s*=\s*true;/);
+});
+
+test("diagnostics trace logging is limited to the initial selection write", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+
+  // The forced initial write logs exactly once, gated on the new-selection flag, so live QA
+  // can confirm a selection change triggered a write without spamming Player.log per event.
+  const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
+  const eventsEnd = uiBindings.indexOf("private void PruneTspDiagnosticsEvents", eventsStart);
+  const eventsSource = uiBindings.slice(eventsStart, eventsEnd);
+  assert.notEqual(eventsStart, -1);
+  assert.notEqual(eventsEnd, -1);
+  assert.match(eventsSource, /if\s*\(\s*isNewSelection\s*\)\s*{\s*Mod\.log\.Info\(/);
+
+  // The per-event trace writer must not log on every successful write (avoids Player.log spam),
+  // but must still log failures with the exception-first Error overload.
+  const writeStart = uiBindings.indexOf("private void WriteTspDiagnosticsTraceEvent");
+  const writeEnd = uiBindings.indexOf("private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot", writeStart);
+  const writeSource = uiBindings.slice(writeStart, writeEnd);
+  assert.notEqual(writeStart, -1);
+  assert.notEqual(writeEnd, -1);
+  assert.doesNotMatch(writeSource, /Mod\.log\.Info\(/);
+  assert.match(writeSource, /Mod\.log\.Error\(\s*ex,/);
+});
+
 test("static locale provides descriptions for visible mod options", async () => {
   const locale = JSON.parse(await repoSource("Locale.json"));
   const optionPrefix =

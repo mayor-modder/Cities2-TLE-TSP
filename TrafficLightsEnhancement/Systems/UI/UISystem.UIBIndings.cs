@@ -1361,6 +1361,11 @@ public partial class UISystem
                 decisionTrace,
                 selectedJunction);
             RecordTspDiagnosticsEvent(history, summary);
+
+            if (isNewSelection)
+            {
+                Mod.log.Info($"[TLE] Wrote initial TSP diagnostics trace for newly selected junction {entity.Index}:{entity.Version} (Simulation frame {m_SimulationSystem.frameIndex}).");
+            }
         }
 
         var events = new ArrayList();
@@ -1553,7 +1558,6 @@ public partial class UISystem
             });
 
             AppendTspDiagnosticsTraceLine(path, line);
-            Mod.log.Info($"[TLE] Wrote TSP diagnostics trace event for entity {entity.Index}:{entity.Version} (Simulation frame {m_SimulationSystem.frameIndex})");
         }
         catch (Exception ex)
         {
