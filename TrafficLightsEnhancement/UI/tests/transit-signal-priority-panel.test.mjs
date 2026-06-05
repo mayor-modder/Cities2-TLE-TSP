@@ -416,6 +416,11 @@ test("backend trace includes selected junction topology and expected UI state", 
   assert.match(uiBindings, /hasTrackTurnLanes\s*=\s*HasTrackTurnLanes/);
   assert.match(uiBindings, /isQualifyingFourWay\s*=\s*IsQualifyingFourWay/);
   assert.match(uiBindings, /isComplexJunction\s*=\s*IsComplexJunction/);
+  assert.match(uiBindings, /trainTrackCount\s*=\s*TrainTrackCount/);
+  assert.match(uiBindings, /trackLaneLeftCount\s*=\s*TrackLaneLeftCount/);
+  assert.match(uiBindings, /trackLaneStraightCount\s*=\s*TrackLaneStraightCount/);
+  assert.match(uiBindings, /trackLaneRightCount\s*=\s*TrackLaneRightCount/);
+  assert.match(uiBindings, /totalTrackLaneCount\s*=\s*TotalTrackLaneCount/);
   assert.match(uiBindings, /splitPhasingSupported\s*=\s*SplitPhasingSupported/);
   assert.match(uiBindings, /protectedCentreTurnSupported\s*=\s*ProtectedCentreTurnSupported/);
   assert.match(uiBindings, /splitPhasingProtectedLeftSupported\s*=\s*SplitPhasingProtectedLeftSupported/);
@@ -426,6 +431,21 @@ test("backend trace includes selected junction topology and expected UI state", 
   assert.match(uiBindings, /pedestrianDurationAdjustment\s*=\s*PedestrianDurationAdjustment\.ToTraceObject\(\)/);
   assert.match(uiBindings, /tram\s*=\s*TramTransitPriority\.ToTraceObject\(\)/);
   assert.match(uiBindings, /bus\s*=\s*BusTransitPriority\.ToTraceObject\(\)/);
+});
+
+test("backend diagnostics snapshot exposes expected fields", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const snapshotStart = uiBindings.indexOf("private sealed class SelectedJunctionDiagnosticsSnapshot");
+  const snapshotEnd = uiBindings.indexOf("public ArrayList AvailablePatterns", snapshotStart);
+  const snapshotSource = uiBindings.slice(snapshotStart, snapshotEnd);
+
+  assert.notEqual(snapshotStart, -1);
+  assert.notEqual(snapshotEnd, -1);
+  assert.match(snapshotSource, /public\s+int\s+TrainTrackCount;/);
+  assert.match(snapshotSource, /public\s+int\s+TrackLaneLeftCount;/);
+  assert.match(snapshotSource, /public\s+int\s+TrackLaneStraightCount;/);
+  assert.match(snapshotSource, /public\s+int\s+TrackLaneRightCount;/);
+  assert.match(snapshotSource, /public\s+int\s+TotalTrackLaneCount;/);
 });
 
 test("backend distinguishes selected junction option support from current visibility", async () => {

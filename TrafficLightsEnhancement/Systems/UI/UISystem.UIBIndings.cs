@@ -56,6 +56,11 @@ public partial class UISystem
         public bool HasTrackTurnLanes;
         public bool IsQualifyingFourWay;
         public bool IsComplexJunction;
+        public int TrainTrackCount;
+        public int TrackLaneLeftCount;
+        public int TrackLaneStraightCount;
+        public int TrackLaneRightCount;
+        public int TotalTrackLaneCount;
         public ArrayList EdgeSummaries = [];
         public bool SplitPhasingSupported;
         public bool ProtectedCentreTurnSupported;
@@ -94,6 +99,11 @@ public partial class UISystem
                 hasTrackTurnLanes = HasTrackTurnLanes,
                 isQualifyingFourWay = IsQualifyingFourWay,
                 isComplexJunction = IsComplexJunction,
+                trainTrackCount = TrainTrackCount,
+                trackLaneLeftCount = TrackLaneLeftCount,
+                trackLaneStraightCount = TrackLaneStraightCount,
+                trackLaneRightCount = TrackLaneRightCount,
+                totalTrackLaneCount = TotalTrackLaneCount,
                 edges = EdgeSummaries,
             },
             patterns = new
@@ -1592,6 +1602,19 @@ public partial class UISystem
         string tramStatusLabel = isTrafficGroupMember ? "TramTransitPriorityGroupedUnavailable" : null;
         string busStatusLabel = isTrafficGroupMember ? "BusTransitPriorityGroupedUnavailable" : null;
 
+        int trainTrackCount = 0;
+        int trackLaneLeftCount = 0;
+        int trackLaneStraightCount = 0;
+        int trackLaneRightCount = 0;
+        foreach (var edge in edgeInfoArray)
+        {
+            trainTrackCount += edge.m_TrainTrackCount;
+            trackLaneLeftCount += edge.m_TrackLaneLeftCount;
+            trackLaneStraightCount += edge.m_TrackLaneStraightCount;
+            trackLaneRightCount += edge.m_TrackLaneRightCount;
+        }
+        int totalTrackLaneCount = trackLaneLeftCount + trackLaneStraightCount + trackLaneRightCount;
+
         return new SelectedJunctionDiagnosticsSnapshot
         {
             ConnectedEdgeCount = edgeInfoArray.Length,
@@ -1599,6 +1622,11 @@ public partial class UISystem
             HasTrackTurnLanes = includeDiagnosticsDetails && HasTrackTurnLanes(edgeInfoArray),
             IsQualifyingFourWay = includeDiagnosticsDetails && IsQualifyingFourWay(edgeInfoArray),
             IsComplexJunction = edgeInfoArray.Length > 7,
+            TrainTrackCount = trainTrackCount,
+            TrackLaneLeftCount = trackLaneLeftCount,
+            TrackLaneStraightCount = trackLaneStraightCount,
+            TrackLaneRightCount = trackLaneRightCount,
+            TotalTrackLaneCount = totalTrackLaneCount,
             EdgeSummaries = includeDiagnosticsDetails ? GetSelectedJunctionEdgeSummaries(edgeInfoArray) : [],
             SplitPhasingSupported = splitPhasingSupported,
             ProtectedCentreTurnSupported = protectedCentreTurnSupported,
@@ -1991,12 +2019,17 @@ public partial class UISystem
     {
         return string.Format(
             CultureInfo.InvariantCulture,
-            "edges={0}, train={1}, track turns={2}, four-way={3}, complex={4}",
+            "edges={0}, train={1}, track turns={2}, four-way={3}, complex={4}, trainTrackCount={5}, trackLaneStraightCount={6}, trackLaneLeftCount={7}, trackLaneRightCount={8}, totalTrackLaneCount={9}",
             selectedJunction.ConnectedEdgeCount,
             FormatYesNo(selectedJunction.HasTrainTrack),
             FormatYesNo(selectedJunction.HasTrackTurnLanes),
             FormatYesNo(selectedJunction.IsQualifyingFourWay),
-            FormatYesNo(selectedJunction.IsComplexJunction));
+            FormatYesNo(selectedJunction.IsComplexJunction),
+            selectedJunction.TrainTrackCount,
+            selectedJunction.TrackLaneStraightCount,
+            selectedJunction.TrackLaneLeftCount,
+            selectedJunction.TrackLaneRightCount,
+            selectedJunction.TotalTrackLaneCount);
     }
 
     private static string FormatAvailablePatterns(IEnumerable<SelectedJunctionPatternSnapshot> availablePatterns)
