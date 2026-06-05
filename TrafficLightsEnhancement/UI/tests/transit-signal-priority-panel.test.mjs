@@ -415,6 +415,7 @@ test("backend trace includes selected junction topology and expected UI state", 
   assert.match(uiBindings, /hasTrainTrack\s*=\s*HasTrainTrack/);
   assert.match(uiBindings, /hasTrackTurnLanes\s*=\s*HasTrackTurnLanes/);
   assert.match(uiBindings, /isQualifyingFourWay\s*=\s*IsQualifyingFourWay/);
+  assert.match(uiBindings, /isComplexJunction\s*=\s*IsComplexJunction/);
   assert.match(uiBindings, /trainTrackCount\s*=\s*TrainTrackCount/);
   assert.match(uiBindings, /trackLaneLeftCount\s*=\s*TrackLaneLeftCount/);
   assert.match(uiBindings, /trackLaneStraightCount\s*=\s*TrackLaneStraightCount/);
