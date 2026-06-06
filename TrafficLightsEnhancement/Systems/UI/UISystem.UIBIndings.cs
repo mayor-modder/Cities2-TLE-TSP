@@ -61,6 +61,8 @@ public partial class UISystem
         public int TrackLaneStraightCount;
         public int TrackLaneRightCount;
         public int TotalTrackLaneCount;
+        public bool HasCarLane;
+        public int TotalCarLaneCount;
         public ArrayList EdgeSummaries = [];
         public bool SplitPhasingSupported;
         public bool ProtectedCentreTurnSupported;
@@ -104,6 +106,8 @@ public partial class UISystem
                 trackLaneStraightCount = TrackLaneStraightCount,
                 trackLaneRightCount = TrackLaneRightCount,
                 totalTrackLaneCount = TotalTrackLaneCount,
+                hasCarLane = HasCarLane,
+                totalCarLaneCount = TotalCarLaneCount,
                 edges = EdgeSummaries,
             },
             patterns = new
@@ -1593,11 +1597,16 @@ public partial class UISystem
         bool splitPhasingProtectedLeftSupported = PredefinedPatternsProcessor.IsValidPattern(edgeInfoArray, CustomTrafficLights.Patterns.SplitPhasingProtectedLeft);
         bool extraOptionsSupported = !hasTrainTrack && edgeInfoArray.Length <= 7;
         bool extraOptionsVisible = extraOptionsSupported && patternOnly < (uint)CustomTrafficLights.Patterns.ModDefault;
+        bool hasCarLane = PredefinedPatternsProcessor.HasCarLane(edgeInfoArray);
+        bool vehicleTurnOptionsVisible = PredefinedPatternsProcessor.IsVehicleTurnOptionVisible(extraOptionsVisible, hasCarLane);
         bool hasExclusivePedestrian = extraOptionsVisible && (selectedPattern & (uint)CustomTrafficLights.Patterns.ExclusivePedestrian) != 0;
         string extraOptionsReason = GetExtraOptionsReason(patternOnly, hasTrainTrack, edgeInfoArray.Length);
-        string giveWayToOncomingVehiclesReason = extraOptionsVisible
-            ? (patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla ? "Visible" : "Pattern mode")
-            : extraOptionsReason;
+        string vehicleTurnOptionsReason = !extraOptionsVisible
+            ? extraOptionsReason
+            : (hasCarLane ? "Visible" : "No road vehicle lanes");
+        string giveWayToOncomingVehiclesReason = !vehicleTurnOptionsVisible
+            ? vehicleTurnOptionsReason
+            : (patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla ? "Visible" : "Pattern mode");
         bool isEditable = !isTrafficGroupMember;
         string tramStatusLabel = isTrafficGroupMember ? "TramTransitPriorityGroupedUnavailable" : null;
         string busStatusLabel = isTrafficGroupMember ? "BusTransitPriorityGroupedUnavailable" : null;
@@ -1606,12 +1615,17 @@ public partial class UISystem
         int trackLaneLeftCount = 0;
         int trackLaneStraightCount = 0;
         int trackLaneRightCount = 0;
+        int totalCarLaneCount = 0;
         foreach (var edge in edgeInfoArray)
         {
             trainTrackCount += edge.m_TrainTrackCount;
             trackLaneLeftCount += edge.m_TrackLaneLeftCount;
             trackLaneStraightCount += edge.m_TrackLaneStraightCount;
             trackLaneRightCount += edge.m_TrackLaneRightCount;
+            totalCarLaneCount += edge.m_CarLaneLeftCount + edge.m_CarLaneStraightCount
+                + edge.m_CarLaneRightCount + edge.m_CarLaneUTurnCount
+                + edge.m_PublicCarLaneLeftCount + edge.m_PublicCarLaneStraightCount
+                + edge.m_PublicCarLaneRightCount + edge.m_PublicCarLaneUTurnCount;
         }
         int totalTrackLaneCount = trackLaneLeftCount + trackLaneStraightCount + trackLaneRightCount;
 
@@ -1627,6 +1641,8 @@ public partial class UISystem
             TrackLaneStraightCount = trackLaneStraightCount,
             TrackLaneRightCount = trackLaneRightCount,
             TotalTrackLaneCount = totalTrackLaneCount,
+            HasCarLane = hasCarLane,
+            TotalCarLaneCount = totalCarLaneCount,
             EdgeSummaries = includeDiagnosticsDetails ? GetSelectedJunctionEdgeSummaries(edgeInfoArray) : [],
             SplitPhasingSupported = splitPhasingSupported,
             ProtectedCentreTurnSupported = protectedCentreTurnSupported,
@@ -1641,13 +1657,13 @@ public partial class UISystem
             TurningOnRed = new SelectedJunctionOptionSnapshot(
                 "AllowTurningOnRed",
                 ((uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn).ToString(CultureInfo.InvariantCulture),
-                extraOptionsVisible,
+                vehicleTurnOptionsVisible,
                 (selectedPattern & (uint)CustomTrafficLights.Patterns.AlwaysGreenKerbsideTurn) != 0,
-                extraOptionsVisible ? "Visible" : extraOptionsReason),
+                vehicleTurnOptionsReason),
             GiveWayToOncomingVehicles = new SelectedJunctionOptionSnapshot(
                 "GiveWayToOncomingVehicles",
                 ((uint)CustomTrafficLights.Patterns.CentreTurnGiveWay).ToString(CultureInfo.InvariantCulture),
-                extraOptionsVisible && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla,
+                vehicleTurnOptionsVisible && patternOnly == (uint)CustomTrafficLights.Patterns.Vanilla,
                 (selectedPattern & (uint)CustomTrafficLights.Patterns.CentreTurnGiveWay) != 0,
                 giveWayToOncomingVehiclesReason),
             ExclusivePedestrianPhase = new SelectedJunctionOptionSnapshot(

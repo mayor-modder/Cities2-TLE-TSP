@@ -45,6 +45,33 @@ public class PredefinedPatternsProcessor
         return !hasHighwayLane;
     }
 
+    // Turning-on-red and give-way-to-oncoming govern road-vehicle behaviour, so they only make
+    // sense where road vehicle lanes exist. Tram-only junctions (track lanes, no car lanes) clear
+    // the extra-options gate but have no vehicles to apply these to, so hide them there.
+    public static bool IsVehicleTurnOptionVisible(bool extraOptionsVisible, bool hasCarLane)
+    {
+        return extraOptionsVisible && hasCarLane;
+    }
+
+    public static bool HasCarLane(NativeArray<EdgeInfo> edgeInfoArray)
+    {
+        foreach (var edgeInfo in edgeInfoArray)
+        {
+            if (edgeInfo.m_CarLaneLeftCount > 0
+                || edgeInfo.m_CarLaneStraightCount > 0
+                || edgeInfo.m_CarLaneRightCount > 0
+                || edgeInfo.m_CarLaneUTurnCount > 0
+                || edgeInfo.m_PublicCarLaneLeftCount > 0
+                || edgeInfo.m_PublicCarLaneStraightCount > 0
+                || edgeInfo.m_PublicCarLaneRightCount > 0
+                || edgeInfo.m_PublicCarLaneUTurnCount > 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static bool HasHighwayLane(NativeArray<EdgeInfo> edgeInfoArray)
     {
         foreach (var edgeInfo in edgeInfoArray)
