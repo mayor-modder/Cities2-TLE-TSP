@@ -36,7 +36,7 @@ Key files:
 Important boundary conventions:
 
 - Signal groups in game/ECS data are 1-based. Pure phase indexes are usually 0-based. `TspOverrideEngine.ApplySignalGroupOverride()` is the bridge between those conventions.
-- `TspSource.PublicCar` and `m_AllowPublicCarRequests` power the soft Transit Signal Priority for buses MVP. Bus requests are off by default, have lower priority than tram requests, and do not use aggressive tram-style minimum-green shortening.
+- `TspSource.PublicCar` and `m_AllowPublicCarRequests` power Transit Signal Priority for buses. Bus requests are off by default and have lower priority than tram requests. Buses detected on a marked (PublicOnly) bus lane carry `OnDedicatedLane = true` on both the `TspRequest`/`TspSignalRequest` value types and the transient runtime components `TransitSignalPriorityRequest` and `TransitSignalPriorityDecisionTrace`; these requests receive tram-style aggressive conflicting-group preemption (minimum green on a conflicting phase drops to 1 tick). Buses on mixed lanes carry `OnDedicatedLane = false` and keep the soft behavior (hold or select at normal transition points only).
 - Request horizon value `120` is treated as a legacy default and normalized to `10`. Changing that behavior affects compatibility with previously saved TSP settings.
 
 ## Saved Settings And Runtime Components
@@ -126,7 +126,7 @@ Normal signal selection is handled in [`PatchedTrafficLightSystem.cs`](../Traffi
 
 - `UpdateTrafficLightState(...)` receives settings and active request state.
 - `GetNextSignalGroup(...)` computes the base group through `GetNextSignalGroupWithoutTsp(...)`.
-- `TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(...)` can shorten minimum green for a conflicting track request.
+- `TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(...)` can shorten minimum green for a conflicting request. Aggressive preemption fires for `TspSource.Track` requests and for `TspSource.PublicCar` requests whose `OnDedicatedLane` flag is set; the underlying predicate is `IsAggressivePreemptionToDifferentGroup` (renamed from `IsTrackPreemptionToDifferentGroup`). Mixed-lane bus requests (`OnDedicatedLane = false`) are not eligible.
 - `TspPreemptionPolicy.ShouldApplyTargetGroupSelection(...)` allows eligible tram or bus requests to select their target group at normal transition points when pedestrian protection does not block the change.
 - `TspOverrideEngine.ApplySignalGroupOverride(...)` changes the selected group or reports current-group extension.
 - `TryApplyTspCurrentGroupHold(...)` and `TspPreemptionPolicy.ShouldHoldCurrentGroup(...)` hold a compatible current group while the request remains valid and the max extension limit has not been reached.
@@ -204,7 +204,7 @@ UI-facing behavior also has Node tests in [`TrafficLightsEnhancement/UI/tests/tr
 
 ## Caveats For Future Work
 
-- Bus priority is a conservative release-ready MVP. It can hold or select bus-serving groups at normal transition points. Stop relation, lane changes, and queues remain refinement areas before any more aggressive behavior is considered.
+- Buses on marked (PublicOnly) bus lanes now receive tram-style aggressive conflicting-group preemption via the `OnDedicatedLane` flag. Mixed-lane buses keep the soft behavior (hold or select at normal transition points). Stop relation, lane changes, and queues remain conservative refinement areas for future work on both bus categories.
 - Vehicle-phase fairness prevents repeated transit priority from starving the
   same normal signal group. When TSP skips the base group, that group is
   recorded as pending; when it comes due again, TSP defers once so the skipped

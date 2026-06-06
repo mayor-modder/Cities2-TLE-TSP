@@ -133,10 +133,18 @@ treated as save data:
 
 - `TrafficGroup.m_LastSyncTime`, `m_CycleTimer`, and all `m_Master*` clock
   fields. They are recomputed by group synchronization at runtime.
-- `TransitSignalPriorityRequest`, the latched current request state.
+- `TransitSignalPriorityRequest`, the latched current request state. Includes
+  `m_OnDedicatedLane`, which records whether the active bus request was detected
+  on a marked (PublicOnly) bus lane. This field is derived fresh each tick from
+  `CarLaneFlags.PublicOnly` and is never written to the save payload.
 - `TransitSignalPriorityRuntimeDebugInfo`, selected-intersection probe and
   candidate diagnostics.
-- `TransitSignalPriorityDecisionTrace`, final TSP decision diagnostics.
+- `TransitSignalPriorityDecisionTrace`, final TSP decision diagnostics. Includes
+  `m_OnDedicatedLane` for the "Bus priority mode" diagnostic row; also transient.
+- The aggressive-bus-lane feature (dedicated-lane buses receiving tram-style
+  1-tick minimum green on conflicting phases) is entirely runtime-derived. It
+  introduces no new saved fields, no payload version bump, and requires no
+  migration. `TransitSignalPrioritySettings` payload version `2` is unchanged.
 - `TrafficGroupTspDebugState`, group-level TSP diagnostics.
 - JSONL TSP diagnostics files under `Application.persistentDataPath`; these are
   opt-in debugging artifacts, not save data.
