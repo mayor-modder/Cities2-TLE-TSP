@@ -38,6 +38,40 @@ public sealed class UISystemSourceTests
         Assert.Contains("private bool HasTramTrack(NativeArray<NodeUtils.EdgeInfo> edgeInfoArray)", source);
     }
 
+    [Fact]
+    public void GetSelectedJunctionDiagnosticsSnapshot_gates_bus_tsp_visibility_by_car_lane_presence()
+    {
+        string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
+        string getSnapshotSource = ExtractMethod(source, "private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+
+        Assert.Contains("BusTransitPriority = new SelectedJunctionTspControlSnapshot(", getSnapshotSource);
+        Assert.Contains("isVisible: hasCarLane,", getSnapshotSource);
+    }
+
+    [Fact]
+    public void GetSelectedJunctionDiagnosticsSnapshot_gates_vehicle_turn_options_by_car_lane_presence()
+    {
+        string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
+        string getSnapshotSource = ExtractMethod(source, "private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+
+        Assert.Contains("bool hasCarLane = PredefinedPatternsProcessor.HasCarLane(edgeInfoArray);", getSnapshotSource);
+        Assert.Contains(
+            "bool vehicleTurnOptionsVisible = PredefinedPatternsProcessor.IsVehicleTurnOptionVisible(extraOptionsVisible, hasCarLane);",
+            getSnapshotSource);
+    }
+
+    [Fact]
+    public void SelectedJunctionDiagnosticsSnapshot_exposes_car_lane_counts_to_prove_the_gate()
+    {
+        string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
+        string getSnapshotSource = ExtractMethod(source, "private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+
+        Assert.Contains("HasCarLane = hasCarLane,", getSnapshotSource);
+        Assert.Contains("TotalCarLaneCount = totalCarLaneCount,", getSnapshotSource);
+        Assert.Contains("hasCarLane = HasCarLane,", source);
+        Assert.Contains("totalCarLaneCount = TotalCarLaneCount,", source);
+    }
+
     private static string GetRepoPath(params string[] segments)
     {
         string path = AppContext.BaseDirectory;

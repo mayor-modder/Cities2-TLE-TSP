@@ -57,6 +57,8 @@ These options appear when the selected mode and intersection layout support them
 | Exclusive Pedestrian Phase | Adds a separate pedestrian phase where vehicle traffic stops while crossings are served. |
 | Pedestrian Phase Duration | Changes how long the exclusive pedestrian phase lasts. Treat this as a multiplier: larger values mean a longer pedestrian green. Pedestrian lights do not automatically extend when more pedestrians are waiting. |
 
+Allow Turning on Red and Give Way to Oncoming Vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The Exclusive Pedestrian Phase and its duration still appear there, since pedestrians may cross the tram tracks.
+
 > [!WARNING]
 > Some pedestrian pathfinding problems appear to come from the game's node or pathfinding behavior. This mod can control signal phases, but it cannot fix every pedestrian routing issue at unusual junctions.
 

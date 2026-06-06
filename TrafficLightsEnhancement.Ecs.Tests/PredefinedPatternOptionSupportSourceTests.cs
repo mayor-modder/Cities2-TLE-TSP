@@ -79,4 +79,19 @@ public sealed class PredefinedPatternOptionSupportSourceTests
 
         Assert.False(actual);
     }
+
+    [Theory]
+    [InlineData(true, true, true)]    // gate open and road vehicle lanes present -> visible
+    [InlineData(true, false, false)]  // tram-only junction: gate open but no car lanes -> hidden
+    [InlineData(false, true, false)]  // gate closed -> hidden regardless of car lanes
+    [InlineData(false, false, false)]
+    public void Vehicle_turn_options_require_road_vehicle_lanes(
+        bool extraOptionsVisible,
+        bool hasCarLane,
+        bool expected)
+    {
+        bool actual = PredefinedPatternsProcessor.IsVehicleTurnOptionVisible(extraOptionsVisible, hasCarLane);
+
+        Assert.Equal(expected, actual);
+    }
 }
