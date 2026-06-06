@@ -54,7 +54,8 @@ public static class TspPreemptionPolicy
                 fresh.Source,
                 fresh.Strength,
                 requestHorizonTicks,
-                fresh.ExtendCurrentPhase);
+                fresh.ExtendCurrentPhase,
+                fresh.OnDedicatedLane);
             return true;
         }
 
@@ -93,7 +94,8 @@ public static class TspPreemptionPolicy
             request.Source,
             request.Strength,
             request.ExpiryTimer - 1,
-            request.ExtendCurrentPhase);
+            request.ExtendCurrentPhase,
+            request.OnDedicatedLane);
     }
 
     public static bool ShouldHoldCurrentGroup(
