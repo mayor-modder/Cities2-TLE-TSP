@@ -1,6 +1,6 @@
 ---
 name: tle-code-review
-description: "Use when reviewing a TLE Extended pull request, branch, commit range, or review-fix follow-up; coordinating internal, Claude Code, Gemini CLI, or other available reviewer agents; or verifying that review fixes use test-first discipline."
+description: "Use when reviewing a TLE Extended pull request, branch, commit range, or review-fix follow-up; coordinating internal, Claude Code, Codex, Antigravity, or other available reviewer agents; or verifying that review fixes use test-first discipline."
 ---
 
 # TLE Code Review
@@ -23,14 +23,43 @@ Reviews should prioritize behavior, compatibility, missing tests, serialization 
 3. Run or confirm focused verification:
    - Use `tle-testing-release` to choose commands.
    - If checks were already run, record exact command names and results.
-4. Offer multi-agent review for broad or release-facing changes.
+4. Offer multi-agent review for broad or release-facing changes (see "Multi-Agent Review Offer").
    - Use an internal code-review subagent when available and the user permits subagents.
-   - Discover external CLIs with shell commands such as `where.exe claude`, `where.exe gemini`, `claude --version`, and `gemini.cmd --version`.
-   - Run external review commands read-only. Prefer regular Claude Code or Gemini CLI review over paid/limited hosted review products unless the user explicitly asks.
+   - Before opt-in, detect external reviewers with PATH lookup only: `Get-Command codex`, `Get-Command claude`, `Get-Command agy`. Do not run any external CLI command yet.
+   - After opt-in, run external review commands read-only. Prefer local CLI review (Codex, Claude Code, Antigravity) over paid or limited hosted review products unless the user explicitly asks.
 5. Synthesize findings:
    - Separate confirmed issues, plausible risks, false positives, and nits.
    - Verify external findings against local code before changing anything.
    - Preserve review URLs, session links, command output, and commit SHAs in the PR when useful.
+
+## Multi-Agent Review Offer
+
+For a large diff, branch, PR, or release-readiness pass, offer multi-agent review. Detect candidates with PATH lookup only before the user opts in:
+
+- `Get-Command codex`, `Get-Command claude`, `Get-Command agy`.
+- Do not run any external CLI command — no `--version`, `--help`, print mode, or review mode — until the user approves the offer. External reviewers may use network access, credentials, tokens, paid plans, or local config, so ask first.
+
+Scale the offer to what is installed:
+
+- Two or more external reviewers available: offer a 3-way review (internal subagent plus two external CLIs).
+- One external reviewer available: offer a 2-way review (internal subagent plus that CLI).
+- No external reviewer available: continue with the internal/normal review; this is not a problem.
+
+Prefer diverse reviewers and documented noninteractive review modes. Confirm exact flags with `--help` only after opt-in:
+
+- Codex: `codex review` with a review prompt.
+- Claude Code: `claude -p` / `claude --print` with a review prompt.
+- Antigravity: `agy --print` with a review prompt.
+
+Treat Antigravity (`agy`) as file-output-first. Its `--print` stdout can be empty even when the model ran, and `--log-file` is an execution log for troubleshooting, not the final review artifact. Prompt `agy` to write the final review to a specific temporary file, redirect stdout to a separate fallback capture, and read the log only if both are missing or unclear:
+
+```powershell
+agy --print "<review prompt>; write the full review to $env:TEMP\tle-agy-review.md" 1> $env:TEMP\tle-agy-stdout.txt
+```
+
+Read `$env:TEMP\tle-agy-review.md` first, fall back to `$env:TEMP\tle-agy-stdout.txt`, then the execution log. Offer to remove the temporary files after synthesizing the final review; keep them if the user wants an audit trail.
+
+Do not run `claude ultrareview`, `/code-review ultra`, or other limited-budget hosted review modes unless the user explicitly asks for that specific mode.
 
 ## External Reviewer Prompts
 
@@ -42,10 +71,16 @@ Example Claude Code command:
 claude -p "<review prompt>" --permission-mode plan --output-format text
 ```
 
-Example Gemini CLI command:
+Example Codex command:
 
 ```powershell
-gemini.cmd --prompt "<review prompt>" --approval-mode plan
+codex review "<review prompt>"
+```
+
+Example Antigravity command (file-output-first; see "Multi-Agent Review Offer"):
+
+```powershell
+agy --print "<review prompt>; write the full review to $env:TEMP\tle-agy-review.md" 1> $env:TEMP\tle-agy-stdout.txt
 ```
 
 The prompt should say:
@@ -55,8 +90,6 @@ The prompt should say:
 - Include file and line references.
 - Focus on bugs, regressions, missing tests, compatibility, UI/localization, serialization, and release risk.
 - Say clearly when there are no issues.
-
-Do not run `claude ultrareview` or other limited-budget hosted review commands unless the user explicitly asks for that specific review mode.
 
 ## Internal Subagent Review
 
