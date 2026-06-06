@@ -1685,7 +1685,7 @@ public partial class UISystem
                 statusLabel: tramStatusLabel,
                 reason: isTrafficGroupMember ? "Traffic group member" : "Editable"),
             BusTransitPriority = new SelectedJunctionTspControlSnapshot(
-                isVisible: true,
+                isVisible: hasCarLane,
                 isEditable: isEditable,
                 isChecked: tspSettings.m_Enabled && tspSettings.m_AllowPublicCarRequests,
                 statusLabel: busStatusLabel,

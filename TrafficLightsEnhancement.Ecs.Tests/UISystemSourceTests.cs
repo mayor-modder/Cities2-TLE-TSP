@@ -39,6 +39,16 @@ public sealed class UISystemSourceTests
     }
 
     [Fact]
+    public void GetSelectedJunctionDiagnosticsSnapshot_gates_bus_tsp_visibility_by_car_lane_presence()
+    {
+        string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
+        string getSnapshotSource = ExtractMethod(source, "private SelectedJunctionDiagnosticsSnapshot GetSelectedJunctionDiagnosticsSnapshot");
+
+        Assert.Contains("BusTransitPriority = new SelectedJunctionTspControlSnapshot(", getSnapshotSource);
+        Assert.Contains("isVisible: hasCarLane,", getSnapshotSource);
+    }
+
+    [Fact]
     public void GetSelectedJunctionDiagnosticsSnapshot_gates_vehicle_turn_options_by_car_lane_presence()
     {
         string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
