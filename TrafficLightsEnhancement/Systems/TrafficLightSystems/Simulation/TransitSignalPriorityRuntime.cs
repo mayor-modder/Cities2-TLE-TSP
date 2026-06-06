@@ -306,6 +306,15 @@ public static class TransitSignalPriorityRuntime
             return false;
         }
 
+        if (sample.IsBusOnlyLane != 0)
+        {
+            request = new TspRequest(
+                request.Source,
+                request.Strength,
+                request.ExtensionEligible,
+                onDedicatedLane: true);
+        }
+
         decision = TransitSignalPriorityBusDecision.RequestEmitted;
         return request.Source == TspSource.PublicCar;
     }
