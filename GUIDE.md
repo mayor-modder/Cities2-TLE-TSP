@@ -26,7 +26,7 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 <img width="420" height="312" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
 
-3. Choose the signal mode and options you want. Enable Transit Signal Priority only for intersections where trams or buses should get help from the light.
+3. Choose the signal mode and options you want. Turn on [Transit Signal Priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
 
 <img width="420" height="766" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
