@@ -450,6 +450,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     ? (byte)(tspSelection.BasePhaseIndex + 1)
                     : (byte)0,
                 m_SourceType = activeTspRequest.m_SourceType,
+                m_OnDedicatedLane = activeTspRequest.m_OnDedicatedLane,
                 m_Reason = (byte)tspSelection.Reason,
                 m_ExclusivePedestrianEnabled = exclusivePedestrianEnabled,
                 m_ActiveExclusivePedestrianPhase = TspPreemptionPolicy.ShouldProtectActivePedestrianPhase(

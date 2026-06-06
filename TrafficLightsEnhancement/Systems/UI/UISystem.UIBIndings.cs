@@ -1201,6 +1201,10 @@ public partial class UISystem
             rows.Add(new { label = "TSPDiagnosticsSelectedGroup", value = FormatByteValue(decisionTrace.m_SelectedSignalGroup) });
             rows.Add(new { label = "TSPDiagnosticsDecisionTarget", value = FormatByteValue(decisionTrace.m_RequestTargetSignalGroup) });
             rows.Add(new { label = "TSPDiagnosticsDecisionSource", value = GetTspSourceName(decisionTrace.m_SourceType) });
+            if ((global::TrafficLightsEnhancement.Logic.Tsp.TspSource)decisionTrace.m_SourceType == global::TrafficLightsEnhancement.Logic.Tsp.TspSource.PublicCar)
+            {
+                rows.Add(new { label = "TSPDiagnosticsBusPriorityMode", value = decisionTrace.m_OnDedicatedLane ? "Aggressive (bus lane)" : "Soft" });
+            }
             if (HasPedestrianDecisionContext(decisionTrace))
             {
                 rows.Add(new { label = "TSPDiagnosticsExclusivePedestrian", value = decisionTrace.m_ExclusivePedestrianEnabled ? "Yes" : "No" });
