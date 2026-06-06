@@ -20,15 +20,15 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
-<img width="420" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
+<img width="420" height="164" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
 
 2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
 
-<img width="420" alt="Traffic Lights Enhancement panel before selecting an intersection" src="https://github.com/user-attachments/assets/19597999-abf0-4f84-ac73-a7c400b8c5fd" />
+<img width="420" height="312" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
 
 3. Choose the signal mode and options you want. Enable Transit Signal Priority only for intersections where trams or buses should get help from the light.
 
-<img width="420" height="767" alt="Traffic Lights Enhancement selected-intersection options" src="https://github.com/user-attachments/assets/528771b5-12d5-4536-b360-1616d0a7eea7" />
+<img width="420" height="766" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
 4. Click Save. The selected intersection should now use those settings.
 
