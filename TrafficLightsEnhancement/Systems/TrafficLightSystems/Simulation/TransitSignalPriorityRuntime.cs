@@ -1458,6 +1458,7 @@ public static class TransitSignalPriorityRuntime
             m_ExpiryTimer = expiryTimer,
             m_ExtendCurrentPhase = request.ExtensionEligible
                 && (laneSignal.m_Flags & LaneSignalFlags.CanExtend) != 0,
+            m_OnDedicatedLane = request.OnDedicatedLane,
         };
     }
 
@@ -1468,7 +1469,8 @@ public static class TransitSignalPriorityRuntime
             (TspSource)request.m_SourceType,
             request.m_Strength,
             request.m_ExpiryTimer,
-            request.m_ExtendCurrentPhase);
+            request.m_ExtendCurrentPhase,
+            request.m_OnDedicatedLane);
     }
 
     private static TransitSignalPriorityRequest FromSignalRequest(TspSignalRequest request)
@@ -1480,6 +1482,7 @@ public static class TransitSignalPriorityRuntime
             m_Strength = request.Strength,
             m_ExpiryTimer = request.ExpiryTimer,
             m_ExtendCurrentPhase = request.ExtendCurrentPhase,
+            m_OnDedicatedLane = request.OnDedicatedLane,
         };
     }
 
