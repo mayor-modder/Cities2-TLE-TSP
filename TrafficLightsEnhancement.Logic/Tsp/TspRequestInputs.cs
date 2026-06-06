@@ -27,16 +27,18 @@ public struct PhaseScore
 
 public struct TspRequest
 {
-    public TspRequest(TspSource source, float strength, bool extensionEligible)
+    public TspRequest(TspSource source, float strength, bool extensionEligible, bool onDedicatedLane = false)
     {
         Source = source;
         Strength = strength;
         ExtensionEligible = extensionEligible;
+        OnDedicatedLane = onDedicatedLane;
     }
 
     public TspSource Source { get; }
     public float Strength { get; }
     public bool ExtensionEligible { get; }
+    public bool OnDedicatedLane { get; }
 }
 
 public struct TspDecision

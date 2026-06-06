@@ -2,13 +2,14 @@ namespace TrafficLightsEnhancement.Logic.Tsp;
 
 public readonly struct TspSignalRequest
 {
-    public TspSignalRequest(int targetSignalGroup, TspSource source, float strength, uint expiryTimer, bool extendCurrentPhase)
+    public TspSignalRequest(int targetSignalGroup, TspSource source, float strength, uint expiryTimer, bool extendCurrentPhase, bool onDedicatedLane = false)
     {
         TargetSignalGroup = targetSignalGroup;
         Source = source;
         Strength = strength;
         ExpiryTimer = expiryTimer;
         ExtendCurrentPhase = extendCurrentPhase;
+        OnDedicatedLane = onDedicatedLane;
     }
 
     public int TargetSignalGroup { get; }
@@ -16,6 +17,7 @@ public readonly struct TspSignalRequest
     public float Strength { get; }
     public uint ExpiryTimer { get; }
     public bool ExtendCurrentPhase { get; }
+    public bool OnDedicatedLane { get; }
 }
 
 public static class TspPreemptionPolicy
