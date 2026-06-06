@@ -1560,6 +1560,7 @@ public partial class UISystem
                         selectedGroup = decisionTrace.m_SelectedSignalGroup,
                         targetGroup = decisionTrace.m_RequestTargetSignalGroup,
                         source = GetTspSourceName(decisionTrace.m_SourceType),
+                        onDedicatedLane = decisionTrace.m_OnDedicatedLane,
                         exclusivePedestrianEnabled = decisionTrace.m_ExclusivePedestrianEnabled,
                         activeExclusivePedestrianPhase = decisionTrace.m_ActiveExclusivePedestrianPhase,
                         pendingPedestrianFairness = decisionTrace.m_PendingPedestrianFairness,
