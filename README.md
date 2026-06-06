@@ -6,7 +6,7 @@ Current capabilities include:
 
 * Set traffic lights to predefined signal modes.
 * Configure custom traffic-light phases at supported junctions.
-* Enable optional Transit Signal Priority for trams or soft bus priority on selected intersections.
+* Enable optional Transit Signal Priority for trams or buses on selected intersections. Buses on marked bus lanes receive tram-strength aggressive priority; buses in mixed lanes use a softer form.
 * Use opt-in diagnostics when investigating selected-junction behavior, including Transit Signal Priority.
 
 See the [guide](GUIDE.md), [roadmap](ROADMAP.md), [TSP architecture notes](docs/tsp-architecture.md), [traffic group notes](docs/traffic-groups.md), [custom phase data flow](docs/custom-phase-data-flow.md), and [save-format contract](docs/save-format-contract.md) for the current direction of the project. Coding agents should start with [AGENTS.md](AGENTS.md) and the [agent workflow notes](docs/agent-workflow.md).

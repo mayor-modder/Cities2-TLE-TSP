@@ -36,6 +36,8 @@ The JSONL trace is written by `TrafficLightsEnhancement/Systems/UI/UISystem.UIBI
 - `lane`, `vehicle`: sampled bus lane and vehicle entity when exposed.
 - `laneType`, `laneChange`, `speed`: bus sample details useful for suppression analysis.
 
+The selected-intersection panel also shows a **"Bus priority mode"** row for the active bus request: `Aggressive (bus lane)` when `onDedicatedLane` is true (bus on a marked PublicOnly lane using tram-style preemption); `Soft` when the bus is in a mixed lane.
+
 ## Decision Fields
 
 - `reason`: final TSP selection reason.
@@ -46,6 +48,7 @@ The JSONL trace is written by `TrafficLightsEnhancement/Systems/UI/UISystem.UIBI
 - `preemptionSuppressedByPedestrianPhase`: true when pedestrian protection explains a deferral.
 - `preemptionSuppressedByVehicleFairness`: true when vehicle fairness explains a deferral.
 - `pendingPedestrianFairness` / `pendingVehicleFairness`: fairness context.
+- `onDedicatedLane`: boolean; true when the active request is a bus on a marked (PublicOnly) bus lane and the request is using aggressive minimum-green preemption. False when the bus is in a mixed lane (soft priority) or when the request is not a bus request.
 
 ## Healthy Patterns
 

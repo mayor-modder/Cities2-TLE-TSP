@@ -28,8 +28,10 @@ normalized on load.
 The runtime currently normalizes the feature to explicit source flags:
 
 - track requests are allowed
-- public-car requests back the player-facing soft bus-priority control and
-  remain disabled unless that control is enabled
+- public-car requests back the player-facing bus priority control and remain
+  disabled unless that control is enabled (buses on marked bus lanes now also
+  receive aggressive preemption at runtime via `OnDedicatedLane`; this is
+  runtime-only — the serialized fields are unchanged)
 - request horizon is clamped through policy, with legacy `120` remapped to `10`
 - max green extension is clamped through policy
 
