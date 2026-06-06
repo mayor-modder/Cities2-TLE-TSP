@@ -20,7 +20,7 @@ Client-specific files such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/agents.md
 
 See `docs/agent-workflow.md` for why the repo-local skills exist, what each skill covers, and how to keep the shims and canonical instructions in sync.
 
-When an AI agent authors GitHub-facing text, including pull request bodies, pull request comments, or review comments, prefix the text with `*Written by <AgentName>.*` using that agent's actual name, such as `Codex`, `Claude`, or `Gemini`.
+When an AI agent authors GitHub-facing text, including pull request bodies, pull request comments, or review comments, prefix the text with `*Written by <AgentName>.*` using that agent's actual name, such as `Codex`, `Claude`, `Antigravity`, or `Gemini`.
 
 Pull requests should be squash-merged into `main`. Keep individual branch commits useful for review, but expect the PR title/body and final squash commit to carry the durable history. Delete merged head branches after merge unless a maintainer asks to keep one for follow-up work.
 
