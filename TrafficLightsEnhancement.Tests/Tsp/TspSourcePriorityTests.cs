@@ -33,4 +33,46 @@ public class TspSourcePriorityTests
         Assert.True(TspSourcePriority.IsPreferredRequest(track, bus));
         Assert.False(TspSourcePriority.IsPreferredRequest(bus, track));
     }
+
+    [Fact]
+    public void Dedicated_lane_bus_outranks_tied_mixed_lane_bus()
+    {
+        var dedicated = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: true);
+        var mixed = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: false);
+
+        Assert.True(TspSourcePriority.IsPreferredRequest(dedicated, mixed));
+        Assert.False(TspSourcePriority.IsPreferredRequest(mixed, dedicated));
+    }
+
+    [Fact]
+    public void Dedicated_lane_tiebreak_does_not_disturb_equal_bus_requests()
+    {
+        var mixedA = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: false);
+        var mixedB = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: false);
+        Assert.False(TspSourcePriority.IsPreferredRequest(mixedA, mixedB));
+
+        var dedicatedA = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: true);
+        var dedicatedB = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: true);
+        Assert.False(TspSourcePriority.IsPreferredRequest(dedicatedA, dedicatedB));
+    }
+
+    [Fact]
+    public void Track_still_outranks_dedicated_lane_bus()
+    {
+        var track = new TspRequest(TspSource.Track, strength: 1f, extensionEligible: true);
+        var dedicatedBus = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: true);
+
+        Assert.True(TspSourcePriority.IsPreferredRequest(track, dedicatedBus));
+        Assert.False(TspSourcePriority.IsPreferredRequest(dedicatedBus, track));
+    }
+
+    [Fact]
+    public void Stronger_mixed_lane_bus_still_outranks_weaker_dedicated_bus()
+    {
+        var strongerMixed = new TspRequest(TspSource.PublicCar, strength: 1f, extensionEligible: true, onDedicatedLane: false);
+        var weakerDedicated = new TspRequest(TspSource.PublicCar, strength: 0.5f, extensionEligible: true, onDedicatedLane: true);
+
+        Assert.True(TspSourcePriority.IsPreferredRequest(strongerMixed, weakerDedicated));
+        Assert.False(TspSourcePriority.IsPreferredRequest(weakerDedicated, strongerMixed));
+    }
 }
