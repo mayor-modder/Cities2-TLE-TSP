@@ -13,6 +13,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using C2VM.TrafficLightsEnhancement.Systems;
+using C2VM.TrafficLightsEnhancement.Extensions;
 using TrafficLightsEnhancement.Logic.Compatibility;
 
 namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
@@ -116,18 +117,24 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 string message;
                 if (orphanedCount > 0)
                 {
-                    message = $"Traffic Lights Enhancement mod detected {orphanedCount} intersection(s) with corrupted data.\n\n" +
-                        "This is likely due to a component version mismatch. The affected intersections have been reset to vanilla signals.\n\n" +
-                        "Click on an intersection in the list to navigate to it and reconfigure.";
+                    message = string.Format(
+                        LocaleHelper.Translate(
+                            "UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationOrphanedMessage]",
+                            "Traffic Lights Enhancement mod detected {0} intersection(s) with corrupted data.\n\nThis is likely due to a component version mismatch. The affected intersections have been reset to vanilla signals.\n\nClick on an intersection in the list to navigate to it and reconfigure."),
+                        orphanedCount);
                 }
                 else
                 {
-                    message = $"Data from {count} of {totalEntities} intersections could not be loaded.\n\n" +
-                        "To protect your save file, these intersections have been reset to defaults. \n" +
-                        "The Data migration issues panel will list any affected intersections.";
+                    message = string.Format(
+                        LocaleHelper.Translate(
+                            "UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationLoadFailedMessage]",
+                            "Data from {0} of {1} intersections could not be loaded.\n\nTo protect your save file, these intersections have been reset to defaults.\nThe Data migration issues panel will list any affected intersections."),
+                        count, totalEntities);
                 }
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - Data migration",
+                    LocaleHelper.Translate(
+                        "UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationDialogTitle]",
+                        "Traffic Lights Enhancement - Data migration"),
                     message,
                     LocalizedString.Id("Common.OK"));
                 GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
@@ -726,11 +733,14 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 _affectedGroupsForMigration = affectedGroups.ToArray(Allocator.Persistent);
 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - Phase configuration",
-                    $"Detected {affectedFollowerCount} group member(s) in {affectedGroups.Length} group(s) that have Custom phases enabled but no phases configured.\n\n" +
-                    "Would you like to copy phase configurations from the group leader to these members?\n\n" +
-                    "• Yes - Copy phases from leader (recommended)\n" +
-                    "• No - Reset signal configuration (you will need to reconfigure manually)",
+                    LocaleHelper.Translate(
+                        "UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseConfigurationDialogTitle]",
+                        "Traffic Lights Enhancement - Phase configuration"),
+                    string.Format(
+                        LocaleHelper.Translate(
+                            "UI.LABEL[C2VM.TrafficLightsEnhancement.MissingPhasesMessage]",
+                            "Detected {0} group member(s) in {1} group(s) that have Custom phases enabled but no phases configured.\n\nWould you like to copy phase configurations from the group leader to these members?\n\n• Yes - Copy phases from leader (recommended)\n• No - Reset signal configuration (you will need to reconfigure manually)"),
+                        affectedFollowerCount, affectedGroups.Length),
                     LocalizedString.Id("Common.YES"),
                     LocalizedString.Id("Common.NO"));
 

@@ -10,6 +10,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using System.Collections.Generic;
 using C2VM.TrafficLightsEnhancement.Domain;
+using C2VM.TrafficLightsEnhancement.Extensions;
 using Colossal.Entities;
 using Game.SceneFlow;
 using TrafficLightsEnhancement.Logic.TrafficGroups;
@@ -1158,7 +1159,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 	{
 		if (targetGroupEntity == Entity.Null || sourceGroupEntity == Entity.Null)
 		{
-			var messageDialog = new MessageDialog("Cannot join - null entity provided");
+			var messageDialog = new MessageDialog(LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.JoinGroupNullEntity]", "Cannot join - null entity provided"));
 			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
 			return;
 		}
@@ -1166,14 +1167,14 @@ public partial class TrafficGroupSystem : GameSystemBase
 		if (!EntityManager.HasComponent<TrafficGroup>(targetGroupEntity) || 
 		    !EntityManager.HasComponent<TrafficGroup>(sourceGroupEntity))
 		{
-			var messageDialog = new MessageDialog(" One or both entities are not valid groups");
+			var messageDialog = new MessageDialog(LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.JoinGroupInvalidGroups]", "One or both entities are not valid groups"));
 			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
 			return;
 		}
 
 		if (targetGroupEntity == sourceGroupEntity)
 		{
-			var messageDialog = new MessageDialog("Cannot join a group with itself");
+			var messageDialog = new MessageDialog(LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.JoinGroupItself]", "Cannot join a group with itself"));
 			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
 			return;
 		}
@@ -1374,8 +1375,9 @@ public partial class TrafficGroupSystem : GameSystemBase
 		{
 			if (targetMode != CustomTrafficLights.TrafficMode.Dynamic && targetMode != CustomTrafficLights.TrafficMode.FixedTimed)
 			{
-				errorMessage = "Cannot sync phases: Source intersection uses Custom phases but target intersection does not.\n\n" +
-					"Both intersections must be set to Custom phases to sync phase configurations.";
+				errorMessage = LocaleHelper.Translate(
+					"UI.LABEL[C2VM.TrafficLightsEnhancement.SyncErrorNotCustomPhases]",
+					"Cannot sync phases: Source intersection uses Custom phases but target intersection does not.\n\nBoth intersections must be set to Custom phases to sync phase configurations.");
 				return false;
 			}
 
@@ -1387,7 +1389,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 			if (!sourceHasPhases)
 			{
-				errorMessage = "Cannot sync phases: Source intersection has no custom phase data configured.";
+				errorMessage = LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SyncErrorNoSourcePhases]", "Cannot sync phases: Source intersection has no custom phase data configured.");
 				return false;
 			}
 		}
@@ -1399,10 +1401,11 @@ public partial class TrafficGroupSystem : GameSystemBase
 			if (targetPattern == CustomTrafficLights.Patterns.Vanilla)
 			{
 				string sourcePatternName = GetPatternDisplayName(sourcePattern, sourceMode);
-				errorMessage = $"Cannot sync phases: Target intersection has no pattern configured.\n\n" +
-					$"Source intersection: {sourcePatternName}\n" +
-					$"Target intersection: Vanilla (no pattern)\n\n" +
-					"Target intersection must have a predefined pattern to sync.";
+				errorMessage = string.Format(
+					LocaleHelper.Translate(
+						"UI.LABEL[C2VM.TrafficLightsEnhancement.SyncErrorNoTargetPattern]",
+						"Cannot sync phases: Target intersection has no pattern configured.\n\nSource intersection: {0}\nTarget intersection: Vanilla (no pattern)\n\nTarget intersection must have a predefined pattern to sync."),
+					sourcePatternName);
 				return false;
 			}
 		}
@@ -1414,12 +1417,12 @@ public partial class TrafficGroupSystem : GameSystemBase
 	{
 		return (pattern, mode) switch
 		{
-			(CustomTrafficLights.Patterns.Vanilla, _) => "Vanilla",
-			(CustomTrafficLights.Patterns.SplitPhasing, _) => "Split phasing",
-			(CustomTrafficLights.Patterns.ProtectedCentreTurn, _) => "Protected turns",
-			(CustomTrafficLights.Patterns.SplitPhasingProtectedLeft, _) => "Split phasing protected left",
-			(_, CustomTrafficLights.TrafficMode.Dynamic) => "Dynamic",
-			(_, CustomTrafficLights.TrafficMode.FixedTimed) => "Fixed timed",
+			(CustomTrafficLights.Patterns.Vanilla, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Vanilla]", "Vanilla"),
+			(CustomTrafficLights.Patterns.SplitPhasing, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SplitPhasing]", "Split phasing"),
+			(CustomTrafficLights.Patterns.ProtectedCentreTurn, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PatternProtectedTurns]", "Protected turns"),
+			(CustomTrafficLights.Patterns.SplitPhasingProtectedLeft, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SplitPhasingProtectedLeft]", "Split phasing + protected left"),
+			(_, CustomTrafficLights.TrafficMode.Dynamic) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Dynamic]", "Dynamic"),
+			(_, CustomTrafficLights.TrafficMode.FixedTimed) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.FixedTimed]", "Fixed timed"),
 			_ => $"{pattern} + {mode}"
 		};
 	}
@@ -1436,7 +1439,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 		if (!ValidatePhaseSyncCompatibility(sourceJunction, targetJunction, out string errorMessage))
 		{
 			var messageDialog = new MessageDialog(
-				"Phase sync not allowed",
+				LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseSyncNotAllowed]", "Phase sync not allowed"),
 				errorMessage,
 				LocalizedString.Id("Common.OK"));
 			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
