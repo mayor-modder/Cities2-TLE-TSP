@@ -25,3 +25,5 @@ When an AI agent authors GitHub-facing text, including pull request bodies, pull
 Pull requests should be squash-merged into `main`. Keep individual branch commits useful for review, but expect the PR title/body and final squash commit to carry the durable history. Delete merged head branches after merge unless a maintainer asks to keep one for follow-up work.
 
 Keep changes scoped and preserve user work in the current tree. This mod intentionally keeps `C2VM.TrafficLightsEnhancement` assembly/root namespace identifiers for compatibility with existing Traffic Lights Enhancement saves and configured intersections.
+
+User-facing text uses sentence case: capitalize only the first word and genuine proper nouns (product names such as Traffic Lights Enhancement / TLE Extended, acronyms such as TSP, and code identifiers). This covers `GUIDE.md`/`README.md` titles and in-game UI labels — including feature, mode, template, and dialog-title text — and feature/mode names are not treated as proper nouns. See the `tle-ui-localization` skill.

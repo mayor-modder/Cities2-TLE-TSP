@@ -1374,8 +1374,8 @@ public partial class TrafficGroupSystem : GameSystemBase
 		{
 			if (targetMode != CustomTrafficLights.TrafficMode.Dynamic && targetMode != CustomTrafficLights.TrafficMode.FixedTimed)
 			{
-				errorMessage = "Cannot sync phases: Source intersection uses Custom Phases but target intersection does not.\n\n" +
-					"Both intersections must be set to Custom Phases to sync phase configurations.";
+				errorMessage = "Cannot sync phases: Source intersection uses Custom phases but target intersection does not.\n\n" +
+					"Both intersections must be set to Custom phases to sync phase configurations.";
 				return false;
 			}
 
@@ -1415,11 +1415,11 @@ public partial class TrafficGroupSystem : GameSystemBase
 		return (pattern, mode) switch
 		{
 			(CustomTrafficLights.Patterns.Vanilla, _) => "Vanilla",
-			(CustomTrafficLights.Patterns.SplitPhasing, _) => "Split Phasing",
-			(CustomTrafficLights.Patterns.ProtectedCentreTurn, _) => "Protected Turns",
-			(CustomTrafficLights.Patterns.SplitPhasingProtectedLeft, _) => "Split Phasing Protected Left",
+			(CustomTrafficLights.Patterns.SplitPhasing, _) => "Split phasing",
+			(CustomTrafficLights.Patterns.ProtectedCentreTurn, _) => "Protected turns",
+			(CustomTrafficLights.Patterns.SplitPhasingProtectedLeft, _) => "Split phasing protected left",
 			(_, CustomTrafficLights.TrafficMode.Dynamic) => "Dynamic",
-			(_, CustomTrafficLights.TrafficMode.FixedTimed) => "Fixed Timed",
+			(_, CustomTrafficLights.TrafficMode.FixedTimed) => "Fixed timed",
 			_ => $"{pattern} + {mode}"
 		};
 	}
@@ -1436,7 +1436,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 		if (!ValidatePhaseSyncCompatibility(sourceJunction, targetJunction, out string errorMessage))
 		{
 			var messageDialog = new MessageDialog(
-				"Phase Sync Not Allowed",
+				"Phase sync not allowed",
 				errorMessage,
 				LocalizedString.Id("Common.OK"));
 			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);

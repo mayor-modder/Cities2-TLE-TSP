@@ -124,10 +124,10 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 {
                     message = $"Data from {count} of {totalEntities} intersections could not be loaded.\n\n" +
                         "To protect your save file, these intersections have been reset to defaults. \n" +
-                        "The Data Migration Issues panel will list any affected intersections.";
+                        "The Data migration issues panel will list any affected intersections.";
                 }
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - Data Migration",
+                    "Traffic Lights Enhancement - Data migration",
                     message,
                     LocalizedString.Id("Common.OK"));
                 GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
@@ -141,7 +141,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 Mod.log.Warn($"{nameof(TLEDataMigrationSystem)} found {affectedCount} affected entities of {totalEntities} total");
                 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - Data Migration",
+                    "Traffic Lights Enhancement - Data migration",
                     $"Traffic Lights Enhancement mod detected data from an older version.\n\n" +
                     $"Found {affectedCount} of {totalEntities} entities that needed migration.\n\n" +
                     "Some traffic light configurations may need to be reconfigured.",
@@ -154,7 +154,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 Mod.log.Warn($"{nameof(TLEDataMigrationSystem)} found {customTrafficLightsCount} CustomTrafficLights entities with invalid node references");
                 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - CustomTrafficLights Migration",
+                    "Traffic Lights Enhancement - CustomTrafficLights migration",
                     $"Traffic Lights Enhancement mod detected {customTrafficLightsCount} traffic light(s) with invalid node references.\n\n" +
                     "These configurations have been removed.",
                     LocalizedString.Id("Common.OK"));
@@ -166,7 +166,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 Mod.log.Warn($"{nameof(TLEDataMigrationSystem)} found {subLaneGroupMaskCount} SubLaneGroupMask entities with invalid sublane references");
                 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - SubLane Migration",
+                    "Traffic Lights Enhancement - SubLane migration",
                     $"Traffic Lights Enhancement mod detected {subLaneGroupMaskCount} traffic light(s) with invalid sublane references.\n\n" +
                     "These references have been removed. Some lane signal configurations may need to be reconfigured.",
                     LocalizedString.Id("Common.OK"));
@@ -726,8 +726,8 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 _affectedGroupsForMigration = affectedGroups.ToArray(Allocator.Persistent);
 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement - Phase Configuration",
-                    $"Detected {affectedFollowerCount} group member(s) in {affectedGroups.Length} group(s) that have Custom Phases enabled but no phases configured.\n\n" +
+                    "Traffic Lights Enhancement - Phase configuration",
+                    $"Detected {affectedFollowerCount} group member(s) in {affectedGroups.Length} group(s) that have Custom phases enabled but no phases configured.\n\n" +
                     "Would you like to copy phase configurations from the group leader to these members?\n\n" +
                     "• Yes - Copy phases from leader (recommended)\n" +
                     "• No - Reset signal configuration (you will need to reconfigure manually)",

@@ -1,6 +1,6 @@
-# Traffic Lights Enhancement Guide
+# Traffic Lights Enhancement guide
 
-## What This Mod Does
+## What this mod does
 
 TLE Extended lets you change how individual traffic lights behave in Cities: Skylines II. Open the tool, select a signalized intersection, choose the signal behavior you want, and save it.
 
@@ -14,9 +14,9 @@ You can use it to:
 The mod supports both left-hand traffic and right-hand traffic. It is also intended to keep existing Traffic Lights Enhancement intersection settings compatible when you load a city with TLE Extended.
 
 > [!TIP]
-> If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use Custom Phases if you want to build the signal behavior yourself.
+> If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use Custom phases if you want to build the signal behavior yourself.
 
-## How To Use
+## How to use
 
 1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
@@ -26,60 +26,60 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 <img width="420" height="312" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
 
-3. Choose the signal mode and options you want. Turn on [Transit Signal Priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
+3. Choose the signal mode and options you want. Turn on [Transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
 
 <img width="420" height="766" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
 4. Click Save. The selected intersection should now use those settings.
 
-## Choosing A Signal Mode
+## Choosing a signal mode
 
 Signal modes decide which lanes get green lights together and how the signal moves through its cycle. A lane group is just a set of lanes that turns green at the same time.
 
 | Mode | What it does |
 | --- | --- |
 | Vanilla | Uses the base-game style signal behavior. This is the safest starting point if you only want small option changes. |
-| Split Phasing | Gives one direction or lane group a green light at a time. This can make busy turning movements easier to control, but it may also make the full cycle longer. |
-| Protected Left-Turns / Protected Right-Turns | Adds a separate protected turn before normal traffic flow. In right-hand traffic, the UI shows Protected Left-Turns. In left-hand traffic, it shows Protected Right-Turns. |
-| Split Phasing + Protected Left | A split-phasing variant that also gives protected left turns when the intersection layout supports it. |
-| Custom Phases | Lets you build the signal cycle yourself by deciding which lanes and crossings are green in each phase. This is powerful, but easier to misconfigure. |
+| Split phasing | Gives one direction or lane group a green light at a time. This can make busy turning movements easier to control, but it may also make the full cycle longer. |
+| Protected left turns / Protected right turns | Adds a separate protected turn before normal traffic flow. In right-hand traffic, the UI shows Protected left turns. In left-hand traffic, it shows Protected right turns. |
+| Split phasing + protected left | A split-phasing variant that also gives protected left turns when the intersection layout supports it. |
+| Custom phases | Lets you build the signal cycle yourself by deciding which lanes and crossings are green in each phase. This is powerful, but easier to misconfigure. |
 
-Some modes only appear for simple road intersections. Protected turn modes need a normal four-way intersection where traffic can continue straight ahead from each side. Split-phasing modes are hidden on intersections with more than seven connected road or track segments, and at crossings where train tracks or tram-only tracks cross the road.
+Some modes only appear for simple road intersections. Protected turn modes need a normal four-way intersection where traffic can continue straight ahead from each side. Split-phasing modes are hidden on intersections with more than seven connected road or track segments, and at crossings where train tracks or standalone tram tracks cross the road.
 
-## Extra Options
+## Extra options
 
 These options appear when the selected mode and intersection layout support them.
 
 | Option | What it does |
 | --- | --- |
-| Allow Turning on Red | Lets vehicles make the curbside turn on red: right turns in right-hand traffic, left turns in left-hand traffic. |
-| Give Way to Oncoming Vehicles | Vanilla mode only. Turning vehicles should yield to oncoming traffic, though aggressive drivers may still reduce how well this works at busy junctions. |
-| Exclusive Pedestrian Phase | Adds a separate pedestrian phase where vehicle traffic stops while crossings are served. |
-| Pedestrian Phase Duration | Changes how long the exclusive pedestrian phase lasts. Treat this as a multiplier: larger values mean a longer pedestrian green. Pedestrian lights do not automatically extend when more pedestrians are waiting. |
+| Allow turning on red | Lets vehicles make the curbside turn on red: right turns in right-hand traffic, left turns in left-hand traffic. |
+| Give way to oncoming vehicles | Vanilla mode only. Turning vehicles should yield to oncoming traffic, though aggressive drivers may still reduce how well this works at busy junctions. |
+| Exclusive pedestrian phase | Adds a separate pedestrian phase where vehicle traffic stops while crossings are served. |
+| Pedestrian phase duration | Changes how long the exclusive pedestrian phase lasts. Treat this as a multiplier: larger values mean a longer pedestrian green. Pedestrian lights do not automatically extend when more pedestrians are waiting. |
 
-Allow Turning on Red and Give Way to Oncoming Vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The Exclusive Pedestrian Phase and its duration still appear there, since pedestrians may cross the tram tracks.
+Allow turning on red and Give way to oncoming vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The Exclusive pedestrian phase and its duration still appear there, since pedestrians may cross the tram tracks.
 
 > [!WARNING]
 > Some pedestrian pathfinding problems appear to come from the game's node or pathfinding behavior. This mod can control signal phases, but it cannot fix every pedestrian routing issue at unusual junctions.
 
-## Custom Phases
+## Custom phases
 
-Custom Phases are for intersections where the built-in modes are not enough. A phase is one step in the traffic-light cycle. For each phase, you choose which lanes, tram tracks, bike lanes, and crosswalks are allowed to move.
+Custom phases are for intersections where the built-in modes are not enough. A phase is one step in the traffic-light cycle. For each phase, you choose which lanes, tram tracks, bike lanes, and crosswalks are allowed to move.
 
 The custom phase editor has two timing styles:
 
 | Timing style | What it means |
 | --- | --- |
 | Dynamic | The signal reacts to measured traffic demand. Empty or low-demand phases can be skipped when their settings allow it. |
-| Fixed Timed | The signal follows the phase order and timing more directly. Smart Phase Selection can still choose phases based on demand when enabled. |
+| Fixed timed | The signal follows the phase order and timing more directly. Smart phase selection can still choose phases based on demand when enabled. |
 
-Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick Cycle uses shorter timings, Heavy Traffic uses longer timings, Pedestrian Friendly uses a more balanced timing preset, Rail Priority uses a preset intended for track-heavy custom cycles, and Night Mode uses very short timings that skip empty phases more readily.
+Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick cycle uses shorter timings, Heavy traffic uses longer timings, Pedestrian friendly uses a more balanced timing preset, Rail priority uses a preset intended for track-heavy custom cycles, and Night mode uses very short timings that skip empty phases more readily.
 
 The duration controls are best treated as relative timing values, not exact real-world seconds. Bigger values make phases run longer.
 
-## Transit Signal Priority
+## Transit signal priority
 
-Transit Signal Priority, or TSP, lets a selected intersection favor approaching transit vehicles. It is configured separately for every intersection.
+Transit signal priority, or TSP, lets a selected intersection favor approaching transit vehicles. It is configured separately for every intersection.
 
 | Source option | What it does |
 | --- | --- |
@@ -92,7 +92,7 @@ Trams have higher priority than buses. Buses are handled more carefully because 
 
 TSP also respects pedestrian protection. If an exclusive pedestrian phase is active or due, the mod may delay or ignore a transit request so pedestrians are not starved.
 
-## Traffic Groups And TSP
+## Traffic groups and TSP
 
 Traffic groups coordinate multiple intersections, usually for green waves. TSP and traffic groups are intentionally treated as incompatible controls.
 
@@ -112,7 +112,7 @@ C:\Users\<your user name>\AppData\LocalLow\Colossal Order\Cities Skylines II\C2V
 
 The file name still uses the original `TspDiagnostics` name for compatibility with existing troubleshooting workflows. When the file reaches 5 MB, the mod rotates it in the same folder with a timestamped name such as `C2VM.TrafficLightsEnhancement.TspDiagnostics.20260527091530.jsonl`. It keeps the active file plus the newest three rotated files.
 
-### Common Diagnostics Fields
+### Common diagnostics fields
 
 | Field | What it means |
 | --- | --- |
@@ -142,7 +142,7 @@ The file name still uses the original `TspDiagnostics` name for compatibility wi
 | Pedestrian phase due | Whether a waiting pedestrian phase may delay TSP so pedestrians are not starved. |
 | Recent TSP events | A short history of recent request and decision changes. The newest event appears first. |
 
-### Bus Diagnostics
+### Bus diagnostics
 
 | Field or decision | What it means |
 | --- | --- |
