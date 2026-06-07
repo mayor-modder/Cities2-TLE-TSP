@@ -9,4 +9,5 @@ public struct TransitSignalPriorityRequest : IComponentData
     public float m_Strength;
     public uint m_ExpiryTimer;
     public bool m_ExtendCurrentPhase;
+    public bool m_OnDedicatedLane;
 }

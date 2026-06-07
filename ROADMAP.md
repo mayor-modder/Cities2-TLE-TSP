@@ -34,14 +34,16 @@ preserve and extend:
 - Dynamic mode now documents and tests restored narrow linked-phase behavior,
   including how it interacts with TSP-selected phases.
 - Bicycle phase weight is exposed in the custom phase vehicle-weight UI.
-- The bus source has a separate off-by-default player control and a soft MVP
-  runtime path. Bus requests can hold an already-serving green or select their
-  group at normal transition points, but trams outrank buses and buses do not
-  use aggressive tram-style preemption.
+- The bus source has a separate off-by-default player control. Buses detected on
+  marked (PublicOnly) bus lanes now receive the same aggressive minimum-green
+  preemption as trams via an `OnDedicatedLane` flag on the request. Buses in
+  mixed lanes remain soft: they may hold an already-serving green or select
+  their group at normal transition points. Trams still outrank buses.
 - Bus diagnostics can identify mixed and bus-only approaches, including current
-  and change-lane samples. Bus priority has been playtested enough for the
-  soft MVP to be considered release-ready; stop-relation classification,
-  lane-change semantics, and queue heuristics remain future refinements.
+  and change-lane samples, and show a "Bus priority mode" row ("Aggressive (bus
+  lane)" or "Soft") for the active request. Bus priority has been playtested
+  enough to be considered release-ready; stop-relation / no-progress
+  refinement, lane-change semantics, and queue heuristics remain future work.
 - Maintainer docs now cover TSP architecture, diagnostics, dynamic mode,
   save-format compatibility, localization workflow, and serialization/migration
   audit notes.
@@ -54,8 +56,9 @@ These are the next bounded choices to resolve before larger feature expansion:
 
 - Keep collecting bus-priority examples from real saves, especially edge cases
   around mixed lanes, lane changes, queues, and stop behavior.
-- Refine bus stop-relation classification and lane-change request semantics
-  before making bus priority more aggressive.
+- Refine bus stop-relation classification (no-progress / stuck-bus handling)
+  and lane-change request semantics as follow-up to the bus-lane aggressive
+  priority already shipped.
 - Extract custom phase selection into pure logic only when a behavior change or
   larger refactor needs it; the current extraction audit does not require an
   immediate rewrite.
@@ -66,8 +69,8 @@ These are the next bounded choices to resolve before larger feature expansion:
 
 ## Bus Priority Path
 
-Bus priority builds on the TSP architecture with a conservative, opt-in soft
-MVP:
+Bus priority builds on the TSP architecture with an opt-in implementation that
+now includes aggressive priority for buses on marked bus lanes:
 
 - Pure bus-priority policy tests are in place.
 - Bus approach diagnostics can identify mixed-lane and bus-only approaches
@@ -75,12 +78,14 @@ MVP:
 - Pure stop-aware suppression rules are in place for boarding, near-side stops,
   far-side stops, unknown stop relation, and queued buses.
 - A separate bus source control exists and is off by default.
-- Bus requests are soft: they may hold an already-serving green or select their
-  group at normal transition points, while tram requests outrank bus requests.
-- Bus priority does not use tram-style aggressive minimum-green shortening in
-  this MVP.
-- Future expansion should refine stop relation, lane-change behavior, and bus
-  stop semantics before making bus priority more aggressive.
+- **Buses on marked (PublicOnly) bus lanes now use tram-style aggressive
+  minimum-green preemption**, carried by an `OnDedicatedLane` flag on the
+  request. A conflicting phase's minimum green drops to 1 tick to bring up the
+  bus's group. Tram requests still outrank bus requests.
+- **Buses in mixed lanes remain soft**: they may hold an already-serving green
+  or select their group at normal transition points only.
+- Remaining future work: stop-relation / no-progress (stuck-bus) refinement,
+  lane-change semantics, and mixed-lane aggressiveness improvements.
 
 ## Longer-Term Direction
 
@@ -99,5 +104,6 @@ MVP:
 - No release dates.
 - No broad marketing page.
 - No large unrelated cleanup without an issue and a focused commit.
-- No aggressive bus preemption until diagnostics, stop behavior, and lane-change
-  semantics are understood in real saves.
+- No aggressive bus preemption for mixed-lane buses until stop-relation
+  classification and lane-change semantics are understood in real saves.
+  (Aggressive preemption for buses on marked bus lanes is now implemented.)

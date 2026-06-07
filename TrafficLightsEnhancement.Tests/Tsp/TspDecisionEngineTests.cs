@@ -824,4 +824,84 @@ public class TspDecisionEngineTests
             currentSignalGroup: 1,
             request: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 0, extendCurrentPhase: false)));
     }
+
+    [Fact]
+    public void AggressivePreemption_BusOnDedicatedLane_PreemptsConflictingGroup()
+    {
+        Assert.True(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 1,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 10, extendCurrentPhase: false, onDedicatedLane: true)));
+    }
+
+    [Fact]
+    public void AggressivePreemption_BusOnDedicatedLane_ShortensMinimumGreen()
+    {
+        Assert.Equal(
+            TspPreemptionPolicy.AggressivePreemptionMinimumGreenTicks,
+            TspPreemptionPolicy.GetMinimumGreenDurationTicks(
+                defaultMinimumGreenTicks: 30,
+                currentSignalGroup: 1,
+                request: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 10, extendCurrentPhase: false, onDedicatedLane: true)));
+    }
+
+    [Fact]
+    public void AggressivePreemption_BusOnMixedLane_StaysSoft()
+    {
+        Assert.False(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 1,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 10, extendCurrentPhase: false, onDedicatedLane: false)));
+
+        Assert.Equal(
+            30,
+            TspPreemptionPolicy.GetMinimumGreenDurationTicks(
+                defaultMinimumGreenTicks: 30,
+                currentSignalGroup: 1,
+                request: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 10, extendCurrentPhase: false, onDedicatedLane: false)));
+    }
+
+    [Fact]
+    public void AggressivePreemption_BusOnDedicatedLane_BlockedByPedestrianProtection()
+    {
+        Assert.False(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 1,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 10, extendCurrentPhase: false, onDedicatedLane: true),
+            protectActivePedestrianPhase: true));
+    }
+
+    [Fact]
+    public void AggressivePreemption_TramUnchanged_StillAggressiveWithoutFlag()
+    {
+        Assert.True(TspPreemptionPolicy.ShouldAggressivelyPreemptToConflictingGroup(
+            currentSignalGroup: 1,
+            request: new TspSignalRequest(targetSignalGroup: 2, TspSource.Track, strength: 1f, expiryTimer: 10, extendCurrentPhase: false, onDedicatedLane: false)));
+    }
+
+    [Fact]
+    public void Latch_FreshBusOnDedicatedLane_PreservesFlag()
+    {
+        bool latched = TspPreemptionPolicy.TryRefreshOrLatchRequest(
+            freshRequest: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 1, extendCurrentPhase: true, onDedicatedLane: true),
+            existingRequest: null,
+            requestHorizonTicks: 10,
+            currentSignalGroup: 1,
+            out TspSignalRequest request);
+
+        Assert.True(latched);
+        Assert.True(request.OnDedicatedLane);
+    }
+
+    [Fact]
+    public void Latch_DecrementExistingBusOnDedicatedLane_PreservesFlag()
+    {
+        bool latched = TspPreemptionPolicy.TryRefreshOrLatchRequest(
+            freshRequest: null,
+            existingRequest: new TspSignalRequest(targetSignalGroup: 2, TspSource.PublicCar, strength: 1f, expiryTimer: 5, extendCurrentPhase: true, onDedicatedLane: true),
+            requestHorizonTicks: 10,
+            currentSignalGroup: 1,
+            out TspSignalRequest request);
+
+        Assert.True(latched);
+        Assert.True(request.OnDedicatedLane);
+        Assert.Equal(4u, request.ExpiryTimer);
+    }
 }

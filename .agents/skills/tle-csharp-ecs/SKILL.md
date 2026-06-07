@@ -23,7 +23,7 @@ Use the narrowest layer that can own the behavior. Keep pure policy in `TrafficL
 ## TSP Contracts
 
 - Read `docs/tsp-architecture.md` before changing request production, latching, source priority, preemption, or diagnostics.
-- Track/tram requests outrank bus/public-car requests. Bus priority is intentionally softer and should not gain tram-style aggressive preemption without an explicit design.
+- Track/tram requests outrank bus/public-car requests. Buses on marked (PublicOnly) bus lanes carry `OnDedicatedLane = true` and receive tram-style aggressive conflicting-group preemption (1-tick minimum green on a conflicting phase); this exception is approved and implemented. Mixed-lane buses carry `OnDedicatedLane = false` and remain soft (hold or select at normal transition points only). Do not extend aggressive preemption to new sources without an explicit design.
 - Grouped intersections do not run local TSP, including the leader. Group-wide TSP needs explicit leader/member semantics before implementation.
 - Exclusive pedestrian protection is shared policy; do not bypass it from one state machine only.
 - `TransitSignalPriorityRequest`, runtime debug info, decision traces, and JSONL diagnostics are transient, not save data.

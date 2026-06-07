@@ -8,6 +8,7 @@ public struct TransitSignalPriorityDecisionTrace : IComponentData
     public byte m_SelectedSignalGroup;
     public byte m_BaseSignalGroup;
     public byte m_SourceType;
+    public bool m_OnDedicatedLane;
     public byte m_Reason;
     public bool m_ExclusivePedestrianEnabled;
     public bool m_ActiveExclusivePedestrianPhase;
