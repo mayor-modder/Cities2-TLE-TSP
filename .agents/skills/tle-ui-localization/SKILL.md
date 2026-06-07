@@ -30,6 +30,7 @@ The UI is split between C# binding payloads and a React/TypeScript front end. `T
   - `Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.<Name>]`
 - Do not remove inherited `.tooltip` keys during unrelated cleanup.
 - Keep new English strings clear and stable for Crowdin; do not hand-translate sibling locale files during feature work unless the task is specifically translation.
+- Use sentence case for user-facing titles and UI labels: capitalize only the first word and genuine proper nouns (product names like Traffic Lights Enhancement / TLE Extended, acronyms like TSP, and code identifiers such as `CustomTrafficLights`). Feature, mode, and template names (for example "Split phasing", "Custom phases", "Transit signal priority", "Traffic groups") are not proper nouns. This applies consistently to `Locale.json`, hardcoded C# dialog/message strings, and `GUIDE.md`/`README.md` headings, which should match each other.
 
 ## Binding Rules
 
