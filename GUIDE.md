@@ -83,8 +83,8 @@ Transit signal priority, or TSP, lets a selected intersection favor approaching 
 
 | Source option | What it does |
 | --- | --- |
-| Enable for trams | Allows approaching trams to request priority. |
-| Enable for buses | Allows approaching buses to request priority. |
+| Enable for trams | Allows approaching trams to request priority. Tram priority is the stronger, more aggressive form. |
+| Enable for buses | Allows approaching buses to request priority. Bus priority is softer, except on dedicated bus lanes. |
 
 TSP is meant to reduce avoidable transit delay. It does not guarantee that every bus or tram gets an instant green light.
 
