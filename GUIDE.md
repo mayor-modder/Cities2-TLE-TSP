@@ -81,8 +81,6 @@ The duration controls are best treated as relative timing values, not exact real
 
 Transit signal priority, or TSP, lets a selected intersection favor approaching transit vehicles. It is configured separately for every intersection.
 
-<img width="420" height="132" alt="Transit signal priority options with trams and buses enabled" src="docs/images/guide/tle-tsp.png" />
-
 | Source option | What it does |
 | --- | --- |
 | Enable for trams | Allows approaching trams to request priority. Tram priority is stronger and can move the signal toward a tram-serving phase when the controller can do so safely. |
