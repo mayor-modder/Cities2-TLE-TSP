@@ -14,7 +14,7 @@ You can use it to:
 The mod supports both left-hand traffic and right-hand traffic. It is also intended to keep existing Traffic Lights Enhancement intersection settings compatible when you load a city with TLE Extended.
 
 > [!TIP]
-> If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use Custom phases if you want to build the signal behavior yourself.
+> If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use custom phases if you want to build the signal behavior yourself.
 
 ## How to use
 
@@ -26,7 +26,7 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 <img width="420" height="310" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
 
-3. Choose the signal mode and options you want. Turn on [Transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
+3. Choose the signal mode and options you want. Turn on [transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
 
 <img width="420" height="864" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
@@ -57,7 +57,7 @@ These options appear when the selected mode and intersection layout support them
 | Exclusive pedestrian phase | Adds a separate pedestrian phase where vehicle traffic stops while crossings are served. |
 | Pedestrian phase duration | Changes how long the exclusive pedestrian phase lasts. Treat this as a multiplier: larger values mean a longer pedestrian green. Pedestrian lights do not automatically extend when more pedestrians are waiting. |
 
-Allow turning on red and Give way to oncoming vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The Exclusive pedestrian phase and its duration still appear there, since pedestrians may cross the tram tracks.
+Allow turning on red and give way to oncoming vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The exclusive pedestrian phase and its duration still appear there, since pedestrians may cross the tram tracks.
 
 > [!WARNING]
 > Some pedestrian pathfinding problems appear to come from the game's node or pathfinding behavior. This mod can control signal phases, but it cannot fix every pedestrian routing issue at unusual junctions.
@@ -73,7 +73,7 @@ The custom phase editor has two timing styles:
 | Dynamic | The signal reacts to measured traffic demand. Empty or low-demand phases can be skipped when their settings allow it. |
 | Fixed timed | The signal follows the phase order and timing more directly. Smart phase selection can still choose phases based on demand when enabled. |
 
-Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick cycle uses shorter timings, Heavy traffic uses longer timings, Pedestrian friendly uses a more balanced timing preset, Rail priority uses a preset intended for track-heavy custom cycles, and Night mode uses very short timings that skip empty phases more readily.
+Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, quick cycle uses shorter timings, heavy traffic uses longer timings, pedestrian friendly uses a more balanced timing preset, rail priority uses a preset intended for track-heavy custom cycles, and night mode uses very short timings that skip empty phases more readily.
 
 The duration controls are best treated as relative timing values, not exact real-world seconds. Bigger values make phases run longer.
 
