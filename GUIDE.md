@@ -83,12 +83,12 @@ Transit signal priority, or TSP, lets a selected intersection favor approaching 
 
 | Source option | What it does |
 | --- | --- |
-| Enable for trams | Allows approaching trams to request priority. Tram priority is the stronger, more aggressive form. |
-| Enable for buses | Allows approaching buses to request priority. Bus priority is softer, except on dedicated bus lanes. |
+| Enable for trams | Allows approaching trams to request priority. A tram request can cut a conflicting phase short to serve the tram sooner. |
+| Enable for buses | Allows approaching buses to request priority. A bus request waits for a normal phase change, unless the bus is on a dedicated bus lane. |
 
 TSP is meant to reduce avoidable transit delay. It does not guarantee that every bus or tram gets an instant green light.
 
-Trams have higher priority than buses. Dedicated bus lanes grant the stronger, tram-style priority to buses detected on them. Buses in mixed lanes are supported but use the softer hold-or-select behavior, because stop relation and lane-change uncertainty make aggressive preemption harder to apply safely there.
+Trams take precedence over buses. Buses detected on dedicated bus lanes can cut a conflicting phase short, just like trams. Buses in mixed lanes instead wait for a normal phase change to hold or bring up their green, because stop relation and lane-change uncertainty make it harder to safely cut other phases short there.
 
 TSP also respects pedestrian protection. If an exclusive pedestrian phase is active or due, the mod may delay or ignore a transit request so pedestrians are not starved.
 
