@@ -14,21 +14,21 @@ You can use it to:
 The mod supports both left-hand traffic and right-hand traffic. It is also intended to keep existing Traffic Lights Enhancement intersection settings compatible when you load a city with TLE Extended.
 
 > [!TIP]
-> If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use Custom phases if you want to build the signal behavior yourself.
+> If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use custom phases if you want to build the signal behavior yourself.
 
 ## How to use
 
 1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
-<img width="420" height="164" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
+<img width="400" height="141" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
 
 2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
 
-<img width="420" height="312" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
+<img width="400" height="295" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
 
-3. Choose the signal mode and options you want. Turn on [Transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
+3. Choose the signal mode and options you want. Turn on [transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
 
-<img width="420" height="766" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
+<img width="400" height="823" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
 4. Click Save. The selected intersection should now use those settings.
 
@@ -57,7 +57,7 @@ These options appear when the selected mode and intersection layout support them
 | Exclusive pedestrian phase | Adds a separate pedestrian phase where vehicle traffic stops while crossings are served. |
 | Pedestrian phase duration | Changes how long the exclusive pedestrian phase lasts. Treat this as a multiplier: larger values mean a longer pedestrian green. Pedestrian lights do not automatically extend when more pedestrians are waiting. |
 
-Allow turning on red and Give way to oncoming vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The Exclusive pedestrian phase and its duration still appear there, since pedestrians may cross the tram tracks.
+Allow turning on red and give way to oncoming vehicles control road-vehicle behaviour, so they are hidden at tram-only junctions that have no road vehicle lanes. The exclusive pedestrian phase and its duration still appear there, since pedestrians may cross the tram tracks.
 
 > [!WARNING]
 > Some pedestrian pathfinding problems appear to come from the game's node or pathfinding behavior. This mod can control signal phases, but it cannot fix every pedestrian routing issue at unusual junctions.
@@ -73,7 +73,7 @@ The custom phase editor has two timing styles:
 | Dynamic | The signal reacts to measured traffic demand. Empty or low-demand phases can be skipped when their settings allow it. |
 | Fixed timed | The signal follows the phase order and timing more directly. Smart phase selection can still choose phases based on demand when enabled. |
 
-Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, Quick cycle uses shorter timings, Heavy traffic uses longer timings, Pedestrian friendly uses a more balanced timing preset, Rail priority uses a preset intended for track-heavy custom cycles, and Night mode uses very short timings that skip empty phases more readily.
+Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, quick cycle uses shorter timings, heavy traffic uses longer timings, pedestrian friendly uses a more balanced timing preset, rail priority uses a preset intended for track-heavy custom cycles, and night mode uses very short timings that skip empty phases more readily.
 
 The duration controls are best treated as relative timing values, not exact real-world seconds. Bigger values make phases run longer.
 
@@ -83,12 +83,12 @@ Transit signal priority, or TSP, lets a selected intersection favor approaching 
 
 | Source option | What it does |
 | --- | --- |
-| Enable for trams | Allows approaching trams to request priority. Tram priority is stronger and can move the signal toward a tram-serving phase when the controller can do so safely. |
-| Enable for buses | Allows approaching buses to request priority. Buses on marked bus lanes (bus-only lanes) receive the same aggressive priority as trams: a conflicting phase can be cut short to bring up the bus's green. Buses in mixed lanes keep a softer behavior and can only hold a matching green or select the bus-serving group at normal transition points. Trams still outrank buses. |
+| Enable for trams | Allows approaching trams to request priority. A tram request can cut a conflicting phase short to serve the tram sooner. |
+| Enable for buses | Allows approaching buses to request priority. A bus request waits for a normal phase change, unless the bus is on a dedicated bus lane. |
 
 TSP is meant to reduce avoidable transit delay. It does not guarantee that every bus or tram gets an instant green light.
 
-Trams have higher priority than buses. Dedicated bus lanes grant the stronger, tram-style priority to buses detected on them. Buses in mixed lanes are supported but use the softer hold-or-select behavior, because stop relation and lane-change uncertainty make aggressive preemption harder to apply safely there.
+Trams take precedence over buses. Buses detected on dedicated bus lanes can cut a conflicting phase short, just like trams. Buses in mixed lanes instead wait for a normal phase change to hold or bring up their green, because stop relation and lane-change uncertainty make it harder to safely cut other phases short there.
 
 TSP also respects pedestrian protection. If an exclusive pedestrian phase is active or due, the mod may delay or ignore a transit request so pedestrians are not starved.
 
