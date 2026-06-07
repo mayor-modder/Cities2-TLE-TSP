@@ -167,6 +167,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusCurve]": "Bus curve",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusLaneType]": "Bus lane type",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusLaneChange]": "Bus lane change",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusPriorityMode]": "Bus priority mode",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBusSpeed]": "Bus speed",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsDecision]": "Decision",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsBaseGroup]": "Base group",

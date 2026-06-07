@@ -17,7 +17,19 @@ public static class TspSourcePriority
         int candidatePriority = GetPriority(candidateRequest.Source);
         int existingPriority = GetPriority(existingRequest.Source);
 
-        return candidatePriority > existingPriority
-            || (candidatePriority == existingPriority && candidateRequest.Strength > existingRequest.Strength);
+        if (candidatePriority != existingPriority)
+        {
+            return candidatePriority > existingPriority;
+        }
+
+        if (candidateRequest.Strength != existingRequest.Strength)
+        {
+            return candidateRequest.Strength > existingRequest.Strength;
+        }
+
+        // Same source priority and strength: prefer a dedicated-lane request so a bus
+        // on a marked bus lane keeps its aggressive eligibility over a tied mixed-lane
+        // bus regardless of sublane scan order.
+        return candidateRequest.OnDedicatedLane && !existingRequest.OnDedicatedLane;
     }
 }

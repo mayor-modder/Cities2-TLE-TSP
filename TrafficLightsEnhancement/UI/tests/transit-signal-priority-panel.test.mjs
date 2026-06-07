@@ -912,7 +912,9 @@ test("bus and custom phase docs do not carry stale review notes", async () => {
   assert.match(busResearch, /runtime always passes `BusStopRelation\.Unknown`/);
   assert.match(busResearch, /#35/);
   assert.match(busResearch, /#36/);
-  assert.match(busResearch, /No separate bus aggressive-preemption suppression diagnostic is exposed/);
+  assert.match(busResearch, /tram-style aggressive minimum-green preemption via an `OnDedicatedLane` flag/);
+  assert.match(busResearch, /The JSONL trace `decision` object now includes a boolean field `onDedicatedLane`/);
+  assert.doesNotMatch(busResearch, /aggressive preemption remains tram-only|buses do not use tram-style aggressive minimum-green|No separate bus aggressive-preemption suppression diagnostic is exposed/);
   assert.doesNotMatch(customPhaseExtraction, /production selector reports `false`/);
   assert.match(customPhaseExtraction, /linked-phase\s+behavior remains in `CustomStateMachine`/);
 });

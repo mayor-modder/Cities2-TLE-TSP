@@ -29,6 +29,36 @@ public class TransitSignalPriorityRuntimeBusRequestTests
     }
 
     [Fact]
+    public void BusRequest_OnBusOnlyLane_SetsOnDedicatedLane()
+    {
+        bool hasRequest = EcsTspRuntime.TryBuildBusApproachRequestFromSample(
+            BusSettings(enabled: true),
+            Sample(curvePosition: 0.5f, isBusOnlyLane: true),
+            out TspRequest request,
+            out _,
+            out _);
+
+        Assert.True(hasRequest);
+        Assert.Equal(TspSource.PublicCar, request.Source);
+        Assert.True(request.OnDedicatedLane);
+    }
+
+    [Fact]
+    public void BusRequest_OnMixedLane_LeavesOnDedicatedLaneFalse()
+    {
+        bool hasRequest = EcsTspRuntime.TryBuildBusApproachRequestFromSample(
+            BusSettings(enabled: true),
+            Sample(curvePosition: 0.5f, isBusOnlyLane: false),
+            out TspRequest request,
+            out _,
+            out _);
+
+        Assert.True(hasRequest);
+        Assert.Equal(TspSource.PublicCar, request.Source);
+        Assert.False(request.OnDedicatedLane);
+    }
+
+    [Fact]
     public void Boarding_bus_sample_is_suppressed()
     {
         bool hasRequest = EcsTspRuntime.TryBuildBusApproachRequestFromSample(

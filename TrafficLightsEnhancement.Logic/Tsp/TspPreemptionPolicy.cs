@@ -2,13 +2,14 @@ namespace TrafficLightsEnhancement.Logic.Tsp;
 
 public readonly struct TspSignalRequest
 {
-    public TspSignalRequest(int targetSignalGroup, TspSource source, float strength, uint expiryTimer, bool extendCurrentPhase)
+    public TspSignalRequest(int targetSignalGroup, TspSource source, float strength, uint expiryTimer, bool extendCurrentPhase, bool onDedicatedLane = false)
     {
         TargetSignalGroup = targetSignalGroup;
         Source = source;
         Strength = strength;
         ExpiryTimer = expiryTimer;
         ExtendCurrentPhase = extendCurrentPhase;
+        OnDedicatedLane = onDedicatedLane;
     }
 
     public int TargetSignalGroup { get; }
@@ -16,6 +17,7 @@ public readonly struct TspSignalRequest
     public float Strength { get; }
     public uint ExpiryTimer { get; }
     public bool ExtendCurrentPhase { get; }
+    public bool OnDedicatedLane { get; }
 }
 
 public static class TspPreemptionPolicy
@@ -52,7 +54,8 @@ public static class TspPreemptionPolicy
                 fresh.Source,
                 fresh.Strength,
                 requestHorizonTicks,
-                fresh.ExtendCurrentPhase);
+                fresh.ExtendCurrentPhase,
+                fresh.OnDedicatedLane);
             return true;
         }
 
@@ -91,7 +94,8 @@ public static class TspPreemptionPolicy
             request.Source,
             request.Strength,
             request.ExpiryTimer - 1,
-            request.ExtendCurrentPhase);
+            request.ExtendCurrentPhase,
+            request.OnDedicatedLane);
     }
 
     public static bool ShouldHoldCurrentGroup(
@@ -114,7 +118,7 @@ public static class TspPreemptionPolicy
         TspSignalRequest request,
         bool protectActivePedestrianPhase = false)
     {
-        return IsTrackPreemptionToDifferentGroup(currentSignalGroup, request, protectActivePedestrianPhase)
+        return IsAggressivePreemptionToDifferentGroup(currentSignalGroup, request, protectActivePedestrianPhase)
             ? AggressivePreemptionMinimumGreenTicks
             : defaultMinimumGreenTicks;
     }
@@ -124,7 +128,7 @@ public static class TspPreemptionPolicy
         TspSignalRequest request,
         bool protectActivePedestrianPhase = false)
     {
-        return IsTrackPreemptionToDifferentGroup(currentSignalGroup, request, protectActivePedestrianPhase);
+        return IsAggressivePreemptionToDifferentGroup(currentSignalGroup, request, protectActivePedestrianPhase);
     }
 
     public static bool ShouldApplyTargetGroupSelection(
@@ -136,17 +140,23 @@ public static class TspPreemptionPolicy
             && request.ExpiryTimer > 0;
     }
 
-    private static bool IsTrackPreemptionToDifferentGroup(
+    private static bool IsAggressivePreemptionToDifferentGroup(
         byte currentSignalGroup,
         TspSignalRequest request,
         bool protectActivePedestrianPhase)
     {
         return !protectActivePedestrianPhase
             && currentSignalGroup > 0
-            && request.Source == TspSource.Track
+            && IsAggressiveEligibleSource(request)
             && request.TargetSignalGroup > 0
             && request.TargetSignalGroup != currentSignalGroup
             && request.ExpiryTimer > 0;
+    }
+
+    private static bool IsAggressiveEligibleSource(TspSignalRequest request)
+    {
+        return request.Source == TspSource.Track
+            || (request.Source == TspSource.PublicCar && request.OnDedicatedLane);
     }
 
     public static bool ShouldProtectActivePedestrianPhase(

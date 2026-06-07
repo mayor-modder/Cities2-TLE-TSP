@@ -16,7 +16,7 @@ not rewritten as live user documentation.
 | Player guide | `GUIDE.md` | One inherited topology claim and one ambiguous pedestrian-duration description were stale; both were updated. The old screenshots are flagged but not replaced in this pass. |
 | Custom phases and dynamic mode | `docs/custom-phase-data-flow.md`, `docs/dynamic-mode.md`, `docs/custom-state-machine-no-tsp-regression.md`, `docs/custom-phase-selection-extraction.md` | Claims match the current architecture docs and code shape: custom phases use `CustomTrafficLights`, `CustomPhaseData`, `EdgeGroupMask`, and `SubLaneGroupMask`; dynamic durations are signal update ticks despite `s` UI labels; pure extraction remains a recommendation rather than completed work. |
 | Traffic groups | `docs/traffic-groups.md`, `GUIDE.md`, `docs/dynamic-mode.md`, `docs/custom-phase-data-flow.md` | Current docs now consistently say local TSP is suspended for every grouped junction, including the leader, while saved settings are preserved. |
-| TSP, diagnostics, and bus priority | `GUIDE.md`, `ROADMAP.md`, `docs/tsp-architecture.md`, `docs/tsp-diagnostics-audit.md`, `docs/transit-signal-priority-bus-research.md` | Stale tram-only wording was replaced where it was current-facing. Bus priority is documented as a conservative soft MVP backed by existing tests and playtest notes, not by a fresh playtest from this audit. |
+| TSP, diagnostics, and bus priority | `GUIDE.md`, `ROADMAP.md`, `docs/tsp-architecture.md`, `docs/tsp-diagnostics-audit.md`, `docs/transit-signal-priority-bus-research.md` | Stale tram-only wording was replaced where it was current-facing. Bus priority is documented as a conservative soft MVP backed by existing tests and playtest notes, not by a fresh playtest from this audit. *(Update 2026-06-06: buses on marked bus lanes now use aggressive preemption via `OnDedicatedLane`; mixed-lane buses remain soft. See `docs/tsp-architecture.md`.)* |
 | Save format and migration | `docs/save-format-contract.md`, `docs/serialization-and-migration-audit.md`, `README.md` | Current docs match the additive TSP-save posture, inherited serializer coverage, grouped-intersection TSP suspension, and downgrade warning. |
 | Localization and user-facing text | `docs/localization-workflow.md`, `docs/localization-resource-audit.md`, `docs/mod-option-descriptions-audit.md`, `TrafficLightsEnhancement/Locale.json` | Current docs match the active `Locale.json` path and the test-backed `Options.OPTION_DESCRIPTION[...]` convention. Legacy `.tooltip` keys remain intentionally preserved. |
 | GitHub templates and agent docs | `.github/ISSUE_TEMPLATE/*.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/copilot-instructions.md`, `AGENTS.md`, `docs/agent-workflow.md` | Templates are consistent with current project workflow after replacing remaining current-facing tram-only diagnostics wording. Client-specific agent shims correctly defer to `AGENTS.md`. |
@@ -46,7 +46,10 @@ not rewritten as live user documentation.
   other source remains enabled; disabling both removes it.
 - Bus priority is represented internally as `TspSource.PublicCar`, has lower
   source priority than tram/track requests, and does not use the tram-only
-  aggressive preemption path.
+  aggressive preemption path. *(Update 2026-06-06: superseded for bus-lane
+  buses — buses on marked (PublicOnly) bus lanes now receive tram-style
+  aggressive minimum-green preemption via `OnDedicatedLane`; mixed-lane buses
+  remain soft. See `docs/tsp-architecture.md`.)*
 - TLE diagnostics are off by default, still backed by the legacy
   `Settings.m_ShowTransitSignalPriorityDiagnostics` setting name, and exposed
   through selected-intersection rows and optional JSONL trace output.

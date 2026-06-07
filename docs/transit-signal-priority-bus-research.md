@@ -67,9 +67,12 @@ diagnostics: `PassengerTransport`, `CarCurrentLane`,
 `CarNavigation`, `CarNavigationLane`, `Moving`, and
 `PublicTransportVehicleData`.
 
-Pure policy is source-generalized for the soft bus MVP. Request construction,
+Pure policy is source-generalized for bus priority. Request construction,
 request combination, phase scoring, latching, current-group hold, and overrides
-account for bus requests, while aggressive preemption remains tram-only.
+account for bus requests. Buses on marked (PublicOnly) bus lanes now also use
+tram-style aggressive minimum-green preemption via an `OnDedicatedLane` flag on
+the request; mixed-lane buses remain soft (hold or select at normal transition
+points only).
 
 ## Stop-Aware Suppression Policy
 
@@ -121,8 +124,9 @@ that classifier exists, not behavior the current runtime can already observe.
   detection may still require movement/position thresholds before creating a
   request, but queueing is not the same as boarding.
 
-Runtime implementation should continue refining stop relation before making bus
-priority more aggressive:
+Runtime implementation should continue refining stop relation, especially for
+the no-progress / stuck-bus case on bus-lane approaches (where aggressive
+preemption is now active):
 
 - **Near-side stop:** suppress while `Arriving`, `RequireStop`, or `Boarding`.
 - **Far-side stop:** allow approach priority unless the bus is actually
@@ -135,7 +139,7 @@ priority more aggressive:
   stopped `RequireStop` samples, then report the unknown relation in
   diagnostics.
 
-## Diagnostics and Soft MVP
+## Diagnostics
 
 When the off-by-default TLE diagnostics option is enabled, `BusApproachIndex`
 scans public-transport road vehicles with
@@ -150,24 +154,28 @@ The selected junction diagnostics can report:
   connected approach fallback
 - bus-only versus mixed lane structure via `CarLaneFlags.PublicOnly`
 - lane-change progress, speed, public-transport state, and vehicle lane flags
+- **"Bus priority mode"**: "Aggressive (bus lane)" when the active request is on
+  a marked (PublicOnly) bus lane; "Soft" when the bus is in a mixed lane
 
-The Transit Signal Priority for buses MVP creates
+The Transit Signal Priority for buses implementation creates
 `TransitSignalPriorityRequest` values when its separate player control is
-enabled. It is intentionally soft: bus requests may hold an already-serving
-green or select their target group at normal transition points, but trams
-outrank buses and buses do not use tram-style aggressive minimum-green
-shortening.
+enabled. Buses on marked (PublicOnly) bus lanes receive tram-style aggressive
+minimum-green preemption: a conflicting phase's minimum green drops to 1 tick
+to bring up the bus's group. This is carried by an `OnDedicatedLane` flag
+derived each tick from `BusApproachSample.IsBusOnlyLane`. Buses in mixed lanes
+remain soft: they may hold an already-serving green or select their target group
+at normal transition points only. Trams still outrank buses.
+
+The JSONL trace `decision` object now includes a boolean field `onDedicatedLane`
+(true when the active request is a bus on a marked bus lane receiving aggressive
+priority).
 
 Playtesting showed a useful split between lane types. Dedicated bus lanes
-usually produce cleaner matches and fewer suppression reasons. Mixed-lane buses
-are supported and useful, but they are noisier: stop relation and lane-change
-uncertainty can suppress requests when the runtime cannot safely prove the bus
-will benefit from priority.
-
-No separate bus aggressive-preemption suppression diagnostic is exposed. A bus
-request can be outranked by tram priority, but buses do not attempt the
-tram-only aggressive preemption path, so such a diagnostic would not represent a
-distinct bus decision today.
+usually produce cleaner matches and fewer suppression reasons, and now also
+trigger the stronger priority mode. Mixed-lane buses are supported and useful,
+but they are noisier: stop relation and lane-change uncertainty can suppress
+requests when the runtime cannot safely prove the bus will benefit from
+priority.
 
 ## Edge Cases
 
@@ -191,20 +199,22 @@ can keep serving a legal-looking transit phase while the physical road geometry
 is gridlocked; that is a layout edge case, not a reason to make the soft MVP
 more aggressive or more restrictive by default.
 
-## MVP Recommendation
+## Implementation Status
 
-Use the current soft bus-priority MVP for release:
+The bus priority implementation as shipped:
 
-- keep bus requests behind an explicit, off-by-default setting
-- keep tram requests ahead of bus requests
-- allow buses to hold an already-serving green
-- allow buses to select the target group at normal transition points
-- do not use tram-style aggressive minimum-green shortening for buses in the
-  first version
+- Bus requests are behind an explicit, off-by-default setting (per intersection).
+- Tram requests still outrank bus requests.
+- Buses on marked (PublicOnly) bus lanes use tram-style aggressive minimum-green
+  preemption (implemented via `OnDedicatedLane`).
+- Buses in mixed lanes may hold an already-serving green or select the target
+  group at normal transition points (soft behavior unchanged).
+- No save-format change, no migration, no new UI toggle beyond the existing bus
+  TSP toggle.
 
-That keeps bus priority useful while avoiding the most disruptive cases.
-Further stop, queue, and lane-change refinements should improve diagnostics and
-edge-case handling without changing the basic soft-priority contract.
+Remaining open work: stop-relation / no-progress (stuck-bus) refinement for
+bus-lane approaches, and further mixed-lane aggressiveness improvements once
+stop and lane-change classification matures.
 
 ## Naming Decision
 
@@ -232,8 +242,10 @@ translation workflow handle new strings after the English UI is stable.
    labels and saved settings stable. (Done.)
 5. Playtest bus-only lanes, mixed lanes, tram corridors, exclusive pedestrian
    phases, and combined bus/tram priority. (Done for release readiness.)
-6. Refine stop-aware suppression, lane-change handling, queue heuristics, and
-   grouped-intersection semantics as follow-up work.
+6. Add aggressive preemption for buses on marked bus lanes via `OnDedicatedLane`.
+   (Done.)
+7. Refine stop-aware suppression (no-progress / stuck-bus), lane-change
+   handling, queue heuristics, and grouped-intersection semantics as follow-up.
 
 ## Follow-Up Work
 

@@ -84,11 +84,11 @@ Transit signal priority, or TSP, lets a selected intersection favor approaching 
 | Source option | What it does |
 | --- | --- |
 | Enable for trams | Allows approaching trams to request priority. Tram priority is stronger and can move the signal toward a tram-serving phase when the controller can do so safely. |
-| Enable for buses | Allows approaching buses to request soft priority. Bus priority can hold a matching green or choose the bus-serving group at normal transition points, but it is less aggressive than tram priority. |
+| Enable for buses | Allows approaching buses to request priority. Buses on marked bus lanes (bus-only lanes) receive the same aggressive priority as trams: a conflicting phase can be cut short to bring up the bus's green. Buses in mixed lanes keep a softer behavior and can only hold a matching green or select the bus-serving group at normal transition points. Trams still outrank buses. |
 
 TSP is meant to reduce avoidable transit delay. It does not guarantee that every bus or tram gets an instant green light.
 
-Trams have higher priority than buses. Buses are handled more carefully because they may be boarding, stopping before the light, sharing mixed traffic lanes, or changing lanes. Dedicated bus lanes usually give cleaner detection, but mixed-lane buses are supported when the detector can identify a safe target.
+Trams have higher priority than buses. Dedicated bus lanes grant the stronger, tram-style priority to buses detected on them. Buses in mixed lanes are supported but use the softer hold-or-select behavior, because stop relation and lane-change uncertainty make aggressive preemption harder to apply safely there.
 
 TSP also respects pedestrian protection. If an exclusive pedestrian phase is active or due, the mod may delay or ignore a transit request so pedestrians are not starved.
 
@@ -110,7 +110,7 @@ On Windows, the active trace file is written to:
 C:\Users\<your user name>\AppData\LocalLow\Colossal Order\Cities Skylines II\C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl
 ```
 
-The file name still uses the original `TspDiagnostics` name for compatibility with existing troubleshooting workflows. When the file reaches 5 MB, the mod rotates it in the same folder with a timestamped name such as `C2VM.TrafficLightsEnhancement.TspDiagnostics.20260527091530.jsonl`. It keeps the active file plus the newest three rotated files.
+When the file reaches 5 MB, the mod rotates it in the same folder with a timestamped name such as `C2VM.TrafficLightsEnhancement.TspDiagnostics.20260527091530.jsonl`. It keeps the active file plus the newest three rotated files.
 
 ### Common diagnostics fields
 
@@ -150,6 +150,7 @@ The file name still uses the original `TspDiagnostics` name for compatibility wi
 | Bus decision | The bus detector outcome. This explains whether a bus request was emitted or why it was suppressed. |
 | Bus target group | The lane group matched to the sampled bus. |
 | Bus hits | Number of bus samples contributing to the selected match. |
+| Bus priority mode | Whether the active bus request is using aggressive or soft priority. "Aggressive (bus lane)" means the bus is on a marked bus-only lane and a conflicting phase can be cut short. "Soft" means the bus is in a mixed lane and can only hold a matching green or select at normal transition points. |
 | Bus lane type | Whether the sampled bus is in a mixed lane or bus-only lane. |
 | Bus lane change | Whether the sampled bus appears to be changing lanes. |
 | Bus speed | The sampled bus speed. |
