@@ -20,15 +20,15 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
-<img width="420" height="148" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
+<img width="400" height="141" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
 
 2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
 
-<img width="420" height="310" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
+<img width="400" height="295" alt="Traffic Lights Enhancement panel before selecting an intersection" src="docs/images/guide/tle-panel.png" />
 
 3. Choose the signal mode and options you want. Turn on [transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
 
-<img width="420" height="864" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
+<img width="400" height="823" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
 4. Click Save. The selected intersection should now use those settings.
 
@@ -83,8 +83,8 @@ Transit signal priority, or TSP, lets a selected intersection favor approaching 
 
 | Source option | What it does |
 | --- | --- |
-| Enable for trams | Allows approaching trams to request priority. Tram priority is stronger and can move the signal toward a tram-serving phase when the controller can do so safely. |
-| Enable for buses | Allows approaching buses to request priority. Buses on marked bus lanes (bus-only lanes) receive the same aggressive priority as trams: a conflicting phase can be cut short to bring up the bus's green. Buses in mixed lanes keep a softer behavior and can only hold a matching green or select the bus-serving group at normal transition points. Trams still outrank buses. |
+| Enable for trams | Allows approaching trams to request priority. |
+| Enable for buses | Allows approaching buses to request priority. |
 
 TSP is meant to reduce avoidable transit delay. It does not guarantee that every bus or tram gets an instant green light.
 
