@@ -55,6 +55,7 @@ export const callExitSelectMemberMode = triggers.create<[string]>("CallExitSelec
 export const selectMemberState = new OneWayBinding<string>("GetSelectMemberState", "{}");
 export const callUpdateSignalDelay = triggers.create<[string]>("CallUpdateSignalDelay");
 export const callCopyPhasesToJunction = triggers.create<[string]>("CallCopyPhasesToJunction");
+export const callCopyPhasesToAllMembers = triggers.create<[string]>("CallCopyPhasesToAllMembers");
 export const callApplyBestPhase = triggers.create<[string]>("CallApplyBestPhase");
 export const callUpdateMemberPhaseData = triggers.create<[string]>("CallUpdateMemberPhaseData");
 export const callUpdateEdgeGroupMaskForJunction = triggers.create<[string]>("CallUpdateEdgeGroupMaskForJunction");

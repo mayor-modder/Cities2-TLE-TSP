@@ -321,6 +321,7 @@ public partial class UISystem
         CreateTrigger<string>("CallSetGroupLeader", CallSetGroupLeader);
         CreateTrigger<string>("CallSkipStep", CallSkipStep);
         CreateTrigger<string>("CallCopyPhasesToJunction", CallCopyPhasesToJunction);
+        CreateTrigger<string>("CallCopyPhasesToAllMembers", CallCopyPhasesToAllMembers);
         CreateTrigger<string>("CallMatchPhaseDurationsToLeader", CallMatchPhaseDurationsToLeader);
         CreateTrigger<string>("CallApplyBestPhase", CallApplyBestPhase);
         CreateTrigger<string>("CallHousekeepingGroup", CallHousekeepingGroup);
@@ -3483,6 +3484,31 @@ public partial class UISystem
         {
             var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
             trafficGroupSystem.CopyPhasesToJunction(sourceJunction, targetJunction);
+            m_MainPanelBinding.Update();
+        }
+    }
+
+    protected void CallCopyPhasesToAllMembers(string input)
+    {
+        var definition = new { sourceIndex = 0, sourceVersion = 0 };
+        var data = JsonConvert.DeserializeAnonymousType(input, definition);
+
+        if (data == null)
+        {
+            return;
+        }
+
+        Entity sourceJunction = new Entity { Index = data.sourceIndex, Version = data.sourceVersion };
+
+        if (sourceJunction == Entity.Null && m_SelectedEntity != Entity.Null)
+        {
+            sourceJunction = m_SelectedEntity;
+        }
+
+        if (sourceJunction != Entity.Null)
+        {
+            var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
+            trafficGroupSystem.CopyPhasesToAllMembers(sourceJunction);
             m_MainPanelBinding.Update();
         }
     }

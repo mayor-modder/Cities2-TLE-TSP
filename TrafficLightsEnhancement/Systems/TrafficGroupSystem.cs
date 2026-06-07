@@ -1428,21 +1428,18 @@ public partial class TrafficGroupSystem : GameSystemBase
 	}
 
 	
-	public bool CopyPhasesToJunction(Entity sourceJunction, Entity targetJunction)
+	public bool TryCopyPhasesToJunction(Entity sourceJunction, Entity targetJunction, out string errorMessage)
 	{
+		errorMessage = "";
+
 		if (sourceJunction == Entity.Null || targetJunction == Entity.Null)
 		{
 			return false;
 		}
 
-		
-		if (!ValidatePhaseSyncCompatibility(sourceJunction, targetJunction, out string errorMessage))
+
+		if (!ValidatePhaseSyncCompatibility(sourceJunction, targetJunction, out errorMessage))
 		{
-			var messageDialog = new MessageDialog(
-				LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseSyncNotAllowed]", "Phase sync not allowed"),
-				errorMessage,
-				LocalizedString.Id("Common.OK"));
-			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
 			return false;
 		}
 
@@ -1507,6 +1504,96 @@ public partial class TrafficGroupSystem : GameSystemBase
 		CopySubLaneGroupMaskWithLaneTypeMatching(sourceJunction, targetJunction);
 		EntityManager.AddComponentData(targetJunction, default(Updated));
 		return true;
+	}
+
+	public bool CopyPhasesToJunction(Entity sourceJunction, Entity targetJunction)
+	{
+		if (TryCopyPhasesToJunction(sourceJunction, targetJunction, out string errorMessage))
+		{
+			return true;
+		}
+
+		if (!string.IsNullOrEmpty(errorMessage))
+		{
+			var messageDialog = new MessageDialog(
+				LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseSyncNotAllowed]", "Phase sync not allowed"),
+				errorMessage,
+				LocalizedString.Id("Common.OK"));
+			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
+		}
+
+		return false;
+	}
+
+	public void CopyPhasesToAllMembers(Entity sourceJunction)
+	{
+		if (sourceJunction == Entity.Null)
+		{
+			return;
+		}
+
+		var members = GetGroupMembers(GetJunctionGroup(sourceJunction));
+
+		int copied = 0;
+		int skipped = 0;
+		string firstSkipReason = "";
+
+		foreach (var memberEntity in members)
+		{
+			if (memberEntity == sourceJunction)
+			{
+				continue;
+			}
+
+			if (TryCopyPhasesToJunction(sourceJunction, memberEntity, out string skipReason))
+			{
+				copied++;
+			}
+			else
+			{
+				skipped++;
+				if (string.IsNullOrEmpty(firstSkipReason))
+				{
+					firstSkipReason = skipReason;
+				}
+			}
+		}
+
+		members.Dispose();
+
+		if (copied == 0 && skipped == 0)
+		{
+			return;
+		}
+
+		string message;
+		if (copied == 0 && !string.IsNullOrEmpty(firstSkipReason))
+		{
+			message = firstSkipReason;
+		}
+		else
+		{
+			message = string.Format(
+				LocaleHelper.Translate(
+					"UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesToAllResult]",
+					"Copied phases to {0} of {1} group member(s)."),
+				copied, copied + skipped);
+
+			if (skipped > 0)
+			{
+				message += "\n\n" + string.Format(
+					LocaleHelper.Translate(
+						"UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesToAllSkipped]",
+						"{0} member(s) were skipped because they cannot accept these phases."),
+					skipped);
+			}
+		}
+
+		var dialog = new MessageDialog(
+			LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesResultTitle]", "Copy phases"),
+			message,
+			LocalizedString.Id("Common.OK"));
+		GameManager.instance.userInterface.appBindings.ShowMessageDialog(dialog, null);
 	}
 
 	

@@ -20,7 +20,7 @@ import {
 	callSetTrafficGroupName, 
 	
 	setPanelState,
-	callCopyPhasesToJunction,
+	callCopyPhasesToAllMembers,
 	callUpdateMemberPattern,
 	edgeInfo
 } from '../../../../../bindings';
@@ -265,16 +265,10 @@ const CopyPhasesToMemberButton = ({
 		if (!displayedGroup.members) return;
 		
 		
-		displayedGroup.members.forEach(member => {
-			if (member.index !== currentJunctionIndex || member.version !== currentJunctionVersion) {
-				callCopyPhasesToJunction(JSON.stringify({
-					sourceIndex: currentJunctionIndex,
-					sourceVersion: currentJunctionVersion,
-					targetIndex: member.index,
-					targetVersion: member.version
-				}));
-			}
-		});
+		callCopyPhasesToAllMembers(JSON.stringify({
+			sourceIndex: currentJunctionIndex,
+			sourceVersion: currentJunctionVersion
+		}));
 	};
 	
 	return (
