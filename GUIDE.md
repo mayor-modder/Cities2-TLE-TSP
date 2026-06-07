@@ -20,7 +20,7 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 1. Select the Traffic Lights Enhancement button from the top-left toolbar.
 
-<img width="420" height="151" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
+<img width="420" height="148" alt="Traffic Lights Enhancement toolbar button" src="docs/images/guide/tle-button.png" />
 
 2. The Traffic Lights Enhancement panel opens. Click a signalized intersection once to select it.
 
@@ -28,7 +28,7 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 3. Choose the signal mode and options you want. Turn on [Transit signal priority](#transit-signal-priority) only at intersections where you want the lights to give approaching trams or buses an edge.
 
-<img width="420" height="800" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
+<img width="420" height="864" alt="Traffic Lights Enhancement selected-intersection options" src="docs/images/guide/tle-options.png" />
 
 4. Click Save. The selected intersection should now use those settings.
 
