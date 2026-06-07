@@ -796,7 +796,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                     if (copyFromLeader)
                     {
                         
-                        trafficGroupSystem.CopyPhasesToJunction(leaderEntity, memberEntity);
+                        trafficGroupSystem.TryCopyPhasesToJunction(leaderEntity, memberEntity, out _);
                         Mod.log.Info($"Copied phases from leader to member {memberEntity.Index}");
                     }
                     else
