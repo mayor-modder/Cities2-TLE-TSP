@@ -4,6 +4,33 @@ import test from "node:test";
 
 const source = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const repoSource = (path) => readFile(new URL(`../../${path}`, import.meta.url), "utf8");
+const literalTranslatePattern = /(?<!["'`])\btranslate\(\s*(["'`])([^"'`$]+?)\1/g;
+const localizationNamespace = "C2VM.TrafficLightsEnhancement";
+
+function getLiteralLocalizationKeys(text) {
+  literalTranslatePattern.lastIndex = 0;
+  return [...text.matchAll(literalTranslatePattern)]
+    .map(match => match[2])
+    .filter(key => key.includes(localizationNamespace));
+}
+
+async function getUiSourceFiles(relativeDir = "src") {
+  const dir = new URL(`../${relativeDir}/`, import.meta.url);
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const relativePath = `${relativeDir}/${entry.name}`;
+
+    if (entry.isDirectory()) {
+      files.push(...await getUiSourceFiles(relativePath));
+    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+      files.push(relativePath);
+    }
+  }
+
+  return files;
+}
 
 test("main panel data exposes transit signal priority tram source state", async () => {
   const general = await source("src/mods/general.ts");
@@ -923,9 +950,13 @@ test("traffic group and custom phase chrome text is localized", async () => {
     "UI.LABEL[C2VM.TrafficLightsEnhancement.SelectMemberInWorld]",
     "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.SelectMemberInWorld]",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesToAllMembers]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignGo]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignYield]",
+    "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignStop]",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.NewGroup]",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.UnnamedGroup]",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupName]",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.Edge]",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupInfo]",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.GroupMembers]",
     "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.GroupMemberFoldout]",
@@ -957,14 +988,57 @@ test("traffic group and custom phase chrome text is localized", async () => {
 
   assert.match(trafficGroups, /label="RemoveFromGroup"/);
   assert.match(trafficGroups, /Tooltip\.LABEL\[C2VM\.TrafficLightsEnhancement\.RemoveFromGroup\]/);
+  assert.match(trafficGroups, /Tooltip\.LABEL\[C2VM\.TrafficLightsEnhancement\.TrafficSignGo\]/);
+  assert.match(trafficGroups, /Tooltip\.LABEL\[C2VM\.TrafficLightsEnhancement\.TrafficSignYield\]/);
+  assert.match(trafficGroups, /Tooltip\.LABEL\[C2VM\.TrafficLightsEnhancement\.TrafficSignStop\]/);
+  assert.match(trafficGroups, /UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.Edge\]/);
   assert.match(groupItem, /UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.UnnamedGroup\]/);
   assert.match(migrationModal, /UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.DataMigrationIssues\]/);
   assert.match(customPhasePanel, /label:\s*"StartDelay"/);
   assert.match(presetManager, /TrafficLightsEnhancement\.\$\{template\.name\}/);
 
   assert.doesNotMatch(trafficGroups, /label="Remove from group"|label="Add member"|label="Select member in world"|label="Copy phases to all members"/);
+  assert.doesNotMatch(trafficGroups, /●Go|●Yield|●Stop|>\s*Edge\s*\{/);
   assert.doesNotMatch(migrationModal, />Data migration issues<|>Affected intersections<|>Dismiss all</);
   assert.doesNotMatch(customPhasePanel, /"Start delay"|"End early"|"Quick cycle"|"Heavy traffic"|"Pedestrian friendly"|"Rail priority"|"Night mode"/);
+});
+
+test("literal UI localization calls reference live locale keys", async () => {
+  const locale = JSON.parse(await repoSource("Locale.json"));
+  const missingKeys = [];
+
+  for (const file of await getUiSourceFiles()) {
+    const text = await source(file);
+
+    for (const key of getLiteralLocalizationKeys(text)) {
+      if (!Object.prototype.hasOwnProperty.call(locale, key)) {
+        missingKeys.push(`${file}: ${key}`);
+      }
+    }
+  }
+
+  assert.deepEqual(missingKeys, []);
+});
+
+test("literal UI localization parser accepts fallback arguments", () => {
+  const text = 'translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]", "Traffic signal")';
+  const keys = getLiteralLocalizationKeys(text);
+
+  assert.deepEqual(keys, ["UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]"]);
+
+  const typoText = 'translate("UI.Label[C2VM.TrafficLightsEnhancement.TrafficSignal]")';
+  assert.deepEqual(getLiteralLocalizationKeys(typoText), ["UI.Label[C2VM.TrafficLightsEnhancement.TrafficSignal]"]);
+
+  const transformText = 'style={{transform: "translate(" + left + "px, " + top + "px)"}}';
+  assert.deepEqual([...transformText.matchAll(literalTranslatePattern)], []);
+  assert.deepEqual(getLiteralLocalizationKeys(transformText), []);
+});
+
+test("traffic group tooltips do not use placeholder English", async () => {
+  const trafficGroups = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.tsx");
+
+  assert.match(trafficGroups, /title=\{signalTitle\}/);
+  assert.doesNotMatch(trafficGroups, /click to cycle/i);
 });
 
 test("backend toggle removes transit signal priority settings when all sources are disabled", async () => {
