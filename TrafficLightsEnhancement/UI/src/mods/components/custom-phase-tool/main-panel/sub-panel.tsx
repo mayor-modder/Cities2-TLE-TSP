@@ -79,7 +79,7 @@ export function TrafficLightModeSelector(props: { trafficLightMode: number }) {
                 keyName="TrafficLightMode"
                 value="1"
                 isChecked={props.trafficLightMode === 1}
-                label="Fixed timed"
+                label="FixedTimed"
                 triggerName="CallUpdateCustomPhaseData"
             />
         </PanelFoldout>
@@ -202,7 +202,7 @@ export default function SubPanel(props: {
             {!props.statisticsOnly && props.isCoordinatedFollower && (
                 <>
                     <div className={styles.coordinatedFollowerNotice}>
-                        Phase timing is controlled by the group leader. Values shown below are from the leader.
+                        {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]") ?? "Phase timing is controlled by the group leader. Values shown below are from the leader."}
                     </div>
                     <PanelFoldout
                         header={<div className={styles.foldoutHeader}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]") ?? "Leader phase settings (read-only)"}</div>}
