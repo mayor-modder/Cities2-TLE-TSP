@@ -1350,13 +1350,17 @@ public partial class UISystem
             hasDecisionTrace,
             decisionTrace);
 
-        bool isNewSelection = false;
+        bool isNewHistory = false;
         if (!m_TspDiagnosticsEvents.TryGetValue(entity, out TspDiagnosticsHistory history))
         {
             history = new TspDiagnosticsHistory();
             m_TspDiagnosticsEvents[entity] = history;
-            isNewSelection = true;
+            isNewHistory = true;
         }
+
+        bool selectionChanged = m_TspDiagnosticsSelectedEntity != entity;
+        bool isNewSelection = selectionChanged || isNewHistory;
+        m_TspDiagnosticsSelectedEntity = entity;
 
         bool signatureChanged = history.LastSignature != signature;
         bool shouldRecordEvent = isNewSelection || (signatureChanged && ShouldRecordTspDiagnosticsEvent(history, hasRuntimeDebug || hasBusApproachDebug || hasDecisionTrace));

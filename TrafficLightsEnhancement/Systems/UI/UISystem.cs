@@ -75,6 +75,7 @@ public partial class UISystem: ExtendedUISystemBase
     private Dictionary<Entity, NativeArray<NodeUtils.EdgeInfo>> m_EdgeInfoDictionary;
 
     private Dictionary<Entity, TspDiagnosticsHistory> m_TspDiagnosticsEvents;
+    private Entity m_TspDiagnosticsSelectedEntity = Entity.Null;
 
     private int m_DebugDisplayGroup;
 
@@ -247,7 +248,7 @@ public partial class UISystem: ExtendedUISystemBase
         
         ClearEdgeInfo();
         
-        m_EdgeInfoDictionary[node] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, node, this).AsArray();
+        m_EdgeInfoDictionary[node] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, node, this);
         
         if (EntityManager.HasComponent<TrafficGroupMember>(node))
         {
@@ -267,7 +268,7 @@ public partial class UISystem: ExtendedUISystemBase
                         
                         if (hasPhases)
                         {
-                            m_EdgeInfoDictionary[memberEntity] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, memberEntity, this).AsArray();
+                            m_EdgeInfoDictionary[memberEntity] = NodeUtils.GetEdgeInfoList(Allocator.Persistent, memberEntity, this);
                         }
                     }
                 }
@@ -437,6 +438,7 @@ public partial class UISystem: ExtendedUISystemBase
                 {
                     SetMainPanelState(MainPanelState.Empty);
                 }
+                m_TspDiagnosticsSelectedEntity = Entity.Null;
                 m_SelectedEntity = entity;
             }
         }

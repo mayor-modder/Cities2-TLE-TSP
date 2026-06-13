@@ -38,7 +38,7 @@ public sealed class CopyPhasesToAllMembersSourceTests
         string batch = ExtractMethod(source, "public void CopyPhasesToAllMembers");
 
         Assert.Contains("TryCopyPhasesToJunction(", batch);
-        Assert.Equal(1, Regex.Matches(batch, "ShowMessageDialog").Count);
+        Assert.Single(Regex.Matches(batch, "ShowMessageDialog"));
         // Members come from a Temp NativeList that must be released.
         Assert.Contains(".Dispose()", batch);
     }

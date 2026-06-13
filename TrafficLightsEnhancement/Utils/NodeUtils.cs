@@ -32,7 +32,7 @@ public partial struct NodeUtils
         }
     }
 
-    public static NativeList<EdgeInfo> GetEdgeInfoList
+    public static NativeArray<EdgeInfo> GetEdgeInfoList
     (
         Allocator allocator,
         Entity nodeEntity,
@@ -56,8 +56,8 @@ public partial struct NodeUtils
         ComponentLookup<CarLaneData> carLaneDataLookup
     )
     {
-        NativeList<EdgeInfo> edgeInfoList = new(4, allocator);
-        NativeHashMap<Entity, LaneConnection> laneConnectionMap = GetLaneConnectionMap(Allocator.Temp, nodeSubLaneBuffer, connectedEdgeBuffer, subLaneLookup, laneLookup);
+        using NativeList<EdgeInfo> edgeInfoList = new(4, Allocator.Temp);
+        using var laneConnectionMap = GetLaneConnectionMap(Allocator.Temp, nodeSubLaneBuffer, connectedEdgeBuffer, subLaneLookup, laneLookup);
 
         foreach (ConnectedEdge connectedEdge in connectedEdgeBuffer)
         {
@@ -69,8 +69,8 @@ public partial struct NodeUtils
             edgeInfo.m_Position = edgePosition;
             CustomPhaseUtils.TryGet(edgeGroupMaskBuffer, edgeEntity, edgePosition, out edgeInfo.m_EdgeGroupMask);
 
-            NativeHashMap<Entity, SubLaneInfo> subLaneMap = new(16, Allocator.Temp);
-            NativeList<SubLaneInfo> subLaneInfoList = new(16, allocator);
+            var subLaneMap = new NativeHashMap<Entity, SubLaneInfo>(16, Allocator.Temp);
+            using NativeList<SubLaneInfo> subLaneInfoList = new(16, Allocator.Temp);
 
             foreach (SubLane nodeSubLane in nodeSubLaneBuffer)
             {
@@ -197,14 +197,18 @@ public partial struct NodeUtils
                 CustomPhaseUtils.TryGet(subLaneGroupMaskBuffer, subLaneInfo.m_SubLane, subLaneInfo.m_Position, out subLaneInfo.m_SubLaneGroupMask);
                 subLaneInfoList.Add(subLaneInfo);
             }
-            edgeInfo.m_SubLaneInfoList = subLaneInfoList.AsArray();
+            edgeInfo.m_SubLaneInfoList = new NativeArray<SubLaneInfo>(subLaneInfoList.Length, allocator);
+            edgeInfo.m_SubLaneInfoList.CopyFrom(subLaneInfoList.AsArray());
             edgeInfoList.Add(edgeInfo);
+            subLaneMap.Dispose();
         }
 
-        return edgeInfoList;
+        var edgeInfoArray = new NativeArray<EdgeInfo>(edgeInfoList.Length, allocator);
+        edgeInfoArray.CopyFrom(edgeInfoList.AsArray());
+        return edgeInfoArray;
     }
 
-    public static NativeList<EdgeInfo> GetEdgeInfoList(Allocator allocator, Entity nodeEntity, Systems.UI.UISystem uISystem)
+    public static NativeArray<EdgeInfo> GetEdgeInfoList(Allocator allocator, Entity nodeEntity, Systems.UI.UISystem uISystem)
     {
         uISystem.m_TypeHandle.Update(uISystem);
         uISystem.m_TypeHandle.m_SubLane.TryGetBuffer(nodeEntity, out var nodeSubLaneBuffer);
@@ -236,7 +240,7 @@ public partial struct NodeUtils
         );
     }
 
-    public static NativeList<EdgeInfo> GetEdgeInfoList(Allocator allocator, Entity nodeEntity, ref InitializeTrafficLightsJob job, DynamicBuffer<SubLane> nodeSubLaneBuffer, DynamicBuffer<ConnectedEdge> connectedEdgeBuffer, DynamicBuffer<EdgeGroupMask> edgeGroupMaskBuffer, DynamicBuffer<SubLaneGroupMask> subLaneGroupMaskBuffer)
+    public static NativeArray<EdgeInfo> GetEdgeInfoList(Allocator allocator, Entity nodeEntity, ref InitializeTrafficLightsJob job, DynamicBuffer<SubLane> nodeSubLaneBuffer, DynamicBuffer<ConnectedEdge> connectedEdgeBuffer, DynamicBuffer<EdgeGroupMask> edgeGroupMaskBuffer, DynamicBuffer<SubLaneGroupMask> subLaneGroupMaskBuffer)
     {
         return GetEdgeInfoList
         (

@@ -520,6 +520,25 @@ test("backend trace writes follow selected diagnostics event filtering", async (
   assert.ok(eventsSource.indexOf("bool shouldRecordEvent") < eventsSource.indexOf("RecordTspDiagnosticsEvent"));
 });
 
+test("backend treats reselecting a previously tracked junction as a new diagnostics selection", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const uiSystem = await repoSource("Systems/UI/UISystem.cs");
+  const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
+  const eventsEnd = uiBindings.indexOf("private void PruneTspDiagnosticsEvents", eventsStart);
+  const eventsSource = uiBindings.slice(eventsStart, eventsEnd);
+
+  assert.notEqual(eventsStart, -1);
+  assert.notEqual(eventsEnd, -1);
+  assert.match(uiSystem, /private\s+Entity\s+m_TspDiagnosticsSelectedEntity\s*=\s*Entity\.Null\s*;/);
+  assert.match(eventsSource, /bool\s+selectionChanged\s*=\s*m_TspDiagnosticsSelectedEntity\s*!=\s*entity\s*;/);
+  assert.match(eventsSource, /bool\s+isNewSelection\s*=\s*selectionChanged\s*\|\|\s*isNewHistory\s*;/);
+  assert.match(eventsSource, /m_TspDiagnosticsSelectedEntity\s*=\s*entity\s*;/);
+  assert.ok(
+    eventsSource.indexOf("bool isNewSelection") < eventsSource.indexOf("bool shouldRecordEvent"),
+    "selection-change state should feed trace event filtering"
+  );
+});
+
 test("selecting a junction for the first time forces an initial diagnostics trace write", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
@@ -531,7 +550,23 @@ test("selecting a junction for the first time forces an initial diagnostics trac
   // A junction that is not yet tracked must be flagged as a new selection so the first
   // selection always writes an initial trace, even when the junction is idle (issue #114).
   assert.match(eventsSource, /if\s*\(\s*!m_TspDiagnosticsEvents\.TryGetValue\(\s*entity,\s*out\s+TspDiagnosticsHistory\s+history\s*\)\s*\)/);
-  assert.match(eventsSource, /m_TspDiagnosticsEvents\[entity\]\s*=\s*history;\s*isNewSelection\s*=\s*true;/);
+  assert.match(eventsSource, /m_TspDiagnosticsEvents\[entity\]\s*=\s*history;\s*isNewHistory\s*=\s*true;/);
+});
+
+test("backend owns generated edge info arrays instead of leaking native lists", async () => {
+  const nodeUtils = await repoSource("Utils/NodeUtils.cs");
+  const initializationSystem = await repoSource("Systems/TrafficLightSystems/Initialisation/PatchedTrafficLightInitializationSystem.cs");
+  const uiSystem = await repoSource("Systems/UI/UISystem.cs");
+
+  assert.match(nodeUtils, /public\s+static\s+NativeArray<EdgeInfo>\s+GetEdgeInfoList/);
+  assert.doesNotMatch(nodeUtils, /public\s+static\s+NativeList<EdgeInfo>\s+GetEdgeInfoList/);
+  assert.match(nodeUtils, /using\s+NativeList<EdgeInfo>\s+edgeInfoList\s*=\s*new\(4,\s*Allocator\.Temp\)/);
+  assert.match(nodeUtils, /edgeInfo\.m_SubLaneInfoList\s*=\s*new\s+NativeArray<SubLaneInfo>\(subLaneInfoList\.Length,\s*allocator\)/);
+  assert.match(nodeUtils, /var\s+edgeInfoArray\s*=\s*new\s+NativeArray<EdgeInfo>\(edgeInfoList\.Length,\s*allocator\)/);
+  assert.match(initializationSystem, /var\s+edgeInfoArray\s*=\s*NodeUtils\.GetEdgeInfoList\(Allocator\.Temp/);
+  assert.match(initializationSystem, /NodeUtils\.Dispose\(edgeInfoArray\)/);
+  assert.doesNotMatch(initializationSystem, /GetEdgeInfoList\([\s\S]*?\)\.AsArray\(\)/);
+  assert.doesNotMatch(uiSystem, /GetEdgeInfoList\([\s\S]*?\)\.AsArray\(\)/);
 });
 
 test("diagnostics trace logging is limited to the initial selection write", async () => {
