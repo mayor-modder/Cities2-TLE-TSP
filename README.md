@@ -9,7 +9,7 @@ Current capabilities include:
 * Enable optional Transit signal priority for trams or buses on selected intersections. Buses on a dedicated bus lane can cut a conflicting phase short like trams; in mixed lanes they wait for a normal phase change.
 * Use opt-in diagnostics when investigating selected-junction behavior, including Transit signal priority.
 
-See the [guide](GUIDE.md), [roadmap](ROADMAP.md), [TSP architecture notes](docs/tsp-architecture.md), [traffic group notes](docs/traffic-groups.md), [custom phase data flow](docs/custom-phase-data-flow.md), and [save-format contract](docs/save-format-contract.md) for the current direction of the project. Coding agents should start with [AGENTS.md](AGENTS.md) and the [agent workflow notes](docs/agent-workflow.md).
+See the [guide](GUIDE.md), [roadmap](ROADMAP.md), [TSP architecture notes](docs/tsp-architecture.md), [traffic group notes](docs/traffic-groups.md), [custom phase data flow](docs/custom-phase-data-flow.md), [performance repro matrix](docs/performance-repro-matrix.md), and [save-format contract](docs/save-format-contract.md) for the current direction of the project. Coding agents should start with [AGENTS.md](AGENTS.md) and the [agent workflow notes](docs/agent-workflow.md).
 
 ## Status
 
