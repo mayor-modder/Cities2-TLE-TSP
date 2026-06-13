@@ -239,12 +239,13 @@ active.
 
 ## Evidence Gap
 
-The selected panel and JSONL trace expose `TrafficLights.m_Timer`, but custom
-phase timing decisions compare `CustomTrafficLights.m_Timer` with
-`CustomPhaseData` minimum and maximum duration, dynamic target duration, phase
-change metric, weighted wait, flow, low-flow counter, low-priority counter,
-priority, and `EndPhasePrematurely`. Those values are not captured as a
-decision snapshot.
+The custom phase panel already exposes live per-phase timing and demand values
+such as `CustomTrafficLights.m_Timer`, minimum and maximum duration, dynamic
+target duration, weighted wait, flow, low-flow counter, priority, change metric,
+and `EndPhasePrematurely`. The JSONL trace and dedicated diagnostics do not
+capture those values together with the missing transition context: metric
+result, low-priority counter, max-priority comparison, and the final reason the
+phase did or did not transition.
 
 ## Relevant Code
 
