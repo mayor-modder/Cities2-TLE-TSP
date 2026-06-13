@@ -66,7 +66,7 @@ Allow turning on red and give way to oncoming vehicles control road-vehicle beha
 
 Custom phases are for intersections where the built-in modes are not enough. A phase is one step in the traffic-light cycle. For each phase, you choose which lanes, tram tracks, bike lanes, and crosswalks are allowed to move.
 
-Select Custom phases, then open the Custom phase editor. The left side lists phases in cycle order. Use the edit button to change a phase, drag phases to reorder them, add phases when you need another step, or delete phases you no longer need. The editor supports up to 16 phases. Use Manual control to force one phase while testing; leave manual control before saving normal automatic behavior.
+Select custom phases, then open the custom phase editor. The left side lists phases in cycle order. Use the edit button to change a phase, drag phases to reorder them, add phases when you need another step, or delete phases you no longer need. The editor supports up to 16 phases. Use manual control to force one phase while testing; leave manual control before saving normal automatic behavior.
 
 While editing a phase, floating lane controls appear over the selected intersection. Click a movement to change what that movement does in the active phase:
 
@@ -78,7 +78,7 @@ While editing a phase, floating lane controls appear over the selected intersect
 
 The link icon between two phases links the first phase to the one after it. Linked phases still keep their own lane permissions and timing values, but the selector treats the linked block as a closer sequence when demand points into it. Linked selection does not wrap from the last phase back to the first.
 
-The Signal delays section can delay an edge's green at the start of a phase or end that edge's green before the phase ends. Use this for staggered starts, clearance time, or keeping one approach from moving for the full phase. These delays are per edge and per phase; they do not change the phase order.
+The signal delays section can delay an edge's green at the start of a phase or end that edge's green before the phase ends. Use this for staggered starts, clearance time, or keeping one approach from moving for the full phase. These delays are per edge and per phase; they do not change the phase order.
 
 ### Timing styles
 
@@ -87,7 +87,7 @@ Custom phases have two timing styles:
 | Timing style | What it means |
 | --- | --- |
 | Dynamic | The signal follows the phase order, but reacts to measured traffic demand while deciding when to end the current phase and which phase to serve next. |
-| Fixed timed | The signal follows the phase order and configured durations more directly. If Smart phase selection is enabled, it can still choose a demanded phase at transition points instead of always taking the next phase. |
+| Fixed timed | The signal follows the phase order and configured durations more directly. If smart phase selection is enabled, it can still choose a demanded phase at transition points instead of always taking the next phase. |
 
 Minimum duration is the earliest point where a phase may end. Maximum duration is the latest point where it may keep running. The UI shows these values with an `s` suffix, but they are signal update ticks rather than exact real-world seconds, so treat them as relative timing values.
 
@@ -103,7 +103,7 @@ These controls appear in dynamic mode:
 | Wait sensitivity | Changes how strongly waiting traffic pushes the signal toward another phase. Higher values make waiting demand matter sooner. |
 | Target duration | Scales the computed target duration for the current phase. Higher values make a busy phase harder to end early, but the maximum duration still caps it. |
 | Interval exponent | Raises the priority of phases that have not run recently, helping keep active phases from being starved. |
-| Vehicle weights | Changes how much cars, buses, tracks, pedestrians, or bicycles count when dynamic demand is calculated. These weights do not add lane permissions; they only affect demand scoring for movements already served by a phase. |
+| Vehicle weights | Changes how much cars, buses, rail vehicles, pedestrians, or bicycles count when dynamic demand is calculated. These weights do not add lane permissions; they only affect demand scoring for movements already served by a phase. |
 | Smoothing factor | Blends new demand readings with previous readings. Lower values react faster; higher values change more gradually. |
 
 ### Timing templates and presets

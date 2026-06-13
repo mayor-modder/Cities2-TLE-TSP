@@ -98,7 +98,7 @@ const EdgeFoldout = ({
     onHighlight: (edgeIndex: number, edgeVersion: number) => void;
 }) => {
     const { translate } = useLocalization();
-    const edgeName = `Edge ${edge.m_Edge.index}`;
+    const edgeName = `${translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Edge]") ?? "Edge"} ${edge.m_Edge.index}`;
 
     const handleHeaderClick = () => {
         onHighlight(edge.m_Edge.index, edge.m_Edge.version);
