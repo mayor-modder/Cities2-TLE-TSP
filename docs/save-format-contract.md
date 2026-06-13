@@ -174,3 +174,75 @@ TLE Extended should preserve these assumptions while in drop-in mode:
 Before changing any serialized field order, type, version, or normalization
 rule, add or update serializer fixtures in
 `TrafficLightsEnhancement.Serialization.Tests` and update this contract.
+
+## Save/Load Compatibility Checklist
+
+Use this checklist when changing serializers, migration jobs, save-facing UI
+bindings, traffic-group persistence, or TSP settings. Keep each row tied to
+automation or a named follow-up so compatibility remains an auditable claim.
+
+| Case | Current automated evidence | Status | Next action |
+| --- | --- | --- | --- |
+| Existing TLE intersections | `CustomTrafficLights` current round trip plus `V1`, `V2`, and `V4` legacy payload fixtures in `InheritedComponentSerializationTests`; migration sequencing for loaded versions `0..6` in `TleMigrationPlanTests`. | Partially automated | Add game-runtime load fixtures with representative upstream TLE saves before public release. |
+| TLE Extended-only data | `TransitSignalPrioritySettings` current round trip, TSP payload `1` fixture, pre-`V1` payload defaulting, and payload `2` normalization fixtures in `InheritedComponentSerializationTests`; TSP source/persistence policy coverage in `TspPolicyTests`. | Automated at serializer and policy level | Add a game-runtime save/load fixture proving Extended-only components survive a real save cycle. |
+| Traffic groups | `TrafficGroup` and `TrafficGroupMember` current round trips; `TrafficGroup` payload `V2` legacy-discard fixture; `TrafficGroupMember` payload `V1` defaulting fixture; signed phase-offset source guard in `TrafficGroupSystemSourceTests`; copy-missing-phases load-time source guard in `CopyPhasesToAllMembersSourceTests`. | Partially automated | Add ECS/world-level migration tests for invalid references, empty-group cleanup, and missing follower phases when a lightweight harness exists. |
+| Custom phases | `CustomPhaseData`, `EdgeGroupMask`, and `SubLaneGroupMask` current round trips; `CustomPhaseData` payload `V1`, `EdgeGroupMask` payload `V1`, and `GroupMask.Signal` payload `V1` fixtures; no-TSP custom-state-machine regression coverage in `CustomStateMachineNoTspRegressionTests`. | Automated at serializer and selected runtime-policy level | Add game-runtime fixture coverage for a saved custom-phase intersection with masks and timing settings. |
+| TSP settings | Serializer fixtures listed above; default, grouped-intersection, request-horizon, max-extension, public-car/bus, and approach-index policy coverage in `TspPolicyTests`; runtime-only TSP request/debug fields are excluded from the serialized payload list above. | Automated at serializer and policy level | Keep future source-flag or timing changes paired with payload-version notes and focused serializer fixtures. |
+| Downgrade and mod-removal limits | README and this contract warn that Extended saves are not downgrade-safe after Extended writes unknown components, and mod removal can only usually revert lights after road updates. | Documented limitation | Do not advertise downgrade or removal safety without a real downgrade/removal smoke-test playbook. |
+| Migration and normalization behavior | `TleMigrationPlanTests` covers global migration step selection; serializer fixtures cover legacy field defaults and TSP normalization; source guards cover selected validation invariants. | Partially automated | Add ECS/world-level tests for validation jobs that repair or remove invalid loaded data. |
+
+### Follow-Up Issue Drafts
+
+Use these draft bodies if the missing coverage needs to be tracked publicly.
+When opening them, apply the repository's required agent-work, priority, area,
+and project metadata.
+
+#### Add game-runtime save/load fixtures for TLE compatibility
+
+*Written by Codex.*
+
+Add a small game-runtime or harness-backed save/load fixture set that proves the
+compatibility cases currently covered only by serializer-level tests:
+
+- an upstream TLE save with predefined signal options,
+- an upstream TLE save with custom phases and group masks,
+- a TLE Extended save with `TransitSignalPrioritySettings`,
+- a traffic-group save with leader/member metadata.
+
+The test should load the fixture, assert the expected ECS components and values,
+save again, reload, and assert the same values. Keep fixture documentation in
+`docs/save-format-contract.md`.
+
+#### Add downgrade and mod-removal compatibility smoke tests
+
+*Written by Codex.*
+
+Create a manual or automated smoke-test playbook for the downgrade/removal
+limits documented in `README.md` and `docs/save-format-contract.md`.
+
+Cover:
+
+- loading a TLE Extended save in the intended current build,
+- attempting to load or inspect the same save with an older upstream TLE build,
+- removing the mod and triggering a road update at previously configured
+  intersections,
+- recording exactly which data is preserved, reset, ignored, or unsafe.
+
+Do not upgrade the README claim beyond the observed results.
+
+#### Add ECS validation coverage for loaded-data repair jobs
+
+*Written by Codex.*
+
+Add focused ECS or harness tests for the validation behavior in
+`TLEDataMigrationSystem` and `TLEDataMigrationJobs`:
+
+- invalid `SignalDelayData` edges are removed and delays clamp to `0..300`,
+- invalid `TrafficGroupMember` references are removed or reset,
+- invalid `TrafficGroup` timing values reset to defaults,
+- invalid `CustomTrafficLights` values reset and record affected intersections,
+- orphaned custom phase or mask buffers recreate default `CustomTrafficLights`
+  so the user can inspect and repair them.
+
+These tests should complement the existing serializer fixtures and migration
+plan tests rather than replacing them.

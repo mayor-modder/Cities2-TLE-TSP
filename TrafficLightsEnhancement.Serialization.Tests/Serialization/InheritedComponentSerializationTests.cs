@@ -65,6 +65,45 @@ public class InheritedComponentSerializationTests
     }
 
     [Fact]
+    public void Custom_traffic_lights_deserializes_v1_payload_as_vanilla()
+    {
+        var result = Deserialize<CustomTrafficLights>(writer =>
+        {
+            writer.Write(TLEDataVersion.V1);
+            for (int i = 1; i < 16; i++)
+            {
+                writer.Write((uint)CustomTrafficLights.Patterns.CustomPhase);
+            }
+        });
+
+        Assert.Equal(CustomTrafficLights.Patterns.Vanilla, result.GetPattern());
+        Assert.Equal(1f, result.m_PedestrianPhaseDurationMultiplier);
+        Assert.Equal(0, result.m_PedestrianPhaseGroupMask);
+        Assert.Equal(0u, result.m_Timer);
+        Assert.Equal((byte)0, result.m_ManualSignalGroup);
+        Assert.Equal(CustomTrafficLights.TrafficMode.Dynamic, result.GetMode());
+        Assert.Equal(CustomTrafficLights.TrafficOptions.SmartPhaseSelection, result.GetOptions());
+    }
+
+    [Fact]
+    public void Custom_traffic_lights_deserializes_v2_payload_with_default_later_fields()
+    {
+        var result = Deserialize<CustomTrafficLights>(writer =>
+        {
+            writer.Write(TLEDataVersion.V2);
+            writer.Write((uint)CustomTrafficLights.Patterns.SplitPhasing);
+        });
+
+        Assert.Equal(CustomTrafficLights.Patterns.SplitPhasing, result.GetPattern());
+        Assert.Equal(1f, result.m_PedestrianPhaseDurationMultiplier);
+        Assert.Equal(0, result.m_PedestrianPhaseGroupMask);
+        Assert.Equal(0u, result.m_Timer);
+        Assert.Equal((byte)0, result.m_ManualSignalGroup);
+        Assert.Equal(CustomTrafficLights.TrafficMode.Dynamic, result.GetMode());
+        Assert.Equal(CustomTrafficLights.TrafficOptions.SmartPhaseSelection, result.GetOptions());
+    }
+
+    [Fact]
     public void Transit_signal_priority_settings_round_trips_current_payload()
     {
         var source = TransitSignalPrioritySettings.CreateDefault();
@@ -100,6 +139,49 @@ public class InheritedComponentSerializationTests
         Assert.True(result.m_Enabled);
         Assert.False(result.m_AllowTrackRequests);
         Assert.True(result.m_AllowPublicCarRequests);
+        Assert.Equal(
+            global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings.DefaultRequestHorizonTicks,
+            result.m_RequestHorizonTicks);
+        Assert.Equal(
+            global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings.DefaultMaxGreenExtensionTicks,
+            result.m_MaxGreenExtensionTicks);
+    }
+
+    [Fact]
+    public void Transit_signal_priority_settings_deserializes_v2_payload_and_normalizes_upper_limits()
+    {
+        var result = Deserialize<TransitSignalPrioritySettings>(writer =>
+        {
+            writer.Write(2);
+            writer.Write(true);
+            writer.Write(false);
+            writer.Write(true);
+            writer.Write(ushort.MaxValue);
+            writer.Write(ushort.MaxValue);
+        });
+
+        Assert.True(result.m_Enabled);
+        Assert.False(result.m_AllowTrackRequests);
+        Assert.True(result.m_AllowPublicCarRequests);
+        Assert.Equal(
+            global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings.MaxRequestHorizonTicksUpperBound,
+            result.m_RequestHorizonTicks);
+        Assert.Equal(
+            global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings.MaxGreenExtensionTicksUpperBound,
+            result.m_MaxGreenExtensionTicks);
+    }
+
+    [Fact]
+    public void Transit_signal_priority_settings_deserializes_pre_v1_payload_as_defaults()
+    {
+        var result = Deserialize<TransitSignalPrioritySettings>(writer =>
+        {
+            writer.Write(0);
+        });
+
+        Assert.False(result.m_Enabled);
+        Assert.True(result.m_AllowTrackRequests);
+        Assert.False(result.m_AllowPublicCarRequests);
         Assert.Equal(
             global::TrafficLightsEnhancement.Logic.Tsp.TransitSignalPrioritySettings.DefaultRequestHorizonTicks,
             result.m_RequestHorizonTicks);

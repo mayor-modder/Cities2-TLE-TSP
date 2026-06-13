@@ -21,6 +21,8 @@ Compatibility with the current Cities: Skylines II version should be verified be
 
 TLE Extended is intended to be a drop-in replacement for Traffic Lights Enhancement. A city with intersections already configured in TLE should continue to load and preserve those intersection settings when switching to TLE Extended.
 
+The [save-format contract](docs/save-format-contract.md) tracks which compatibility cases are covered by automated serializer, migration, and policy tests, and which cases still need game-runtime fixture or smoke-test evidence before a public release.
+
 The mod stores extra data in saves to provide additional functionality. If the mod is removed, traffic lights and junctions should usually revert to default settings when a road update is triggered, but this cannot be guaranteed.
 
 You should not downgrade a save from TLE Extended to an older TLE build after saving with this fork. Cities saved with newer data may not be compatible with previous versions.
