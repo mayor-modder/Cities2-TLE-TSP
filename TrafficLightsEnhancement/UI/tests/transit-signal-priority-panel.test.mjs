@@ -342,6 +342,28 @@ test("backend exposes selected junction expected UI rows in TSP diagnostics", as
   }
 });
 
+test("backend exposes read-only traffic group rows in TSP diagnostics", async () => {
+  const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
+  const locale = JSON.parse(await repoSource("Locale.json"));
+
+  const requiredLabels = [
+    "TSPDiagnosticsTrafficGroupRole",
+    "TSPDiagnosticsTrafficGroupMode",
+    "TSPDiagnosticsTrafficGroupCycleLength",
+    "TSPDiagnosticsTrafficGroupSignalDelay",
+    "TSPDiagnosticsTrafficGroupPhaseOffset",
+    "TSPDiagnosticsTrafficGroupMemberCycleTimer",
+    "TSPDiagnosticsTrafficGroupMasterPhase",
+    "TSPDiagnosticsTrafficGroupTspSuspended",
+  ];
+
+  for (const label of requiredLabels) {
+    assert.match(uiBindings, new RegExp(`label\\s*=\\s*"${label}"`));
+    assert.equal(typeof locale[`UI.LABEL[C2VM.TrafficLightsEnhancement.${label}]`], "string");
+    assert.notEqual(locale[`UI.LABEL[C2VM.TrafficLightsEnhancement.${label}]`].trim(), "");
+  }
+});
+
 test("backend presents bus-originated TSP requests as bus diagnostics", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const helperStart = uiBindings.indexOf("private static string GetTspSourceName");

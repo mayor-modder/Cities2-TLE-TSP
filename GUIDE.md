@@ -183,6 +183,14 @@ When the file reaches 5 MB, the mod rotates it in the same folder with a timesta
 | Available patterns | Predefined signal patterns the selected junction can use. |
 | Extra options | Whether the extra Options section and each option should be visible, checked, or hidden. |
 | Tram control / Bus control | Whether the TSP source row is visible, editable, and checked for the selected junction. |
+| Traffic group role | Whether the selected grouped junction is the leader or a follower. |
+| Traffic group mode | Whether the selected group is using lockstep timing, green-wave timing, or is missing valid group data. |
+| Group cycle length | The traffic group's current cycle length value. Treat it as an inherited timing value, not wall-clock seconds. |
+| Member signal delay | The selected member's stored green-wave signal delay. |
+| Member phase offset | The selected member's signed phase offset. |
+| Member cycle timer | The selected member's current cycle-position timer. |
+| Group phase mapping | The leader phase, selected junction phase, group signal state, and master timers used to explain grouped synchronization. |
+| TSP suspended while grouped | Whether local TSP is paused because the selected junction belongs to a traffic group. |
 | Request | The active TSP request. `Early` means a fresh approaching vehicle was detected. `Latched` means a recent request is being held briefly after the sample disappeared. `None` means there is no active request. |
 | Source | The request source, usually `Track` for trams or `Bus` for bus TSP. |
 | Target group | The lane group the transit vehicle wants served. |

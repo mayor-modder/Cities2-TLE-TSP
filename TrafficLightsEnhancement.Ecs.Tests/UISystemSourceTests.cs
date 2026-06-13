@@ -72,6 +72,26 @@ public sealed class UISystemSourceTests
         Assert.Contains("totalCarLaneCount = TotalCarLaneCount,", source);
     }
 
+    [Fact]
+    public void Traffic_group_trace_exposes_read_only_group_timing_fields()
+    {
+        string source = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Systems", "UI", "UISystem.UIBIndings.cs"));
+        string traceSource = ExtractMethod(source, "private object GetTspTrafficGroupTrace");
+
+        Assert.Contains("role =", traceSource);
+        Assert.Contains("mode =", traceSource);
+        Assert.Contains("tspSuspended = true", traceSource);
+        Assert.Contains("cycleLength = group.m_CycleLength", traceSource);
+        Assert.Contains("memberCycleTimer = member.m_MemberCycleTimer", traceSource);
+        Assert.Contains("phaseOffset = member.m_PhaseOffset", traceSource);
+        Assert.Contains("masterPhase = group.m_MasterPhase", traceSource);
+        Assert.Contains("masterNextPhase = group.m_MasterNextPhase", traceSource);
+        Assert.Contains("masterState = group.m_MasterState.ToString()", traceSource);
+        Assert.Contains("masterTimer = group.m_MasterTimer", traceSource);
+        Assert.Contains("masterCustomTimer = group.m_MasterCustomTimer", traceSource);
+        Assert.Contains("masterSignalGroupCount = group.m_MasterSignalGroupCount", traceSource);
+    }
+
     private static string GetRepoPath(params string[] segments)
     {
         string path = AppContext.BaseDirectory;

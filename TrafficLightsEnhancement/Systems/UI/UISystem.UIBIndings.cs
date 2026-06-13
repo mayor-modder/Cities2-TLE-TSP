@@ -1119,6 +1119,21 @@ public partial class UISystem
         rows.Add(new { label = "TSPDiagnosticsTramControl", value = FormatTspControlSnapshot(selectedJunction.TramTransitPriority) });
         rows.Add(new { label = "TSPDiagnosticsBusControl", value = FormatTspControlSnapshot(selectedJunction.BusTransitPriority) });
 
+        if (EntityManager.TryGetComponent(entity, out TrafficGroupMember trafficGroupMember))
+        {
+            TrafficGroup trafficGroup = default;
+            bool hasTrafficGroup = trafficGroupMember.m_GroupEntity != Entity.Null
+                && EntityManager.TryGetComponent(trafficGroupMember.m_GroupEntity, out trafficGroup);
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupRole", value = trafficGroupMember.m_IsGroupLeader ? "Leader" : "Follower" });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupMode", value = FormatTrafficGroupMode(hasTrafficGroup, trafficGroup) });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupCycleLength", value = hasTrafficGroup ? trafficGroup.m_CycleLength.ToString("0.##", CultureInfo.InvariantCulture) : "-" });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupSignalDelay", value = trafficGroupMember.m_SignalDelay.ToString(CultureInfo.InvariantCulture) });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupPhaseOffset", value = trafficGroupMember.m_PhaseOffset.ToString(CultureInfo.InvariantCulture) });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupMemberCycleTimer", value = trafficGroupMember.m_MemberCycleTimer.ToString("0.##", CultureInfo.InvariantCulture) });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupMasterPhase", value = FormatTrafficGroupMasterPhase(hasTrafficGroup, trafficGroup, hasTrafficLights, trafficLights) });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupTspSuspended", value = "Yes" });
+        }
+
         if (hasTrafficLights)
         {
             rows.Add(new { label = "TSPDiagnosticsSignalState", value = trafficLights.m_State.ToString() });
@@ -1884,12 +1899,24 @@ public partial class UISystem
             {
                 isMember = false,
                 isLeader = false,
+                role = "Standalone",
+                mode = "Standalone",
                 groupEntity = FormatEntity(Entity.Null),
                 leaderEntity = FormatEntity(Entity.Null),
                 isCoordinated = false,
                 greenWaveEnabled = false,
+                tspSuspended = false,
+                cycleLength = 0f,
                 signalDelay = 0,
+                phaseOffset = 0,
+                memberCycleTimer = 0f,
                 distanceToLeader = 0f,
+                masterPhase = (byte)0,
+                masterNextPhase = (byte)0,
+                masterState = TrafficLightState.None.ToString(),
+                masterTimer = (byte)0,
+                masterCustomTimer = 0u,
+                masterSignalGroupCount = (byte)0,
             };
         }
 
@@ -1900,13 +1927,57 @@ public partial class UISystem
         {
             isMember = true,
             isLeader = member.m_IsGroupLeader,
+            role = member.m_IsGroupLeader ? "Leader" : "Follower",
+            mode = FormatTrafficGroupMode(hasGroup, group),
             groupEntity = FormatEntity(member.m_GroupEntity),
             leaderEntity = FormatEntity(member.m_LeaderEntity),
             isCoordinated = hasGroup && group.m_IsCoordinated,
             greenWaveEnabled = hasGroup && group.m_GreenWaveEnabled,
+            tspSuspended = true,
+            cycleLength = group.m_CycleLength,
             signalDelay = member.m_SignalDelay,
+            phaseOffset = member.m_PhaseOffset,
+            memberCycleTimer = member.m_MemberCycleTimer,
             distanceToLeader = member.m_DistanceToLeader,
+            masterPhase = group.m_MasterPhase,
+            masterNextPhase = group.m_MasterNextPhase,
+            masterState = group.m_MasterState.ToString(),
+            masterTimer = group.m_MasterTimer,
+            masterCustomTimer = group.m_MasterCustomTimer,
+            masterSignalGroupCount = group.m_MasterSignalGroupCount,
         };
+    }
+
+    private static string FormatTrafficGroupMode(bool hasGroup, TrafficGroup group)
+    {
+        if (!hasGroup)
+        {
+            return "Missing group";
+        }
+
+        if (!group.m_IsCoordinated)
+        {
+            return "Not coordinated";
+        }
+
+        return group.m_GreenWaveEnabled ? "Green wave" : "Lockstep";
+    }
+
+    private static string FormatTrafficGroupMasterPhase(
+        bool hasGroup,
+        TrafficGroup group,
+        bool hasTrafficLights,
+        TrafficLights trafficLights)
+    {
+        if (!hasGroup)
+        {
+            return "-";
+        }
+
+        string selectedPhase = hasTrafficLights
+            ? $"; selected G{FormatByteValue(trafficLights.m_CurrentSignalGroup)} -> G{FormatByteValue(trafficLights.m_NextSignalGroup)}"
+            : string.Empty;
+        return $"leader G{FormatByteValue(group.m_MasterPhase)} -> G{FormatByteValue(group.m_MasterNextPhase)}{selectedPhase}; {group.m_MasterState}; timer {group.m_MasterTimer}; custom {group.m_MasterCustomTimer}";
     }
 
     private ArrayList GetTspLaneSignalTrace(
