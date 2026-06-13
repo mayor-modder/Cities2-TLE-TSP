@@ -66,16 +66,72 @@ Allow turning on red and give way to oncoming vehicles control road-vehicle beha
 
 Custom phases are for intersections where the built-in modes are not enough. A phase is one step in the traffic-light cycle. For each phase, you choose which lanes, tram tracks, bike lanes, and crosswalks are allowed to move.
 
-The custom phase editor has two timing styles:
+Select custom phases, then open the custom phase editor. The left side lists phases in cycle order. Use the edit button to change a phase, drag phases to reorder them, add phases when you need another step, or delete phases you no longer need. The editor supports up to 16 phases. Use manual control to force one phase while testing; leave manual control before saving normal automatic behavior.
+
+While editing a phase, floating lane controls appear over the selected intersection. Click a movement to change what that movement does in the active phase:
+
+| Movement type | Click behavior |
+| --- | --- |
+| Car and bus-lane movements | Cycles between stop, go, and yield. Yield means the movement may proceed while still giving way to conflicts. |
+| Tram or train track movements | Toggles between stop and go. |
+| Bicycle lanes and pedestrian crossings | Toggles between stop and go. |
+
+The link icon between two phases links the first phase to the one after it. Linked phases still keep their own lane permissions and timing values, but the selector treats the linked block as a closer sequence when demand points into it. Linked selection does not wrap from the last phase back to the first.
+
+The signal delays section can delay an edge's green at the start of a phase or end that edge's green before the phase ends. Use this for staggered starts, clearance time, or keeping one approach from moving for the full phase. These delays are per edge and per phase; they do not change the phase order.
+
+### Timing styles
+
+Custom phases have two timing styles:
 
 | Timing style | What it means |
 | --- | --- |
-| Dynamic | The signal reacts to measured traffic demand. Empty or low-demand phases can be skipped when their settings allow it. |
-| Fixed timed | The signal follows the phase order and timing more directly. Smart phase selection can still choose phases based on demand when enabled. |
+| Dynamic | The signal follows the phase order, but reacts to measured traffic demand while deciding when to end the current phase and which phase to serve next. |
+| Fixed timed | The signal follows the phase order and configured durations more directly. If smart phase selection is enabled, it can still choose a demanded phase at transition points instead of always taking the next phase. |
 
-Timing templates are starting points for the phase settings. They adjust timing values for every custom phase; they do not inspect which phase serves cars, pedestrians, or tracks. For example, quick cycle uses shorter timings, heavy traffic uses longer timings, pedestrian friendly uses a more balanced timing preset, rail priority uses a preset intended for track-heavy custom cycles, and night mode uses very short timings that skip empty phases more readily.
+Minimum duration is the earliest point where a phase may end. Maximum duration is the latest point where it may keep running. The UI shows these values with an `s` suffix, but they are signal update ticks rather than exact real-world seconds, so treat them as relative timing values.
 
-The duration controls are best treated as relative timing values, not exact real-world seconds. Bigger values make phases run longer.
+In dynamic mode, a phase with a minimum duration of `0` is skippable. Skippable phases run when they have detected demand; otherwise the signal looks ahead to the next eligible phase. If every phase is skippable and empty, the signal falls back to the next phase so the controller does not stall. A phase with a minimum duration above `0` is always eligible and will not be skipped just because it is empty.
+
+### Dynamic controls
+
+These controls appear in dynamic mode:
+
+| Control | What it does |
+| --- | --- |
+| Phase change mode | Decides what condition can end the current phase between the minimum and maximum duration. Auto balances current flow against waiting demand. On flow drop, On wait increase, When empty, and When no demand use narrower conditions. |
+| Wait sensitivity | Changes how strongly waiting traffic pushes the signal toward another phase. Higher values make waiting demand matter sooner. |
+| Target duration | Scales the computed target duration for the current phase. Higher values make a busy phase harder to end early, but the maximum duration still caps it. |
+| Interval exponent | Raises the priority of phases that have not run recently, helping keep active phases from being starved. |
+| Vehicle weights | Changes how much cars, buses, rail vehicles, pedestrians, or bicycles count when dynamic demand is calculated. These weights do not add lane permissions; they only affect demand scoring for movements already served by a phase. |
+| Smoothing factor | Blends new demand readings with previous readings. Lower values react faster; higher values change more gradually. |
+
+### Timing templates and presets
+
+Timing templates are starting points for phase settings. They apply the same timing values to every custom phase in the selected intersection. They do not inspect which phase serves cars, pedestrians, tracks, or crossings, and they do not change lane permissions.
+
+| Template | What it changes |
+| --- | --- |
+| Default | Restores standard timing values. |
+| Quick cycle | Uses shorter durations and more responsive demand. |
+| Heavy traffic | Uses longer durations and steadier flow. |
+| Pedestrian friendly | Uses shorter, balanced timing intended for pedestrian-heavy custom cycles. |
+| Rail priority | Uses a longer maximum duration and a wait-based change mode suited to track-heavy cycles. |
+| Night mode | Uses very short timings and a no-demand change mode for quiet intersections. |
+
+User presets save and reapply timing settings. Like built-in templates, they change timing and demand controls, not the lane or crossing movements assigned to each phase.
+
+### Demand, skipping, and edge cases
+
+Custom phases are powerful because the mod will run exactly the movement masks you build. That also means it can run an unsafe or unhelpful cycle if a phase omits an important movement, serves conflicting movements, or leaves every pedestrian crossing stopped. Save after testing, then watch the intersection for at least a few cycles.
+
+Generating custom phases is a starting point, not a guarantee of perfect timing. Recheck lane permissions after road edits, lane-direction changes, or track changes. The mod tries to keep saved masks aligned after a road edit, but unusual geometry can still need manual cleanup.
+
+Custom phase pedestrian service is controlled by the phase masks. Turning on the exclusive pedestrian phase option does not replace checking which custom phases actually serve crosswalks.
+
+Transit signal priority can work with custom phases by extending the current phase or choosing a transit-serving next phase when the selected intersection is not in a traffic group. It does not create new phases or rewrite your custom movement masks.
+
+Traffic group followers show leader timing as read-only. While an intersection is in a traffic group, group coordination controls timing and local transit signal priority is suspended, including for the group leader.
 
 ## Transit signal priority
 
