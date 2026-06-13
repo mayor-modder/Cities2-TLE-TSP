@@ -756,7 +756,7 @@ test("localized traffic-control review fixes avoid high-risk mistranslations", a
 
   assert.equal(fr[kerbsideTurnOptionKey], "Virage côté trottoir au rouge par défaut");
   assert.equal(it[kerbsideTurnOptionKey], "Svolta lato marciapiede con il rosso predefinita");
-  assert.equal(ja[kerbsideTurnOptionKey], "赤信号での路肩側折進を既定にする");
+  assert.equal(ja[kerbsideTurnOptionKey], "赤信号での路肩側右左折を既定にする");
   assert.equal(pt[kerbsideTurnOptionKey], "Viragem junto ao passeio no vermelho por predefinição");
   assert.equal(zhTw[kerbsideTurnOptionKey], "預設允許靠路緣紅燈轉向");
   for (const locale of [fr, it, ja, pt, zhTw]) {
@@ -764,12 +764,12 @@ test("localized traffic-control review fixes avoid high-risk mistranslations", a
   }
   assert.equal(fr[label("AllowTurningOnRed")], "Autoriser le virage au rouge");
   assert.equal(it[label("AllowTurningOnRed")], "Consenti svolta con il rosso");
-  assert.equal(ja[label("AllowTurningOnRed")], "赤信号での折進を許可");
+  assert.equal(ja[label("AllowTurningOnRed")], "赤信号での右左折を許可");
   assert.equal(pt[label("AllowTurningOnRed")], "Permitir viragem no vermelho");
   assert.equal(zhTw[label("AllowTurningOnRed")], "允許紅燈轉向");
   assert.equal(fr[label("TSPDiagnosticsOptionTurningOnRed")], "Option virage au rouge");
   assert.equal(it[label("TSPDiagnosticsOptionTurningOnRed")], "Opzione svolta con il rosso");
-  assert.equal(ja[label("TSPDiagnosticsOptionTurningOnRed")], "赤信号折進オプション");
+  assert.equal(ja[label("TSPDiagnosticsOptionTurningOnRed")], "赤信号右左折オプション");
   assert.equal(pt[label("TSPDiagnosticsOptionTurningOnRed")], "Opção de viragem no vermelho");
   assert.equal(zhTw[label("TSPDiagnosticsOptionTurningOnRed")], "紅燈轉向選項");
 
@@ -797,6 +797,9 @@ test("localized traffic-control review fixes avoid high-risk mistranslations", a
   assert.equal(it[label("ControlledByLeader")], "Controllato dal leader: le fasi sono sincronizzate in lockstep.");
   assert.equal(zhTw[label("ControlledByLeader")], "由領導者控制：階段以 lockstep 同步。");
   assert.equal(fr[label("Lockstep")], "Mode lockstep");
+  assert.equal(it[label("Lockstep")], "Modalità Lockstep");
+  assert.equal(ru[label("Lockstep")], "Режим lockstep");
+  assert.equal(zhTw[label("Lockstep")], "鎖步");
 
   assert.equal(fr[label("TSPDiagnosticsApproachOwner")], "Propriétaire de l'approche");
   assert.equal(it[label("TSPDiagnosticsApproachOwner")], "Proprietario dell'approccio");
@@ -816,18 +819,37 @@ test("localized traffic-control review fixes avoid high-risk mistranslations", a
   assert.equal(zhTw[label("TSPDiagnosticsBaseGroup")], "基準群組");
   assert.equal(zhTw[label("TSPDiagnosticsCandidates")], "候選項目");
   assert.equal(zhTw[label("TSPDiagnosticsJunctionTopology")], "路口拓撲");
+  assert.equal(zhTw[label("TransitSignalPriority")], "交通號誌優先");
+  assert.equal(zhTw[label("TSPDiagnosticsOptionExclusivePedestrian")], "專屬行人相選項");
+  assert.equal(zhTw[label("TSPDiagnosticsApproachRole")], "引道角色");
+  assert.equal(zhTw[label("TSPDiagnosticsProbeApproach")], "引道探測");
+  assert.equal(zhTw[label("TSPDiagnosticsCurveApproach")], "引道曲線");
   assert.equal(fr[label("Options")], "Paramètres");
+  assert.equal(fr[label("VeryShortSkipsEmpty")], "Très court, ignore les phases vides");
+  assert.equal(fr[label("TSPDiagnosticsSiblingSamples")], "Échantillons de voies associées");
+  assert.equal(it[label("TSPDiagnosticsSiblingSamples")], "Campioni di corsie correlate");
+  assert.equal(ja[label("TSPDiagnosticsSiblingSamples")], "関連レーンのサンプル");
+  assert.equal(zhTw[label("TSPDiagnosticsSiblingSamples")], "相關車道樣本");
   assert.equal(it[tooltip("TrafficSignStop")], "Fermarsi");
   assert.equal(it[label("BackToGroup")], "Torna al gruppo");
   assert.equal(ja[label("TSPDiagnosticsPendingPedestrianFairness")], "フェーズが必要な歩行者");
   assert.equal(ja[label("TSPDiagnosticsTargetGroup")], "対象グループ");
+  assert.equal(ja[label("TSPDiagnosticsPedestrianDuration")], "歩行者時間オプション");
   assert.equal(pt[label("TSPDiagnosticsEvents")], "Eventos recentes de TSP");
-  assert.equal(de[tooltip("Auto")], "Gleicht den Verkehrsfluss automatisch aus, indem Phasen basierend auf Nachfrage früher beendet oder übersprungen werden.");
-  assert.equal(de[tooltip("WhenNoDemand")], "Wechselt die Phase, wenn keine Fahrzeuge oder Fußgänger auf die aktuelle Phase warten.");
+  assert.equal(de[tooltip("Auto")], "Gleicht automatisch Verkehrsfluss und Wartezeit aus, um zu entscheiden, wann die Phase gewechselt wird.");
+  assert.equal(de[tooltip("WhenNoDemand")], "Wechselt die Phase nur, wenn auf anderen Spuren Verkehr wartet. Vermeidet unnötige Wechsel.");
+  assert.equal(es[kerbsideTurnDescriptionKey], es[kerbsideTurnTooltipKey]);
   assert.equal(ko[label("TurnsSinceLastRun")], "마지막 실행 이후 주기 수");
   assert.equal(pl[action("KeyboardBindingMainPanelToggle")], "Przełącz panel główny");
   assert.equal(pl[warning("m_ForceNodeUpdate")], "To wymusi aktualizację wszystkich skrzyżowań z sygnalizacją świetlną. Ustawienia domyślne zostaną zastosowane do skrzyżowań bez konfiguracji niestandardowej.");
+  assert.doesNotMatch(ru[diagnosticsDescriptionKey], /соединительную панель|шлюз/);
+  assert.equal(ru[diagnosticsDescriptionKey], ru[diagnosticsTooltipKey]);
+  assert.match(zh[label("CanaryBuildWarning")], /测试/);
+  assert.match(zh[label("CanaryBuildWarning")], /破坏游戏|破坏存档/);
+  assert.doesNotMatch(zh[label("CanaryBuildWarning")], /备份|未完成/);
   assert.equal(zh[label("LaneDirectionTool")], "车道方向工具");
+  assert.match(zh[label("LdtMigrationNotice")], /^车道方向工具/);
+  assert.match(zh[label("LdtRetirementNotice")], /^车道方向工具/);
 });
 
 test("machine-assisted localization metadata tracks only live locale keys", async () => {
