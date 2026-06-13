@@ -682,18 +682,30 @@ test("reviewed Crowdin translations preserve traffic-control terms", async () =>
   const readLocale = async (locale) => JSON.parse(await readFile(new URL(`../../Locale/${locale}.json`, import.meta.url), "utf8"));
   const de = await readLocale("de-DE");
   const es = await readLocale("es-ES");
+  const fr = await readLocale("fr-FR");
+  const it = await readLocale("it-IT");
+  const ja = await readLocale("ja-JP");
   const pl = await readLocale("pl-PL");
+  const pt = await readLocale("pt-PT");
   const ko = await readLocale("ko-KR");
+  const ru = await readLocale("ru-RU");
   const zh = await readLocale("zh-CN");
+  const zhTw = await readLocale("zh-TW");
 
   assert.equal(de["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "Schienengewichtung");
   assert.equal(de["UI.LABEL[C2VM.TrafficLightsEnhancement.GiveWayToOncomingVehicles]"], "Entgegenkommenden Fahrzeugen Vorfahrt gewähren");
   assert.equal(es["UI.LABEL[C2VM.TrafficLightsEnhancement.GiveWayToOncomingVehicles]"], "Ceder el paso a los vehículos que vienen de frente");
+  assert.equal(fr["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "Poids des rails");
+  assert.equal(it["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "Peso dei binari");
+  assert.equal(ja["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "軌道の重み");
   assert.equal(pl["UI.LABEL[C2VM.TrafficLightsEnhancement.WhenEmpty]"], "Gdy pusto");
   assert.equal(pl["UI.LABEL[C2VM.TrafficLightsEnhancement.WhenNoDemand]"], "Gdy brak zapotrzebowania");
+  assert.equal(pt["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "Peso dos carris");
   assert.equal(ko["Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian].tooltip"], "사용자 정의 구성이 없는 모든 신호등에 보행자 전용 신호를 추가합니다. 새로 건설된 도로에 적용되며 게임 상태 업데이트 시 기존 도로에도 적용됩니다.");
+  assert.equal(ru["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "Вес рельсового транспорта");
   assert.equal(zh["Tooltip.LABEL[C2VM.TrafficLightsEnhancement.SelectGroupMember]"], "选择一个信号灯组成员");
   assert.equal(zh["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "轨道权重");
+  assert.equal(zhTw["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "軌道權重");
 });
 
 test("machine-assisted localization metadata tracks only live locale keys", async () => {
@@ -705,7 +717,7 @@ test("machine-assisted localization metadata tracks only live locale keys", asyn
   for (const [localeId, localeMetadata] of Object.entries(metadata.locales)) {
     const locale = JSON.parse(await readFile(new URL(`../../Locale/${localeId}.json`, import.meta.url), "utf8"));
 
-    assert.equal(localeMetadata.source, "upstream-crowdin-plus-ai-fill");
+    assert.match(localeMetadata.source, /^upstream-crowdin-plus-ai-/);
     assert.equal(localeMetadata.aiTranslatedKeys.length, localeMetadata.aiTranslatedKeyCount);
 
     for (const key of localeMetadata.aiTranslatedKeys) {

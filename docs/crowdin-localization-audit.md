@@ -36,9 +36,11 @@ Each upstream file covered 154 of the 337 live keys in the current
 keys that are obsolete or unknown in the current fork.
 
 The imported files were normalized to all 337 current live keys. Crowdin
-translations are preserved where present; keys that Crowdin never saw use the
-current English base string as fallback so newer TLE Extended UI strings do not
-render as raw localization ids.
+translations are preserved where present; keys that Crowdin never saw use
+machine-assisted fallback translations so newer TLE Extended UI strings do not
+render as raw localization ids or raw English fallback text. The machine-filled
+keys are tracked in `docs/localization-ai-review.json` for native-speaker
+review.
 
 ## Translation Coverage
 
@@ -46,19 +48,22 @@ render as raw localization ids.
 | --- | ---: | ---: | ---: |
 | `de-DE.json` | 154 | 327 | 10 |
 | `es-ES.json` | 154 | 330 | 7 |
-| `fr-FR.json` | 154 | 0 | 337 |
-| `it-IT.json` | 154 | 0 | 337 |
-| `ja-JP.json` | 154 | 0 | 337 |
+| `fr-FR.json` | 154 | 327 | 10 |
+| `it-IT.json` | 154 | 330 | 7 |
+| `ja-JP.json` | 154 | 331 | 6 |
 | `ko-KR.json` | 154 | 335 | 2 |
 | `pl-PL.json` | 154 | 332 | 5 |
-| `pt-PT.json` | 154 | 0 | 337 |
-| `ru-RU.json` | 154 | 0 | 337 |
+| `pt-PT.json` | 154 | 331 | 6 |
+| `ru-RU.json` | 154 | 331 | 6 |
 | `zh-CN.json` | 154 | 333 | 4 |
-| `zh-TW.json` | 154 | 0 | 337 |
+| `zh-TW.json` | 154 | 331 | 6 |
 
 The languages with substantial submitted translations in the upstream Crowdin
-payload are German, Spanish, Korean, Polish, and Simplified Chinese. The other
-Crowdin files currently behave as complete English fallback dictionaries.
+payload are German, Spanish, Korean, Polish, and Simplified Chinese. French,
+Italian, Japanese, European Portuguese, Russian, and Traditional Chinese now
+ship with AI-translated fallbacks for strings that would otherwise remain in
+English, and therefore need broader native-speaker review before being treated
+as reviewed community translations.
 
 ## Manual QA Follow-Up
 

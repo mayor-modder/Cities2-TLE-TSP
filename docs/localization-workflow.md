@@ -22,8 +22,10 @@ project embeds:
 `LocaleHelper` loads the base `Locale.json` as `en-US` and then scans embedded
 resources whose names share the same base name. Sibling locale files currently
 come from the upstream Crowdin translation branch and are normalized with
-English fallback strings for current TLE Extended keys that were not present in
-the upstream source. See [`crowdin-localization-audit.md`](crowdin-localization-audit.md).
+machine-assisted fallback translations for current TLE Extended keys that were
+not present in the upstream source. See
+[`crowdin-localization-audit.md`](crowdin-localization-audit.md) and
+[`localization-ai-review.md`](localization-ai-review.md).
 
 `Locale.json` owns these live key families:
 
@@ -111,6 +113,7 @@ embedded sibling-locale location expected by the project:
 TrafficLightsEnhancement/Locale/*.json
 ```
 
-English fallback strings are already common in inherited locale files. Do not
-block feature or hardening work on hand-translating every locale, but keep new
-base strings clear and stable so they are ready for Crowdin.
+Machine-assisted fallback translations are used to avoid raw English fallback
+strings in shipped locale files. Do not block feature or hardening work on
+hand-translating every locale, but keep new base strings clear and stable so
+they are ready for Crowdin.

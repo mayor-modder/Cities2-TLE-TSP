@@ -12,8 +12,10 @@ this document and the machine-readable sidecar
 
 All machine-assisted translations need native-speaker review before they should
 be treated as fully reviewed community translations. The current goal is to
-avoid raw English fallback text in locales that already had substantial Crowdin
-coverage, while keeping the provenance honest.
+avoid raw English fallback text in shipped locale files while keeping the
+provenance honest. For locales that had little useful upstream Crowdin content,
+the remaining values are AI-translated fallbacks rather than reviewed community
+translations.
 
 ## AI-Filled Coverage
 
@@ -21,9 +23,15 @@ coverage, while keeping the provenance honest.
 | --- | ---: | --- |
 | `de-DE` | 181 | Needs native-speaker review |
 | `es-ES` | 181 | Needs native-speaker review |
+| `fr-FR` | 327 | Needs native-speaker review |
+| `it-IT` | 330 | Needs native-speaker review |
+| `ja-JP` | 331 | Needs native-speaker review |
 | `ko-KR` | 182 | Needs native-speaker review |
 | `pl-PL` | 184 | Needs native-speaker review |
+| `pt-PT` | 331 | Needs native-speaker review |
+| `ru-RU` | 331 | Needs native-speaker review |
 | `zh-CN` | 182 | Needs native-speaker review |
+| `zh-TW` | 331 | Needs native-speaker review |
 
 Proper names, acronyms, and unit-like strings such as `Traffic Lights
 Enhancement`, `TSP`, `Auto`, `x`, and similar labels may intentionally remain
