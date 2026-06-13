@@ -649,6 +649,15 @@ test("backend localization uses Locale.json instead of legacy resource dictionar
   assert.deepEqual(legacyUtils, []);
 });
 
+test("backend localization aliases imported Crowdin locale files to game locale ids", async () => {
+  const localeHelper = await repoSource("Extensions/LocaleHelper.cs");
+
+  assert.match(localeHelper, /"pt-PT",\s*\["pt-BR"\]/);
+  assert.match(localeHelper, /"zh-CN",\s*\["zh-HANS"\]/);
+  assert.match(localeHelper, /"zh-TW",\s*\["zh-HANT",\s*"zh-HK"\]/);
+  assert.match(localeHelper, /_locale\[alias\]\s*=\s*dictionary/);
+});
+
 test("Crowdin locale dictionaries are embedded as Locale.json siblings", async () => {
   const localeFiles = await readdir(new URL("../../Locale", import.meta.url));
   const baseLocale = JSON.parse(await repoSource("Locale.json"));

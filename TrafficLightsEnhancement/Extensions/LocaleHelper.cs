@@ -27,6 +27,13 @@ namespace C2VM.TrafficLightsEnhancement.Extensions
 			{ "zh-HANT", ["zh-HK", "zh-TW"] }
 		};
 
+		private static readonly Dictionary<string, string[]> _localeAliases = new()
+		{
+			{ "pt-PT", ["pt-BR"] },
+			{ "zh-CN", ["zh-HANS"] },
+			{ "zh-TW", ["zh-HANT", "zh-HK"] }
+		};
+
 		public LocaleHelper(string dictionaryResourceName)
 		{
 			var assembly = GetType().Assembly;
@@ -46,6 +53,22 @@ namespace C2VM.TrafficLightsEnhancement.Extensions
 				var key = Path.GetFileNameWithoutExtension(name);
 
 				_locale[key.Substring(key.LastIndexOf('.') + 1)] = GetDictionary(name);
+			}
+
+			foreach (var item in _localeAliases)
+			{
+				if (!_locale.TryGetValue(item.Key, out var dictionary))
+				{
+					continue;
+				}
+
+				foreach (var alias in item.Value)
+				{
+					if (!_locale.ContainsKey(alias))
+					{
+						_locale[alias] = dictionary;
+					}
+				}
 			}
 
 			Dictionary<string, string> GetDictionary(string resourceName)

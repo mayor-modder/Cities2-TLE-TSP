@@ -19,7 +19,10 @@ The project file embeds `Locale.json` and sibling files under
 `TrafficLightsEnhancement/Locale/*.json`. The sibling files come from the
 upstream Crowdin translation branch and are normalized with machine-assisted
 fallback translations for current TLE Extended keys that Crowdin did not see.
-The base English `Locale.json` dictionary remains registered as `en-US`.
+`LocaleHelper` also registers runtime aliases for imported file names that do
+not match the game locale ids: `pt-PT` as `pt-BR`, `zh-CN` as `zh-HANS`, and
+`zh-TW` as `zh-HANT`/`zh-HK`. The base English `Locale.json` dictionary remains
+registered as `en-US`.
 
 The active React UI also translates through Cities II's localization manager.
 Source search shows UI components calling `useLocalization()` and translating

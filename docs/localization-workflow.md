@@ -27,6 +27,10 @@ not present in the upstream source. See
 [`crowdin-localization-audit.md`](crowdin-localization-audit.md) and
 [`localization-ai-review.md`](localization-ai-review.md).
 
+When an imported Crowdin file name differs from a game locale id, `LocaleHelper`
+registers runtime aliases instead of duplicating JSON files. Current aliases are
+`pt-PT` to `pt-BR`, `zh-CN` to `zh-HANS`, and `zh-TW` to `zh-HANT`/`zh-HK`.
+
 `Locale.json` owns these live key families:
 
 - `Options.SECTION`, `Options.TAB`, and `Options.GROUP`

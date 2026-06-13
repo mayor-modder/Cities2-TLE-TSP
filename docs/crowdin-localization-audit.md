@@ -15,6 +15,14 @@ and optional sibling dictionaries under `TrafficLightsEnhancement/Locale/*.json`
 The old `Resources/Localisations` and TypeScript fallback dictionaries remain
 intentionally removed.
 
+Some upstream Crowdin file names do not match the game locale ids exposed by
+the mod settings or Cities II. `LocaleHelper` registers runtime aliases so the
+imported files are available under the expected game ids:
+
+- `pt-PT.json` also registers as `pt-BR`
+- `zh-CN.json` also registers as `zh-HANS`
+- `zh-TW.json` also registers as `zh-HANT` and `zh-HK`
+
 ## Import Shape
 
 The upstream translation branch provided 11 Crowdin output files:
