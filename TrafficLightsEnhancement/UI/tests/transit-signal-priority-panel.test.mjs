@@ -649,6 +649,73 @@ test("backend localization uses Locale.json instead of legacy resource dictionar
   assert.deepEqual(legacyUtils, []);
 });
 
+test("Crowdin locale dictionaries are embedded as Locale.json siblings", async () => {
+  const localeFiles = await readdir(new URL("../../Locale", import.meta.url));
+  const baseLocale = JSON.parse(await repoSource("Locale.json"));
+  const baseKeys = Object.keys(baseLocale);
+
+  assert.deepEqual([...localeFiles].sort(), [
+    "de-DE.json",
+    "es-ES.json",
+    "fr-FR.json",
+    "it-IT.json",
+    "ja-JP.json",
+    "ko-KR.json",
+    "pl-PL.json",
+    "pt-PT.json",
+    "ru-RU.json",
+    "zh-CN.json",
+    "zh-TW.json",
+  ]);
+
+  for (const localeFile of localeFiles) {
+    const locale = JSON.parse(await readFile(new URL(`../../Locale/${localeFile}`, import.meta.url), "utf8"));
+
+    assert.deepEqual(
+      Object.keys(locale).sort(),
+      [...baseKeys].sort(),
+      `${localeFile} must cover all live Locale.json keys`);
+  }
+});
+
+test("reviewed Crowdin translations preserve traffic-control terms", async () => {
+  const readLocale = async (locale) => JSON.parse(await readFile(new URL(`../../Locale/${locale}.json`, import.meta.url), "utf8"));
+  const de = await readLocale("de-DE");
+  const es = await readLocale("es-ES");
+  const pl = await readLocale("pl-PL");
+  const ko = await readLocale("ko-KR");
+  const zh = await readLocale("zh-CN");
+
+  assert.equal(de["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "Schienengewichtung");
+  assert.equal(de["UI.LABEL[C2VM.TrafficLightsEnhancement.GiveWayToOncomingVehicles]"], "Entgegenkommenden Fahrzeugen Vorfahrt gewähren");
+  assert.equal(es["UI.LABEL[C2VM.TrafficLightsEnhancement.GiveWayToOncomingVehicles]"], "Ceder el paso a los vehículos que vienen de frente");
+  assert.equal(pl["UI.LABEL[C2VM.TrafficLightsEnhancement.WhenEmpty]"], "Gdy pusto");
+  assert.equal(pl["UI.LABEL[C2VM.TrafficLightsEnhancement.WhenNoDemand]"], "Gdy brak zapotrzebowania");
+  assert.equal(ko["Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian].tooltip"], "사용자 정의 구성이 없는 모든 신호등에 보행자 전용 신호를 추가합니다. 새로 건설된 도로에 적용되며 게임 상태 업데이트 시 기존 도로에도 적용됩니다.");
+  assert.equal(zh["Tooltip.LABEL[C2VM.TrafficLightsEnhancement.SelectGroupMember]"], "选择一个信号灯组成员");
+  assert.equal(zh["UI.LABEL[C2VM.TrafficLightsEnhancement.TrackWeight]"], "轨道权重");
+});
+
+test("machine-assisted localization metadata tracks only live locale keys", async () => {
+  const metadata = JSON.parse(await repoSource("../docs/localization-ai-review.json"));
+  const baseLocale = JSON.parse(await repoSource("Locale.json"));
+
+  assert.equal(metadata.reviewStatus, "needs-native-speaker-review");
+
+  for (const [localeId, localeMetadata] of Object.entries(metadata.locales)) {
+    const locale = JSON.parse(await readFile(new URL(`../../Locale/${localeId}.json`, import.meta.url), "utf8"));
+
+    assert.equal(localeMetadata.source, "upstream-crowdin-plus-ai-fill");
+    assert.equal(localeMetadata.aiTranslatedKeys.length, localeMetadata.aiTranslatedKeyCount);
+
+    for (const key of localeMetadata.aiTranslatedKeys) {
+      assert.ok(Object.hasOwn(baseLocale, key), `${localeId} metadata references unknown key ${key}`);
+      assert.ok(Object.hasOwn(locale, key), `${localeId} locale is missing metadata key ${key}`);
+      assert.notEqual(locale[key], baseLocale[key], `${localeId} AI-filled key still matches English fallback: ${key}`);
+    }
+  }
+});
+
 test("custom phase vehicle weights expose bicycle weight control", async () => {
   const subPanel = await source("src/mods/components/custom-phase-tool/main-panel/sub-panel.tsx");
   const locale = JSON.parse(await repoSource("Locale.json"));

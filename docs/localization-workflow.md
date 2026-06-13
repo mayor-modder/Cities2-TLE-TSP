@@ -20,8 +20,10 @@ project embeds:
 - optional sibling locale files under `TrafficLightsEnhancement/Locale/*.json`
 
 `LocaleHelper` loads the base `Locale.json` as `en-US` and then scans embedded
-resources whose names share the same base name. No sibling locale files exist at
-the moment, so the current shipped dictionary is the base English file.
+resources whose names share the same base name. Sibling locale files currently
+come from the upstream Crowdin translation branch and are normalized with
+English fallback strings for current TLE Extended keys that were not present in
+the upstream source. See [`crowdin-localization-audit.md`](crowdin-localization-audit.md).
 
 `Locale.json` owns these live key families:
 

@@ -15,10 +15,11 @@ source.
 new LocaleHelper(modName + ".Locale.json").GetAvailableLanguages()
 ```
 
-The project file embeds `Locale.json` and optional sibling files under
-`TrafficLightsEnhancement/Locale/*.json`. In the current tree there are no
-`Locale/*.json` sibling files, so the shipped game dictionary is the base
-English `Locale.json` dictionary registered as `en-US`.
+The project file embeds `Locale.json` and sibling files under
+`TrafficLightsEnhancement/Locale/*.json`. The sibling files come from the
+upstream Crowdin translation branch and are normalized with English fallback
+strings for current TLE Extended keys that Crowdin did not see. The base
+English `Locale.json` dictionary remains registered as `en-US`.
 
 The active React UI also translates through Cities II's localization manager.
 Source search shows UI components calling `useLocalization()` and translating
@@ -30,11 +31,11 @@ therefore be added to `Locale.json` first.
 | Resource surface | Loader | Current status | Notes |
 | --- | --- | --- | --- |
 | `TrafficLightsEnhancement/Locale.json` | `LocaleHelper` from `Mod.OnLoad()` | Active | Owns option labels, option descriptions, warnings, tooltips, and UI labels. |
-| `TrafficLightsEnhancement/Locale/*.json` | `LocaleHelper` resource scan | Supported but currently absent | This is the expected place for embedded sibling dictionaries if the translation pipeline emits them. |
+| `TrafficLightsEnhancement/Locale/*.json` | `LocaleHelper` resource scan | Active | Embedded sibling dictionaries imported from upstream Crowdin output. See `docs/crowdin-localization-audit.md` for coverage and fallback details. |
 | `TrafficLightsEnhancement/Resources/Localisations/*.json` | removed | Removed unused backend dictionaries | The active loader is `LocaleHelper`; source tests now guard against reintroducing this legacy resource path. |
 | `TrafficLightsEnhancement/Utils/LocalisationUtils.cs` | removed | Removed unused backend loader | Code search found no production caller constructing the class or calling its helpers. |
 | `TrafficLightsEnhancement/UI/src/mods/localisations/*.ts` | removed | Removed unused fallback dictionaries | Current UI components use `useLocalization()`, not the old TypeScript `getString()` helper. Do not reintroduce a parallel UI-only string source without tests and docs. |
-| `crowdin.yml` | Crowdin | Needs confirmation before broad translation work | The source pattern is `Locale*.json`; verify generated output lands where the project embeds it before relying on automated translation import/export. |
+| `crowdin.yml` | Crowdin | Needs follow-up before automated sync | The source pattern is `Locale*.json`; the manual Crowdin import landed under the embedded `TrafficLightsEnhancement/Locale/*.json` path. Verify the project integration before relying on automated import/export. |
 
 ## Cleanup Opportunities
 
