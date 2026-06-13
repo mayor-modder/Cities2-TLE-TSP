@@ -105,6 +105,43 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains("member.m_PhaseOffset < -300 || member.m_PhaseOffset > 300", migrationSystemSource);
     }
 
+    [Fact]
+    public void Local_tsp_runtime_rejects_all_traffic_group_members()
+    {
+        string source = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "TransitSignalPriorityRuntime.cs"));
+        string eligibilitySource = ExtractMethod(source, "private static bool IsRuntimeEligibleJunction");
+
+        Assert.Contains(
+            "return !job.m_ExtraTypeHandle.m_TrafficGroupMember.HasComponent(junctionEntity);",
+            eligibilitySource);
+        Assert.DoesNotContain("m_IsGroupLeader", eligibilitySource);
+    }
+
+    [Fact]
+    public void Tsp_approach_index_eligibility_rejects_group_members_for_trams_and_buses()
+    {
+        string source = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "PatchedTrafficLightSystem.cs"));
+        string jobSource = ExtractSection(
+            source,
+            "private struct HasApproachIndexEligibleTransitSignalPrioritySettingsJob",
+            "public override int GetUpdateInterval");
+
+        Assert.Contains("bool isGroupedIntersection = m_TrafficGroupMemberLookup.HasComponent(entity);", jobSource);
+        Assert.Contains("TspPolicy.IsApproachIndexEligibleSetting(logicSettings, isGroupedIntersection)", jobSource);
+        Assert.Contains("TspPolicy.IsBusApproachIndexEligibleSetting(logicSettings, isGroupedIntersection)", jobSource);
+        Assert.DoesNotContain("m_IsGroupLeader", jobSource);
+    }
+
     private static string GetTrafficGroupSystemPath()
     {
         return GetRepositorySourcePath(
@@ -121,6 +158,17 @@ public sealed class TrafficGroupSystemSourceTests
             "TrafficLightSystems",
             "Simulation",
             "CustomStateMachine.cs");
+    }
+
+    private static string ExtractSection(string source, string startMarker, string endMarker)
+    {
+        int start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Could not find section start: {startMarker}");
+
+        int end = source.IndexOf(endMarker, start, StringComparison.Ordinal);
+        Assert.True(end > start, $"Could not find section end: {endMarker}");
+
+        return source.Substring(start, end - start);
     }
 
     private static string GetRepositorySourcePath(params string[] segments)

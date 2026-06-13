@@ -20,7 +20,7 @@ public class TspPolicyTests
     }
 
     [Fact]
-    public void Availability_RejectsFollowerRuntime()
+    public void Availability_rejects_any_group_member_runtime()
     {
         var settings = new TransitSignalPrioritySettings(
             enabled: true,
@@ -100,7 +100,7 @@ public class TspPolicyTests
     }
 
     [Fact]
-    public void Follower_runtime_is_rejected_even_when_enabled()
+    public void Grouped_intersection_runtime_is_rejected_even_when_enabled()
     {
         var settings = new TransitSignalPrioritySettings(enabled: true);
 
@@ -263,6 +263,18 @@ public class TspPolicyTests
         Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(busDisabled, isGroupedIntersection: false));
         Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(busEnabled, isGroupedIntersection: true));
         Assert.True(TspPolicy.IsBusApproachIndexEligibleSetting(busEnabled, isGroupedIntersection: false));
+    }
+
+    [Fact]
+    public void Grouped_intersections_are_not_approach_index_eligible_for_any_enabled_tsp_source()
+    {
+        var settings = new TransitSignalPrioritySettings(
+            enabled: true,
+            allowTrackRequests: true,
+            allowPublicCarRequests: true);
+
+        Assert.False(TspPolicy.IsApproachIndexEligibleSetting(settings, isGroupedIntersection: true));
+        Assert.False(TspPolicy.IsBusApproachIndexEligibleSetting(settings, isGroupedIntersection: true));
     }
 
     [Fact]
