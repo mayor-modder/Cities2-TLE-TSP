@@ -11,7 +11,7 @@ You can use it to:
 - Build your own custom phase cycle.
 - Give trams or buses signal priority at selected intersections.
 
-The mod supports both left-hand traffic and right-hand traffic. It is also intended to keep existing Traffic Lights Enhancement intersection settings compatible when you load a city with TLE Extended; the README links to the maintainer checklist that tracks what is automated and what still needs release-time save/load evidence.
+The mod supports both left-hand traffic and right-hand traffic. It is also intended to keep existing Traffic Lights Enhancement intersection settings compatible when you load a city with TLE Extended; see the README for current compatibility notes and limitations.
 
 > [!TIP]
 > If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use custom phases if you want to build the signal behavior yourself.
