@@ -11,7 +11,7 @@ assignees: ''
 Describe the junction, save, and traffic pattern being observed.
 
 - Game version:
-- TLE Extended version:
+- TLE version:
 - Build branch or commit:
 - Active playset includes TLE Extended:
 - Original Traffic Lights Enhancement also enabled:
@@ -37,7 +37,8 @@ or controls are missing, include:
   specific control:
 - Playset state and whether the game was restarted after playset changes:
 - `Player.log` lines containing `TrafficLightsEnhancement`, `OnLoad`,
-  `Current mod asset`, `Compatibility mode`, or UI/binding errors:
+  `Current mod asset`, `Compatibility mode`, assembly/load exceptions, or
+  UI/binding errors:
 - Diagnostics enabled:
 - Reproduction steps from game launch:
 

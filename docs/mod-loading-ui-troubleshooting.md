@@ -13,16 +13,19 @@ binding, and topology-based control visibility.
 Ask for this evidence in the first report:
 
 - Cities: Skylines II game version.
-- TLE Extended version from the mod options Version group.
+- TLE version from the mod options Version group.
 - Build source: branch, commit, or release artifact used to build the local mod.
 - Playset state: whether TLE Extended is enabled in the active playset, whether
   the original Traffic Lights Enhancement is also enabled, and whether the game
-  was restarted after changing the playset.
+  was restarted after changing the playset. Running both mods can cause a load
+  conflict because TLE Extended keeps Traffic Lights Enhancement identifiers for
+  save compatibility.
 - Local mod install state: whether the Release build completed and copied the
   mod into the local mods directory.
 - `Player.log` lines containing `TrafficLightsEnhancement`, `OnLoad`,
   `Current mod asset`, `Compatibility mode`, `Failed to patch vanilla traffic
-  light query`, or UI/binding exceptions.
+  light query`, assembly/load exceptions such as `TypeLoadException` or
+  `FileNotFoundException`, or UI/binding exceptions.
 - What is missing: toolbar button, panel after pressing the button, controls
   after selecting a junction, or only specific controls such as TSP toggles.
 - Selected junction details: simple road intersection, tram-only junction,
@@ -34,15 +37,18 @@ Ask for this evidence in the first report:
   panel, and selected junction when practical.
 
 If Show diagnostics is enabled and the panel opens for the selected junction,
-also request the visible diagnostics rows and the JSONL trace file:
+also request the visible diagnostics rows and the JSONL trace file, if it
+exists:
 
 ```text
 <Cities II persistent data path>\C2VM.TrafficLightsEnhancement.TspDiagnostics.jsonl
 ```
 
-On Windows this is usually under the game's `LocalLow` folder. Do not ask
-testers to keep diagnostics enabled for normal play; it is an opt-in
-troubleshooting aid.
+On Windows this is usually under the game's `LocalLow` folder. `Player.log` is
+in the same Cities II persistent data folder. Trace writes are event-gated and
+rotated, so a quiet selected junction may have no current trace or only a
+rotated sibling file. Do not ask testers to keep diagnostics enabled for normal
+play; it is an opt-in troubleshooting aid.
 
 ## Classification flow
 
@@ -53,9 +59,12 @@ Likely class: install, build, or playset failure.
 Evidence to check:
 
 - The active playset includes TLE Extended.
+- The original Traffic Lights Enhancement is not enabled alongside TLE Extended.
 - The local mod directory contains the build output from the intended commit.
 - The game was restarted after enabling or replacing the local mod.
 - `Player.log` contains `OnLoad` from `C2VM.TrafficLightsEnhancement.Mod`.
+- If `OnLoad` is absent, `Player.log` has no assembly loading, reference, or
+  type-load exceptions for the TLE assembly.
 
 Code boundary:
 
@@ -126,6 +135,8 @@ Evidence to check:
 - Tester clicked a signalized junction while the panel was open.
 - The clicked object is a junction, not a road segment or non-signalized node.
 - Tool selection mode was active and no other tool stole the selection.
+- No other junction was already selected with unsaved changes blocking a switch
+  to the newly clicked junction.
 - `Player.log` contains no exceptions after clicking the junction.
 
 Code boundary:
@@ -177,7 +188,7 @@ Maintainers can paste this into an issue comment after triage:
 ### Loading/UI classification
 
 - Game version:
-- TLE Extended version:
+- TLE version:
 - Build branch/commit:
 - Active playset includes TLE Extended:
 - Original TLE also enabled:
