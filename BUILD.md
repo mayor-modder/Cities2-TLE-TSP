@@ -20,3 +20,8 @@ dotnet build --configuration Release
 ```
 
 The release build runs the Cities: Skylines II mod post-processor and copies the built mod into the local mod directory when the game is not holding the target files open.
+
+If the build appears installed but the in-game button, panel, or controls are
+missing, use the [mod loading and UI visibility troubleshooting guide](docs/mod-loading-ui-troubleshooting.md)
+to collect the game version, mod version, playset state, logs, selected junction,
+diagnostics state, and reproduction steps before assuming a UI binding bug.

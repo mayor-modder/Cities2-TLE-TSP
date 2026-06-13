@@ -15,6 +15,7 @@ The mod supports both left-hand traffic and right-hand traffic. It is also inten
 
 > [!TIP]
 > If a mode or option is missing, the selected intersection probably cannot use it. Try a simpler road junction, or use custom phases if you want to build the signal behavior yourself.
+> If the toolbar button, panel, or selected-intersection controls are missing during local testing, collect the evidence listed in the [mod loading and UI visibility troubleshooting guide](docs/mod-loading-ui-troubleshooting.md).
 
 ## How to use
 
@@ -219,3 +220,8 @@ When the file reaches 5 MB, the mod rotates it in the same folder with a timesta
 | Suppressed: lane change ambiguous | The bus appears to be changing lanes, so the target group may be unreliable. |
 
 Some diagnostics rows use internal lane IDs, owner IDs, sample counts, curve positions, or fallback counts. These are not gameplay controls. They exist so trace logs and the colored lane overlay can be compared when investigating a problem.
+
+For broader reports where the mod is installed but the button, panel, or controls
+are missing, use the [mod loading and UI visibility troubleshooting guide](docs/mod-loading-ui-troubleshooting.md)
+to classify install/playset failures separately from UI initialization,
+selected-intersection binding, and unsupported-junction visibility.
