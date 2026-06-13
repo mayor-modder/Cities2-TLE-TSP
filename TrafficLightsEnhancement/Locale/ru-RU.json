@@ -230,6 +230,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "Задержка запуска",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "Закончить раньше",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "Настройки фазы лидера (только чтение)",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "Временем фаз управляет лидер группы. Показанные ниже значения взяты у лидера.",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "Целевой множитель продолжительности",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "Быстрый цикл",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "Плотное движение",

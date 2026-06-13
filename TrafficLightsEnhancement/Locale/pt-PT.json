@@ -230,6 +230,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "Atraso de início",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "Terminar mais cedo",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "Definições da fase líder (apenas leitura)",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "A temporização das fases é controlada pelo líder do grupo. Os valores apresentados abaixo vêm do líder.",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "Multiplicador de duração alvo",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "Ciclo rápido",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "Trânsito intenso",

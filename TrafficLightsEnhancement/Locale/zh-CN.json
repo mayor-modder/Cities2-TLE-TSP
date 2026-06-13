@@ -229,6 +229,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "开始延迟",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "提前结束",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "主控相位设置（只读）",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "相位时序由组主控路口控制。下方显示的数值来自主控路口。",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "目标持续时间系数",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "快速循环",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "交通繁忙",

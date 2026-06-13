@@ -230,6 +230,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "啟動延遲",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "提早結束",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "前導階段設定（唯讀）",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "相位時序由群組領導者控制。下方顯示的值來自領導者。",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "目標持續時間乘數",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "快速循環",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "交通繁忙",

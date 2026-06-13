@@ -229,6 +229,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "Startverzögerung",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "Früh beenden",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "Phaseneinstellungen des Leiters (schreibgeschützt)",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "Die Phasenzeit wird vom Gruppenleiter gesteuert. Die unten angezeigten Werte stammen vom Leiter.",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "Multiplikator für Zieldauer",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "Schneller Zyklus",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "Starker Verkehr",

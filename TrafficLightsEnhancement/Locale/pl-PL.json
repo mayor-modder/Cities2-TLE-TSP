@@ -229,6 +229,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "Opóźnienie startu",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "Zakończ wcześniej",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "Ustawienia cyklu lidera (tylko do odczytu)",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "Czas faz jest kontrolowany przez lidera grupy. Wartości pokazane poniżej pochodzą od lidera.",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "Mnożnik docelowego czasu",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "Szybki cykl",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "Duży ruch",

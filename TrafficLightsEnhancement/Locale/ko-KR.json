@@ -229,6 +229,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "시작 지연",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "일찍 종료",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "리더 단계 설정(읽기 전용)",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "단계 타이밍은 그룹 리더가 제어합니다. 아래 표시된 값은 리더의 값입니다.",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "목표 지속 시간 배수",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "빠른 주기",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "혼잡 교통",

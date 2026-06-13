@@ -230,6 +230,7 @@
     "UI.LABEL[C2VM.TrafficLightsEnhancement.StartDelay]": "開始遅延",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.EndEarly]": "早めに終了",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.LeaderPhaseSettingsReadOnly]": "リーダーフェーズの設定 (読み取り専用)",
+    "UI.LABEL[C2VM.TrafficLightsEnhancement.CoordinatedFollowerTimingNotice]": "フェーズのタイミングはグループリーダーが制御します。下に表示される値はリーダーのものです。",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.TargetDurationMultiplier]": "目標期間乗数",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.QuickCycle]": "クイックサイクル",
     "UI.LABEL[C2VM.TrafficLightsEnhancement.HeavyTraffic]": "交通量が多い",
