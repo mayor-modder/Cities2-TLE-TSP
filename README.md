@@ -34,6 +34,12 @@ TLE Extended is not currently distributed through Paradox Mods. Build it from so
 
 Build instructions are available in [BUILD.md](BUILD.md).
 
+If the mod is installed for local testing but the toolbar button, panel, or
+selected-junction controls are missing, use the
+[mod loading and UI visibility troubleshooting guide](docs/mod-loading-ui-troubleshooting.md)
+to collect the evidence needed to separate install, playset, UI initialization,
+and selected-junction visibility problems.
+
 ## Translations
 
 This fork inherits Traffic Lights Enhancement's localization structure and Crowdin workflow. Some inherited strings intentionally use English fallback text until translations are available. New or changed user-facing strings should follow the [localization workflow](docs/localization-workflow.md) and avoid ad-hoc translation churn.
