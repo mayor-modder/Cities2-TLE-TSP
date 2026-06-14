@@ -294,6 +294,27 @@ function getSignalState(goMask: number, yieldMask: number, phaseIndex: number): 
 	return "stop";
 }
 
+const signalColorMap: Record<CustomPhaseSignalState, string> = {
+	"stop": "#d32f2f",
+	"go": "#388e3c",
+	"yield": "#f9a825",
+	"none": "#666"
+};
+
+const directionSymbols: Record<string, string> = {
+	"left": "←",
+	"straight": "↑",
+	"right": "→",
+	"uTurn": "↶",
+	"all": "●"
+};
+
+const signalLabelKeys: Partial<Record<CustomPhaseSignalState, string>> = {
+	"stop": "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignStop]",
+	"go": "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignGo]",
+	"yield": "Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignYield]"
+};
+
 const SignalButton = ({ 
 	state, 
 	direction, 
@@ -303,29 +324,18 @@ const SignalButton = ({
 	direction: string;
 	onClick: () => void;
 }) => {
-	const colorMap: Record<CustomPhaseSignalState, string> = {
-		"stop": "#d32f2f",
-		"go": "#388e3c", 
-		"yield": "#f9a825",
-		"none": "#666"
-	};
-	
-	const directionSymbols: Record<string, string> = {
-		"left": "←",
-		"straight": "↑",
-		"right": "→",
-		"uTurn": "↶",
-		"all": "●"
-	};
-	
+	const { translate } = useLocalization();
 	if (state === "none") return null;
+
+	const signalTitleKey = signalLabelKeys[state];
+	const signalTitle = signalTitleKey ? (translate(signalTitleKey) ?? state) : state;
 	
 	return (
 		<div 
 			className={styles.signalButton}
-			style={{ backgroundColor: colorMap[state] }}
+			style={{ backgroundColor: signalColorMap[state] ?? signalColorMap.none }}
 			onClick={onClick}
-			title={`${direction}: ${state} (click to cycle)`}
+			title={signalTitle}
 		>
 			{directionSymbols[direction] || "●"}
 		</div>
@@ -402,7 +412,7 @@ const MemberSignalEditor = ({
 
 		return (
 			<div key={edgeIdx} className={styles.edgeSignalRow}>
-				<div className={styles.edgeLabel}>Edge {edgeIdx + 1}</div>
+				<div className={styles.edgeLabel}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Edge]") ?? "Edge"} {edgeIdx + 1}</div>
 				<div className={styles.signalGroup}>
 					{hasCarLanes && (
 						<div className={styles.laneTypeGroup}>
@@ -467,9 +477,9 @@ const MemberSignalEditor = ({
 			<div className={styles.signalEditorHeader}>
 				<span>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Phase]") ?? "Phase"} {phaseIndex + 1} {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Signals]") ?? "signals"}</span>
 				<span className={styles.signalLegend}>
-					<span style={{color: "#388e3c"}}>●Go</span>
-					<span style={{color: "#f9a825"}}>●Yield</span>
-					<span style={{color: "#d32f2f"}}>●Stop</span>
+					<span style={{color: "#388e3c"}}>●{translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignGo]") ?? "Go"}</span>
+					<span style={{color: "#f9a825"}}>●{translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignYield]") ?? "Yield"}</span>
+					<span style={{color: "#d32f2f"}}>●{translate("Tooltip.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignStop]") ?? "Stop"}</span>
 				</span>
 			</div>
 			{memberEdges.map((edge, idx) => renderEdgeSignals(edge, idx))}
