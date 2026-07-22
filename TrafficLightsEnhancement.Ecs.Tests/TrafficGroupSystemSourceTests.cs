@@ -143,31 +143,79 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
-    public void Coordinated_followers_sync_before_custom_or_vanilla_dispatch()
+    public void Grouped_base_state_machine_runs_collection_leader_and_follower_passes_in_order()
     {
         string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
-        string executeSource = ExtractSection(
+        string onUpdate = ExtractMethod(source, "protected override void OnUpdate");
+
+        int collect = onUpdate.IndexOf("TrafficLightUpdatePass.CollectGroupedBaseDemand", StringComparison.Ordinal);
+        int leaders = onUpdate.IndexOf("TrafficLightUpdatePass.UpdateLeadersAndIndependent", StringComparison.Ordinal);
+        int followers = onUpdate.IndexOf("TrafficLightUpdatePass.SynchronizeGroupedBaseFollowers", StringComparison.Ordinal);
+
+        Assert.True(collect >= 0, "Could not find grouped demand collection pass.");
+        Assert.True(leaders > collect, "Leader updates must depend on demand collection.");
+        Assert.True(followers > leaders, "Follower synchronization must depend on leader updates.");
+    }
+
+    [Fact]
+    public void Grouped_base_demand_is_consumed_only_in_collection_pass()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
             source,
             "public void Execute(in ArchetypeChunk chunk",
             "private void FillLaneSignals");
 
-        int followerDispatch = executeSource.IndexOf(
-            "if (CustomStateMachine.ShouldFollowLeader(this, currentEntity, out Entity groupEntity))",
-            StringComparison.Ordinal);
-        int customDispatch = executeSource.IndexOf(
-            "else if (usesCustomPhase)",
-            StringComparison.Ordinal);
-        int vanillaDispatch = executeSource.IndexOf(
-            "bool trafficLightStateUpdated = UpdateTrafficLightState(",
-            customDispatch,
-            StringComparison.Ordinal);
+        Assert.Contains("CollectAndResetGroupedBaseDemand", execute);
+        Assert.Contains("m_LocalGroupedDemand", execute);
+        Assert.Contains("m_GroupedDemand", execute);
+        Assert.Contains("UseCollectedDemand", execute);
+    }
 
-        Assert.True(followerDispatch >= 0, "Could not find traffic-group follower dispatch.");
-        Assert.True(customDispatch > followerDispatch, "Custom-phase dispatch must follow follower synchronization.");
-        Assert.True(vanillaDispatch > customDispatch, "Vanilla dispatch must follow custom-phase dispatch.");
+    [Fact]
+    public void Missing_same_tick_master_uses_independent_base_fallback()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
+            source,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
 
-        string followerSource = executeSource.Substring(followerDispatch, customDispatch - followerDispatch);
-        Assert.Contains("CustomStateMachine.SyncSignalGroupWithLeader", followerSource);
+        Assert.Contains("TryGetValue(groupEntity, out var masterState)", execute);
+        Assert.Contains("UpdateGroupedBaseFollowerIndependently", execute);
+    }
+
+    [Fact]
+    public void Custom_followers_keep_the_existing_custom_sync_path()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
+            source,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
+
+        Assert.Contains("usesCustomPhase", execute);
+        Assert.Contains("CustomStateMachine.ShouldFollowLeader", execute);
+        Assert.Contains("CustomStateMachine.SyncSignalGroupWithLeader", execute);
+    }
+
+    [Fact]
+    public void Follower_sync_preserves_optional_zero_next_phase()
+    {
+        string source = File.ReadAllText(GetCustomStateMachinePath());
+        string syncSource = ExtractMethod(source, "public static void SyncSignalGroupWithLeader");
+
+        Assert.Contains(
+            "VanillaTrafficGroupDemandPolicy.MapRequiredOneBasedPhase",
+            syncSource);
+        Assert.Contains(
+            "VanillaTrafficGroupDemandPolicy.MapOptionalOneBasedPhase",
+            syncSource);
+        Assert.Matches(
+            new Regex(
+                @"m_CurrentSignalGroup\s*=.*?mappedPhase.*?m_NextSignalGroup\s*=.*?mappedNext",
+                RegexOptions.Singleline),
+            syncSource);
     }
 
     private static string GetTrafficGroupSystemPath()
