@@ -248,6 +248,28 @@ test("diagnostics panel renders details before compact recent events", async () 
   assert.match(diagnosticsSource, /styles\.diagnosticEventDetail/);
 });
 
+test("diagnostics expand the narrow main panel into a dedicated second pane", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
+  const controlsPane = content.indexOf("styles.controlsPane");
+  const diagnosticsCondition = content.indexOf("{transitSignalPriorityDiagnostics && (");
+  const diagnosticsPane = content.indexOf("styles.diagnosticsPane", diagnosticsCondition);
+  const diagnosticsTitle = content.indexOf('title="TransitSignalPriorityDiagnostics"', diagnosticsPane);
+
+  assert.notEqual(controlsPane, -1);
+  assert.notEqual(diagnosticsCondition, -1);
+  assert.notEqual(diagnosticsPane, -1);
+  assert.notEqual(diagnosticsTitle, -1);
+  assert.ok(controlsPane < diagnosticsCondition);
+  assert.ok(diagnosticsCondition < diagnosticsPane);
+  assert.ok(diagnosticsPane < diagnosticsTitle);
+  assert.match(styles, /\.controlsPane\s*\{[^}]*width:\s*18em;/s);
+  assert.match(styles, /\.diagnosticsPane\s*\{[^}]*width:\s*30em;/s);
+  assert.match(styles, /\.controlsPane\s*\{[^}]*background-color:\s*var\(--panelColorNormal\);/s);
+  assert.match(styles, /\.diagnosticsPane\s*\{[^}]*background-color:\s*var\(--panelColorDark\);/s);
+  assert.match(styles, /\.diagnosticsPane\s*\{[^}]*backdrop-filter:\s*var\(--panelBlur\);/s);
+});
+
 test("backend event history provides compact event title and detail fields", async () => {
   const general = await source("src/mods/general.ts");
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
