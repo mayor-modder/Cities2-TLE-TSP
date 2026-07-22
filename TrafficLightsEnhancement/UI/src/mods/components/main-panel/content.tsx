@@ -75,7 +75,8 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
 
         return (
             <div className={styles.contentContainer}>
-                <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
+                <div className={styles.controlsPane}>
+                    <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
                     {!mainData.isGroupMember && (
                         <>
                             <Title itemType="title" title="TrafficSignal" />
@@ -154,35 +155,6 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                                     )}
                                 </>
                             )}
-                            {transitSignalPriorityDiagnostics && (
-                                <>
-                                    <Divider />
-                                    <Title itemType="title" title="TransitSignalPriorityDiagnostics" />
-                                    {transitSignalPriorityDiagnostics.rows.map((row) => (
-                                        <Row key={row.label} hoverEffect={false}>
-                                            <div className={styles.contentLabel}>
-                                                {translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${row.label}]`) ?? row.label}: {row.value}
-                                            </div>
-                                        </Row>
-                                    ))}
-                                    {transitSignalPriorityDiagnostics.events && transitSignalPriorityDiagnostics.events.length > 0 && (
-                                        <>
-                                            <Divider />
-                                            <Title itemType="title" title="TSPDiagnosticsEvents" />
-                                            {transitSignalPriorityDiagnostics.events.map((event) => (
-                                                <Row key={`${event.sequence}-${event.title}`} hoverEffect={false}>
-                                                    <div className={styles.diagnosticEvent}>
-                                                        <div className={styles.diagnosticEventTitle}>{event.title}</div>
-                                                        {event.detail && (
-                                                            <div className={styles.diagnosticEventDetail}>{event.detail}</div>
-                                                        )}
-                                                    </div>
-                                                </Row>
-                                            ))}
-                                        </>
-                                    )}
-                                </>
-                            )}
                         </>
                     )}
                     <Divider />
@@ -233,7 +205,38 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                             <Button label="Save" />
                         </Row>
                     )}
-                </Scrollable>
+                    </Scrollable>
+                </div>
+                {transitSignalPriorityDiagnostics && (
+                    <div className={styles.diagnosticsPane}>
+                        <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
+                            <Title itemType="title" title="TransitSignalPriorityDiagnostics" />
+                            {transitSignalPriorityDiagnostics.rows.map((row) => (
+                                <Row key={row.label} hoverEffect={false}>
+                                    <div className={styles.contentLabel}>
+                                        {translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${row.label}]`) ?? row.label}: {row.value}
+                                    </div>
+                                </Row>
+                            ))}
+                            {transitSignalPriorityDiagnostics.events && transitSignalPriorityDiagnostics.events.length > 0 && (
+                                <>
+                                    <Divider />
+                                    <Title itemType="title" title="TSPDiagnosticsEvents" />
+                                    {transitSignalPriorityDiagnostics.events.map((event) => (
+                                        <Row key={`${event.sequence}-${event.title}`} hoverEffect={false}>
+                                            <div className={styles.diagnosticEvent}>
+                                                <div className={styles.diagnosticEventTitle}>{event.title}</div>
+                                                {event.detail && (
+                                                    <div className={styles.diagnosticEventDetail}>{event.detail}</div>
+                                                )}
+                                            </div>
+                                        </Row>
+                                    ))}
+                                </>
+                            )}
+                        </Scrollable>
+                    </div>
+                )}
             </div>
         );
     }
@@ -244,7 +247,8 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
 
         return (
             <div className={styles.contentContainer}>
-                <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
+                <div className={styles.controlsPane}>
+                    <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
                     {isAddingMember ? (
                         <Message itemType="message" message={`AddingMemberTo:${emptyData.targetGroupName}`} />
                     ) : (
@@ -294,7 +298,8 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                             <Button label="TrafficGroups" />
                         </Row>
                     )}
-                </Scrollable>
+                    </Scrollable>
+                </div>
             </div>
         );
     }

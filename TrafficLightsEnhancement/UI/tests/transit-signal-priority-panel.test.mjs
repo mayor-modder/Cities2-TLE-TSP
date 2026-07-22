@@ -84,22 +84,24 @@ test("migration issue UI derives boolean state from affected entities", async ()
   assert.doesNotMatch(uiBindings, /HasLoadingErrors/);
 });
 
-test("main panel renders tram and bus controls under one transit signal priority section", async () => {
+test("main panel renders tram and bus controls together before the diagnostics pane", async () => {
   const content = await source("src/mods/components/main-panel/content.tsx");
-  const panelStart = content.indexOf("TransitSignalPriority");
+  const controlsStart = content.indexOf('title="TransitSignalPriority"');
+  const controlsEnd = content.indexOf("{transitSignalPriorityDiagnostics && (", controlsStart);
+  const controlsSource = content.slice(controlsStart, controlsEnd);
+  const diagnosticsSource = content.slice(controlsEnd);
 
-  assert.notEqual(panelStart, -1);
-  const panelEnd = content.indexOf("{mainData.hasLaneDirectionTool", panelStart);
-  const panelSource = panelEnd === -1 ? content.slice(panelStart) : content.slice(panelStart, panelEnd);
-
-  assert.match(panelSource, /TransitSignalPriority/);
-  assert.match(panelSource, /EnableTransitPriorityForTrams/);
-  assert.match(panelSource, /EnableTransitPriorityForBuses/);
-  assert.match(panelSource, /toggleTransitSignalPriorityForBuses/);
-  assert.match(panelSource, /TransitSignalPriorityDiagnostics/);
-  assert.doesNotMatch(panelSource, /title="TransitPriorityForBuses"/);
-  assert.doesNotMatch(panelSource, /source/i);
-  assert.doesNotMatch(panelSource, /public[-\s]?car|publicCar/i);
+  assert.notEqual(controlsStart, -1);
+  assert.notEqual(controlsEnd, -1);
+  assert.match(controlsSource, /TransitSignalPriority/);
+  assert.match(controlsSource, /EnableTransitPriorityForTrams/);
+  assert.match(controlsSource, /EnableTransitPriorityForBuses/);
+  assert.match(controlsSource, /toggleTransitSignalPriorityForBuses/);
+  assert.doesNotMatch(controlsSource, /TransitSignalPriorityDiagnostics/);
+  assert.match(diagnosticsSource, /TransitSignalPriorityDiagnostics/);
+  assert.doesNotMatch(controlsSource, /title="TransitPriorityForBuses"/);
+  assert.doesNotMatch(controlsSource, /source/i);
+  assert.doesNotMatch(controlsSource, /public[-\s]?car|publicCar/i);
 });
 
 test("bus source row is visible independently from tram source row", async () => {
@@ -233,7 +235,7 @@ test("backend keeps transit signal priority history at 100 but renders a bounded
 test("diagnostics panel renders details before compact recent events", async () => {
   const content = await source("src/mods/components/main-panel/content.tsx");
   const diagnosticsStart = content.indexOf('title="TransitSignalPriorityDiagnostics"');
-  const diagnosticsEnd = content.indexOf("{mainData.hasLaneDirectionTool", diagnosticsStart);
+  const diagnosticsEnd = content.indexOf("</Scrollable>", diagnosticsStart);
   const diagnosticsSource = content.slice(diagnosticsStart, diagnosticsEnd);
 
   assert.notEqual(diagnosticsStart, -1);
