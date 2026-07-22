@@ -158,7 +158,8 @@ public sealed class TrafficGroupSystemSourceTests
             "else if (usesCustomPhase)",
             StringComparison.Ordinal);
         int vanillaDispatch = executeSource.IndexOf(
-            "else\n                {\n                    bool trafficLightStateUpdated = UpdateTrafficLightState(",
+            "bool trafficLightStateUpdated = UpdateTrafficLightState(",
+            customDispatch,
             StringComparison.Ordinal);
 
         Assert.True(followerDispatch >= 0, "Could not find traffic-group follower dispatch.");

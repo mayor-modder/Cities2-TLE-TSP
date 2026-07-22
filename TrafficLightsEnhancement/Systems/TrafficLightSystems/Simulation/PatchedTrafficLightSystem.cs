@@ -263,53 +263,53 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 }
 
                 bool tspTraceWritten = false;
+                bool usesCustomPhase = customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase
+                    && i < customPhaseDataBufferAccessor.Length
+                    && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0;
 
-                if ((customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase) && i < customPhaseDataBufferAccessor.Length && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0)
+                if (CustomStateMachine.ShouldFollowLeader(this, currentEntity, out Entity groupEntity))
+                {
+                    CustomStateMachine.SyncSignalGroupWithLeader(this, currentEntity, groupEntity, ref trafficLights, ref customTrafficLights);
+                    UpdateLaneSignals(laneSignals, trafficLights);
+                    UpdateTrafficLightObjects(subObjects, trafficLights);
+                }
+                else if (usesCustomPhase)
                 {
                     DynamicBuffer<CustomPhaseData> customPhaseDataBuffer = customPhaseDataBufferAccessor[i];
                     CustomStateMachine.CalculatePriority(this, subLanes, customPhaseDataBuffer);
                     CustomStateMachine.CalculateFlow(this, unfilteredChunkIndex, subLanes, trafficLights, customPhaseDataBuffer);
                     
-                    if (CustomStateMachine.ShouldFollowLeader(this, currentEntity, out Entity groupEntity))
+                    bool trafficLightStateUpdated = CustomStateMachine.UpdateTrafficLightState(
+                        ref trafficLights,
+                        ref customTrafficLights,
+                        customPhaseDataBuffer,
+                        customPhaseDataBuffer,
+                        activeTspSettings,
+                        hasTspRequest,
+                        activeTspRequest,
+                        ref pedestrianFairnessState,
+                        ref vehicleFairnessState,
+                        out var tspSelection);
+
+                    if (tspSelection.Applied
+                        && (trafficLightStateUpdated || tspSelection.Reason == TspSelectionReason.ExtendedCurrentPhase))
                     {
-                        CustomStateMachine.SyncSignalGroupWithLeader(this, currentEntity, groupEntity, ref trafficLights, ref customTrafficLights);
+                        WriteTspDecisionTrace(
+                            unfilteredChunkIndex,
+                            currentEntity,
+                            trafficLights,
+                            activeTspRequest,
+                            tspSelection,
+                            customTrafficLights,
+                            pedestrianFairnessState,
+                            vehicleFairnessState);
+                        tspTraceWritten = true;
+                    }
+
+                    if (trafficLightStateUpdated)
+                    {
                         UpdateLaneSignals(laneSignals, trafficLights);
                         UpdateTrafficLightObjects(subObjects, trafficLights);
-                    }
-                    else
-                    {
-                        bool trafficLightStateUpdated = CustomStateMachine.UpdateTrafficLightState(
-                            ref trafficLights,
-                            ref customTrafficLights,
-                            customPhaseDataBuffer,
-                            customPhaseDataBuffer,
-                            activeTspSettings,
-                            hasTspRequest,
-                            activeTspRequest,
-                            ref pedestrianFairnessState,
-                            ref vehicleFairnessState,
-                            out var tspSelection);
-
-                        if (tspSelection.Applied
-                            && (trafficLightStateUpdated || tspSelection.Reason == TspSelectionReason.ExtendedCurrentPhase))
-                        {
-                            WriteTspDecisionTrace(
-                                unfilteredChunkIndex,
-                                currentEntity,
-                                trafficLights,
-                                activeTspRequest,
-                                tspSelection,
-                                customTrafficLights,
-                                pedestrianFairnessState,
-                                vehicleFairnessState);
-                            tspTraceWritten = true;
-                        }
-
-                        if (trafficLightStateUpdated)
-                        {
-                            UpdateLaneSignals(laneSignals, trafficLights);
-                            UpdateTrafficLightObjects(subObjects, trafficLights);
-                        }
                     }
                 }
                 else
