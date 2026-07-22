@@ -116,9 +116,26 @@ update it:
    signal group count, and custom timer into the group master-clock fields.
 3. Applies coordination to followers.
 
-When green wave is disabled, followers use the job-level
-`SyncSignalGroupWithLeader(...)` path and copy the leader phase/state/timers
-directly.
+Base-state-machine patterns (vanilla and the predefined patterns) use a staged
+runtime path when their leader's update-frame shard is active:
+
+1. Every base-state-machine member in the active group contributes its local
+   lane demand, even when that member belongs to a different update-frame
+   shard. Its petitioner and priority bookkeeping is consumed once.
+2. The leader merges those summaries with vanilla priority semantics and makes
+   one demand-responsive phase decision for the group.
+3. Every base-state-machine follower receives that newly calculated state in
+   the same simulation tick.
+
+This transient demand and master-state data is stored only in native job
+containers. It is not added to the save format. If a member, leader, phase
+count, aggregate, or same-tick master state is invalid or missing, the affected
+junction runs its base state machine independently instead of copying stale
+group state.
+
+Custom-phase followers retain the inherited
+`SyncSignalGroupWithLeader(...)` path. When green wave is disabled, that path
+copies the stored leader phase, state, and timers directly.
 
 When green wave is enabled, followers use offset-based timing instead of direct
 lockstep copying. Signal delays and phase offsets stagger member cycle
@@ -132,9 +149,10 @@ traffic-group phase numbers one-based when talking to `TrafficLights`, while
 enhanced green-wave offsets remain zero-based because they are later added to a
 zero-based phase index. Negative enhanced offsets preserve C# remainder
 semantics from the inherited inline implementation. Runtime paths then wrap
-zero-based offsets before converting them to signal groups, while direct
-one-based group mapping keeps the inherited rule that non-positive groups map to
-G1.
+zero-based offsets before converting them to signal groups. Direct mapping
+treats the current phase as a required one-based value, but treats the next
+phase as optional: zero remains zero to mean that no next phase is pending,
+while nonzero values use the normal one-based wrapping rule.
 
 `CalculateGreenWaveTiming(...)` is the simple distance-based path:
 
