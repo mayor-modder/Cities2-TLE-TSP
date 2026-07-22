@@ -158,6 +158,33 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Active_leader_shard_collects_and_synchronizes_all_group_members()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string onCreate = ExtractMethod(source, "protected override void OnCreate");
+        string onUpdate = ExtractMethod(source, "protected override void OnUpdate");
+
+        Assert.Contains("m_GroupedTrafficLightQuery = GetEntityQuery", onCreate);
+        Assert.Contains("ComponentType.ReadOnly<TrafficGroupMember>()", onCreate);
+        Assert.Contains("DiscoverActiveGroupedBaseDemandJob", onUpdate);
+        Assert.Contains("m_ActiveGroups = activeGroupedBaseDemand.AsParallelWriter()", onUpdate);
+
+        int collectPass = onUpdate.IndexOf(
+            "TrafficLightUpdatePass.CollectGroupedBaseDemand",
+            StringComparison.Ordinal);
+        int leaderPass = onUpdate.IndexOf(
+            "TrafficLightUpdatePass.UpdateLeadersAndIndependent",
+            StringComparison.Ordinal);
+        int followerPass = onUpdate.IndexOf(
+            "TrafficLightUpdatePass.SynchronizeGroupedBaseFollowers",
+            StringComparison.Ordinal);
+
+        Assert.Contains("m_GroupedTrafficLightQuery", onUpdate.Substring(collectPass, leaderPass - collectPass));
+        Assert.Contains("m_TrafficLightQuery", onUpdate.Substring(leaderPass, followerPass - leaderPass));
+        Assert.Contains("m_GroupedTrafficLightQuery", onUpdate.Substring(followerPass));
+    }
+
+    [Fact]
     public void Grouped_base_demand_is_consumed_only_in_collection_pass()
     {
         string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
@@ -170,6 +197,13 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains("m_LocalGroupedDemand", execute);
         Assert.Contains("m_GroupedDemand", execute);
         Assert.Contains("UseCollectedDemand", execute);
+
+        string collectMethod = ExtractMethod(source, "private void CollectAndResetGroupedBaseDemand");
+        string updateMethod = ExtractMethod(source, "private bool UpdateTrafficLightState");
+        Assert.Contains("laneSignal.m_Petitioner = Entity.Null", collectMethod);
+        Assert.Contains("laneSignal.m_Priority = laneSignal.m_Default", collectMethod);
+        Assert.Contains("if (!demandSource.UseCollectedDemand)", updateMethod);
+        Assert.Contains("ClearPriority(laneSignals)", updateMethod);
     }
 
     [Fact]
