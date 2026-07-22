@@ -142,6 +142,33 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.DoesNotContain("m_IsGroupLeader", jobSource);
     }
 
+    [Fact]
+    public void Coordinated_followers_sync_before_custom_or_vanilla_dispatch()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string executeSource = ExtractSection(
+            source,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
+
+        int followerDispatch = executeSource.IndexOf(
+            "if (CustomStateMachine.ShouldFollowLeader(this, currentEntity, out Entity groupEntity))",
+            StringComparison.Ordinal);
+        int customDispatch = executeSource.IndexOf(
+            "else if (usesCustomPhase)",
+            StringComparison.Ordinal);
+        int vanillaDispatch = executeSource.IndexOf(
+            "else\n                {\n                    bool trafficLightStateUpdated = UpdateTrafficLightState(",
+            StringComparison.Ordinal);
+
+        Assert.True(followerDispatch >= 0, "Could not find traffic-group follower dispatch.");
+        Assert.True(customDispatch > followerDispatch, "Custom-phase dispatch must follow follower synchronization.");
+        Assert.True(vanillaDispatch > customDispatch, "Vanilla dispatch must follow custom-phase dispatch.");
+
+        string followerSource = executeSource.Substring(followerDispatch, customDispatch - followerDispatch);
+        Assert.Contains("CustomStateMachine.SyncSignalGroupWithLeader", followerSource);
+    }
+
     private static string GetTrafficGroupSystemPath()
     {
         return GetRepositorySourcePath(
@@ -158,6 +185,16 @@ public sealed class TrafficGroupSystemSourceTests
             "TrafficLightSystems",
             "Simulation",
             "CustomStateMachine.cs");
+    }
+
+    private static string GetPatchedTrafficLightSystemPath()
+    {
+        return GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "PatchedTrafficLightSystem.cs");
     }
 
     private static string ExtractSection(string source, string startMarker, string endMarker)
