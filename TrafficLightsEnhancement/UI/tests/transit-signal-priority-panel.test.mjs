@@ -700,6 +700,25 @@ test("static locale provides descriptions for visible mod options", async () => 
   }
 });
 
+test("display name is separate from compatibility identifiers", async () => {
+  const manifest = JSON.parse(await repoSource("UI/mod.json"));
+  const locale = JSON.parse(await repoSource("Locale.json"));
+  const webpack = await repoSource("UI/webpack.config.js");
+
+  assert.equal(manifest.id, "C2VM.TrafficLightsEnhancement");
+  assert.equal(manifest.displayName, "Traffic Lights Enhancement Extended");
+  assert.equal(manifest.deployFolder, "TrafficLightsEnhancementExtended");
+  assert.equal(
+    locale["Options.SECTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod]"],
+    manifest.displayName,
+  );
+  assert.equal(
+    locale["Options.INPUT_MAP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod]"],
+    manifest.displayName,
+  );
+  assert.match(webpack, /Mods\\\\\$\{MOD\.deployFolder\}/);
+});
+
 test("UI does not carry unused TypeScript localization fallback dictionaries", async () => {
   const sourceFiles = await readdir(new URL("../src/mods", import.meta.url), { recursive: true });
   const localizationFallbackFiles = sourceFiles.filter((file) => file === "localisations" || file.startsWith("localisations/") || file.startsWith("localisations\\"));
