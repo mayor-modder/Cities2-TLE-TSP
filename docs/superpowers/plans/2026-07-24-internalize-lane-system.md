@@ -37,33 +37,31 @@
 
 **Files:**
 
+- Create: `TrafficLightsEnhancement.Ecs.Tests/Settings/VersionSettingsTests.cs`
 - Modify: `TrafficLightsEnhancement/UI/tests/transit-signal-priority-panel.test.mjs`
 - Modify: `TrafficLightsEnhancement/Settings.cs`
 - Modify: `TrafficLightsEnhancement/Locale.json`
 - Modify: `TrafficLightsEnhancement/Locale/*.json`
 - Modify: `docs/mod-option-descriptions-audit.md`
 
-- [ ] Add a UI resource test that asserts `m_LaneSystemVersion` is absent from `Settings.cs`, the base locale, and every translated locale.
-- [ ] Run `npm test` from `TrafficLightsEnhancement/UI` and confirm the new assertion fails against the existing setting and locale keys.
+- [ ] Add an assembly-level settings test that asserts the user-visible version group exposes only the TLE Extended release channel and TLE Extended version.
+- [ ] Run the focused settings test and confirm it fails because Lane System is still exposed as a separate version.
 - [ ] Remove the `m_LaneSystemVersion` setting property and its label/description from every locale file.
 - [ ] Remove the obsolete Lane System version entry from the settings documentation audit.
-- [ ] Re-run the UI tests and confirm they pass.
+- [ ] Update the existing locale coverage test's list of visible settings and run the focused settings test plus the full UI tests.
 - [ ] Commit the settings, localization, documentation, and test changes.
 
 ## Task 3: Package one mod folder
 
 **Files:**
 
-- Modify: `TrafficLightsEnhancement.Tests/ReleaseVersionTests.cs`
 - Modify: `.github/workflows/release.yml`
 - Modify: `BUILD.md`
 
-- [ ] Add a release test that asserts the workflow copies `C2VM.CommonLibraries.LaneSystem.dll` into `C2VM.TrafficLightsEnhancement`, does not create a top-level `C2VM.CommonLibraries` package folder, and archives only the TLE Extended folder.
-- [ ] Run `dotnet test TrafficLightsEnhancement.Tests/TrafficLightsEnhancement.Tests.csproj -c Release -p:LangVersion=latest --filter FullyQualifiedName~ReleaseVersionTests` and confirm the new packaging assertion fails.
 - [ ] Update the release workflow to put both DLLs in `C2VM.TrafficLightsEnhancement` and zip that single folder.
 - [ ] Update `BUILD.md` to describe the single-folder package layout.
-- [ ] Re-run the focused release tests and confirm they pass.
-- [ ] Commit the workflow, build documentation, and test changes.
+- [ ] Build the real release outputs, reproduce the workflow's staging and archive commands locally, and inspect the resulting zip to confirm it contains one mod folder with both DLLs.
+- [ ] Commit the workflow and build documentation changes.
 
 ## Task 4: Verify and install
 
