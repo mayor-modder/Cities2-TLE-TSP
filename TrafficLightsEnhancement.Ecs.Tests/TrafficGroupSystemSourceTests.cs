@@ -161,6 +161,21 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Grouped_base_state_machine_does_not_bypass_native_container_safety()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string jobSource = ExtractSection(
+            source,
+            "public struct UpdateTrafficLightsJob",
+            "private const uint UPDATE_INTERVAL");
+        string onUpdate = ExtractMethod(source, "protected override void OnUpdate");
+
+        Assert.DoesNotContain("NativeDisableContainerSafetyRestriction", jobSource);
+        Assert.DoesNotContain("JobChunkExtensions.ScheduleParallel(", onUpdate);
+        Assert.Equal(3, CountOccurrences(onUpdate, "JobChunkExtensions.Schedule("));
+    }
+
+    [Fact]
     public void Traffic_group_system_builds_movement_maps_from_live_lane_signals()
     {
         string source = File.ReadAllText(GetTrafficGroupSystemPath());
@@ -439,5 +454,18 @@ public sealed class TrafficGroupSystemSourceTests
         }
 
         throw new InvalidOperationException($"Could not parse method body: {signature}");
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        int count = 0;
+        int start = 0;
+        while ((start = source.IndexOf(value, start, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            start += value.Length;
+        }
+
+        return count;
     }
 }

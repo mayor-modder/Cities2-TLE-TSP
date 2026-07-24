@@ -162,13 +162,10 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         [ReadOnly]
         public uint m_UpdateFrameIndex;
 
-        [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
         public NativeParallelHashMap<Entity, VanillaTrafficGroupDemand> m_LocalGroupedDemand;
 
-        [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
         public NativeParallelMultiHashMap<Entity, VanillaTrafficGroupDemand> m_GroupedDemand;
 
-        [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
         public NativeParallelHashMap<Entity, TrafficGroupMasterSignalState> m_SameTickMasterState;
 
         private readonly struct VanillaDemandSource
@@ -2020,20 +2017,22 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             m_SameTickMasterState = sameTickMasterState
         };
 
+        // These passes intentionally stay single-threaded because they share mutable native maps.
+        // Parallel scheduling previously required disabling container safety and correlated with allocator crashes after group creation.
         updateJob.m_Pass = TrafficLightUpdatePass.CollectGroupedBaseDemand;
-        JobHandle collectDependency = JobChunkExtensions.ScheduleParallel(
+        JobHandle collectDependency = JobChunkExtensions.Schedule(
             updateJob,
             m_GroupedTrafficLightQuery,
             base.Dependency);
 
         updateJob.m_Pass = TrafficLightUpdatePass.UpdateLeadersAndIndependent;
-        JobHandle leaderDependency = JobChunkExtensions.ScheduleParallel(
+        JobHandle leaderDependency = JobChunkExtensions.Schedule(
             updateJob,
             m_TrafficLightQuery,
             collectDependency);
 
         updateJob.m_Pass = TrafficLightUpdatePass.SynchronizeGroupedBaseFollowers;
-        JobHandle followerDependency = JobChunkExtensions.ScheduleParallel(
+        JobHandle followerDependency = JobChunkExtensions.Schedule(
             updateJob,
             m_GroupedTrafficLightQuery,
             leaderDependency);

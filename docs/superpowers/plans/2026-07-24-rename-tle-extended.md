@@ -31,4 +31,4 @@
 - [x] Build and install into `Mods\TrafficLightsEnhancementExtended`.
 - [x] Compare installed and built DLL hashes.
 - [x] Remove the obsolete `Mods\C2VM.TrafficLightsEnhancement` folder after the new install is verified.
-- [x] Restart Skyve normally and confirm its refreshed data uses the new folder name, TLE Extended 1.0.3, and one mod entry point.
+- [x] Restart Skyve normally and confirm its refreshed data uses the new folder name, TLE Extended 1.0.4, and one mod entry point.
