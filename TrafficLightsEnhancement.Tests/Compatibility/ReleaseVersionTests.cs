@@ -6,7 +6,7 @@ namespace TrafficLightsEnhancement.Tests.Compatibility;
 
 public class ReleaseVersionTests
 {
-    private const string ExpectedSemanticVersion = "1.0.1";
+    private const string ExpectedSemanticVersion = "1.0.2";
 
     [Fact]
     public void Tle_release_metadata_uses_the_current_semantic_version()
