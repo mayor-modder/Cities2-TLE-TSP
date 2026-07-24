@@ -473,11 +473,16 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     if (isCoordinatedBaseMember
                         && groupMember.m_IsGroupLeader
                         && hasValidCoordinationInputs
-                        && isActiveCoordinatedGroup
-                        && HasCompletePhaseMapping(currentEntity, trafficLights.m_SignalGroupCount))
+                        && isActiveCoordinatedGroup)
                     {
-                        demandSource = GetGroupedLeaderDemand(currentEntity, groupEntity);
-                        publishSameTickMaster = demandSource.UseCollectedDemand;
+                        bool hasCompleteLeaderMapping = HasCompletePhaseMapping(
+                            currentEntity,
+                            trafficLights.m_SignalGroupCount);
+                        demandSource = hasCompleteLeaderMapping
+                            ? GetGroupedLeaderDemand(currentEntity, groupEntity)
+                            : GetLocalGroupedDemand(currentEntity);
+                        publishSameTickMaster = hasCompleteLeaderMapping
+                            && demandSource.UseCollectedDemand;
                     }
 
                     bool trafficLightStateUpdated = UpdateTrafficLightState(
@@ -720,6 +725,13 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             }
 
             return m_LocalGroupedDemand.TryGetValue(leaderEntity, out var localDemand)
+                ? new VanillaDemandSource(localDemand)
+                : default;
+        }
+
+        private VanillaDemandSource GetLocalGroupedDemand(Entity memberEntity)
+        {
+            return m_LocalGroupedDemand.TryGetValue(memberEntity, out var localDemand)
                 ? new VanillaDemandSource(localDemand)
                 : default;
         }

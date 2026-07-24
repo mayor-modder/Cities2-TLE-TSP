@@ -268,6 +268,22 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Leader_without_complete_map_reuses_collected_local_demand()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
+            source,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
+
+        Assert.Contains("HasCompletePhaseMapping", execute);
+        Assert.Contains("GetLocalGroupedDemand", execute);
+        Assert.Contains(
+            "publishSameTickMaster = hasCompleteLeaderMapping",
+            execute);
+    }
+
+    [Fact]
     public void Custom_followers_keep_the_existing_custom_sync_path()
     {
         string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
