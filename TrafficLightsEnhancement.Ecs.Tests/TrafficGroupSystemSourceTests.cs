@@ -46,7 +46,6 @@ public sealed class TrafficGroupSystemSourceTests
         string enhancedGreenWaveSource = ExtractMethod(source, "public void CalculateEnhancedGreenWaveTiming");
         string forceSyncSource = ExtractMethod(source, "public void ForceSyncToLeader");
         string applyBestPhaseSource = ExtractMethod(source, "public void ApplyBestPhaseToGroup");
-        string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
 
         Assert.Contains(
             "TrafficGroupTimingPolicy.WrapCyclePosition(group.m_CycleTimer, phaseOffset, group.m_CycleLength)",
@@ -67,22 +66,26 @@ public sealed class TrafficGroupSystemSourceTests
             "if (phaseCount <= 0)",
             applyBestPhaseSource);
         Assert.Contains(
-            "adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount)",
+            "TryMapLeaderPhase(memberEntity, bestPhase + 1, out int mappedPhase)",
             applyBestPhaseSource);
         Assert.Contains(
-            "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
-            wrapPhaseSource);
+            "(mappedPhase - 1) + memberData.m_PhaseOffset",
+            applyBestPhaseSource);
     }
 
     [Fact]
-    public void Custom_state_machine_uses_shared_one_based_phase_wrap()
+    public void Custom_state_machine_requires_complete_physical_mapping()
     {
         string source = File.ReadAllText(GetCustomStateMachinePath());
-        string wrapPhaseSource = ExtractMethod(source, "private static int WrapPhase");
+        string shouldFollowSource = ExtractMethod(
+            source,
+            "public static bool ShouldFollowLeader");
 
         Assert.Contains(
-            "TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount)",
-            wrapPhaseSource);
+            "m_TrafficGroupPhaseMapping",
+            shouldFollowSource);
+        Assert.Contains("m_Map.IsComplete", shouldFollowSource);
+        Assert.Contains("TryMapLeaderToMember", shouldFollowSource);
     }
 
     [Fact]

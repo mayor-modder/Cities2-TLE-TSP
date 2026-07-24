@@ -71,36 +71,6 @@ public static class VanillaTrafficGroupDemandPolicy
         return true;
     }
 
-    public static bool TryRemap(
-        VanillaTrafficGroupDemand demand,
-        int sourcePhaseCount,
-        int targetPhaseCount,
-        out VanillaTrafficGroupDemand remapped)
-    {
-        if (!IsValidPhaseCount(sourcePhaseCount) || !IsValidPhaseCount(targetPhaseCount))
-        {
-            remapped = default;
-            return false;
-        }
-
-        remapped = new VanillaTrafficGroupDemand(
-            demand.HighestPriority,
-            RemapMask(demand.RequestedPhaseMask, sourcePhaseCount, targetPhaseCount),
-            RemapMask(demand.ExtendablePhaseMask, sourcePhaseCount, targetPhaseCount),
-            RemapMask(demand.SuppressedPhaseMask, sourcePhaseCount, targetPhaseCount));
-        return true;
-    }
-
-    public static int MapRequiredOneBasedPhase(int phase, int phaseCount)
-    {
-        return TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount);
-    }
-
-    public static int MapOptionalOneBasedPhase(int phase, int phaseCount)
-    {
-        return phase == 0 ? 0 : MapRequiredOneBasedPhase(phase, phaseCount);
-    }
-
     public static int SelectNextPhase(
         VanillaTrafficGroupDemand demand,
         int currentPhase,
@@ -146,23 +116,6 @@ public static class VanillaTrafficGroupDemandPolicy
         }
 
         return currentPhase;
-    }
-
-    private static int RemapMask(int mask, int sourcePhaseCount, int targetPhaseCount)
-    {
-        int remapped = 0;
-        for (int sourcePhase = 1; sourcePhase <= sourcePhaseCount; sourcePhase++)
-        {
-            if ((mask & (1 << (sourcePhase - 1))) == 0)
-            {
-                continue;
-            }
-
-            int targetPhase = MapRequiredOneBasedPhase(sourcePhase, targetPhaseCount);
-            remapped |= 1 << (targetPhase - 1);
-        }
-
-        return remapped;
     }
 
     private static bool TryRemapMemberMaskToLeader(

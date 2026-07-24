@@ -954,10 +954,22 @@ public partial class TrafficGroupSystem : GameSystemBase
 		members.Dispose();
 	}
 
-	// TMPE-style: simple wrap of a 1-indexed phase into a valid range
-	private static int WrapPhase(int phase, int phaseCount)
+	private bool TryMapLeaderPhase(
+		Entity memberEntity,
+		int leaderPhase,
+		out int memberPhase)
 	{
-		return TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount);
+		if (EntityManager.TryGetComponent(
+			    memberEntity,
+			    out TrafficGroupPhaseMapping phaseMapping)
+		    && phaseMapping.m_Map.IsComplete
+		    && phaseMapping.m_Map.TryMapLeaderToMember(leaderPhase, out memberPhase))
+		{
+			return true;
+		}
+
+		memberPhase = 0;
+		return false;
 	}
 
 	
@@ -1235,7 +1247,6 @@ public partial class TrafficGroupSystem : GameSystemBase
 			return;
 		}
 
-		// TMPE-style lockstep: set master phase directly on all followers
 		var members = GetGroupMembers(groupEntity);
 
 		foreach (var memberEntity in members)
@@ -1251,13 +1262,16 @@ public partial class TrafficGroupSystem : GameSystemBase
 				continue;
 			}
 
-			var trafficLights = EntityManager.GetComponentData<TrafficLights>(memberEntity);
-
-			int wrappedPhase = WrapPhase(group.m_MasterPhase, trafficLights.m_SignalGroupCount);
-			
-			if (trafficLights.m_CurrentSignalGroup != wrappedPhase)
+			if (!TryMapLeaderPhase(memberEntity, group.m_MasterPhase, out int mappedPhase))
 			{
-				trafficLights.m_NextSignalGroup = (byte)wrappedPhase;
+				continue;
+			}
+
+			var trafficLights = EntityManager.GetComponentData<TrafficLights>(memberEntity);
+			
+			if (trafficLights.m_CurrentSignalGroup != mappedPhase)
+			{
+				trafficLights.m_NextSignalGroup = (byte)mappedPhase;
 				
 				if (trafficLights.m_State == TrafficLightState.Ongoing)
 				{
@@ -1282,6 +1296,8 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var group = EntityManager.GetComponentData<TrafficGroup>(groupEntity);
 		UpdateMasterClock(groupEntity, ref group);
 		EntityManager.SetComponentData(groupEntity, group);
+		Entity leaderEntity = GetGroupLeader(groupEntity);
+		RefreshMovementMappings(groupEntity, leaderEntity);
 
 		if (group.m_MasterSignalGroupCount == 0)
 		{
@@ -1325,8 +1341,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 			}
 			else
 			{
-				// TMPE-style lockstep: mirror master state directly
-				adjustedPhase = WrapPhase(group.m_MasterPhase, trafficLights.m_SignalGroupCount);
+				if (!TryMapLeaderPhase(memberEntity, group.m_MasterPhase, out adjustedPhase))
+				{
+					continue;
+				}
 				trafficLights.m_CurrentSignalGroup = (byte)adjustedPhase;
 				trafficLights.m_State = group.m_MasterState;
 				trafficLights.m_Timer = group.m_MasterTimer;
@@ -2556,6 +2574,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 		if (bestPhase != currentPhase)
 		{
+			RefreshMovementMappings(groupEntity, leaderEntity);
 			
 			var members = GetGroupMembers(groupEntity);
 
@@ -2575,7 +2594,14 @@ public partial class TrafficGroupSystem : GameSystemBase
 					continue;
 				}
 
-				int adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount);
+				if (!TryMapLeaderPhase(memberEntity, bestPhase + 1, out int mappedPhase))
+				{
+					continue;
+				}
+
+				int adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(
+					(mappedPhase - 1) + memberData.m_PhaseOffset,
+					phaseCount);
 				trafficLights.m_NextSignalGroup = (byte)(adjustedPhase + 1);
 				EntityManager.SetComponentData(memberEntity, trafficLights);
 			}

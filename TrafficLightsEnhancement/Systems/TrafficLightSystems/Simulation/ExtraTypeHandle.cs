@@ -88,6 +88,12 @@ public struct ExtraTypeHandle
     public ComponentLookup<TrafficGroup> m_TrafficGroup;
 
     [ReadOnly]
+    public ComponentLookup<TrafficGroupRuntimeData> m_TrafficGroupRuntimeData;
+
+    [ReadOnly]
+    public ComponentLookup<TrafficGroupPhaseMapping> m_TrafficGroupPhaseMapping;
+
+    [ReadOnly]
     public BufferLookup<CustomPhaseData> m_CustomPhaseDataLookup;
 
     [ReadOnly]
@@ -150,6 +156,8 @@ public struct ExtraTypeHandle
         m_SecondaryLane = state.GetComponentLookup<NetSecondaryLane>(isReadOnly: true);
         m_TrafficGroupMember = state.GetComponentLookup<TrafficGroupMember>(isReadOnly: true);
         m_TrafficGroup = state.GetComponentLookup<TrafficGroup>(isReadOnly: true);
+        m_TrafficGroupRuntimeData = state.GetComponentLookup<TrafficGroupRuntimeData>(isReadOnly: true);
+        m_TrafficGroupPhaseMapping = state.GetComponentLookup<TrafficGroupPhaseMapping>(isReadOnly: true);
         m_CustomPhaseDataLookup = state.GetBufferLookup<CustomPhaseData>(isReadOnly: true);
         m_TrafficLightsLookup = state.GetComponentLookup<Game.Net.TrafficLights>(isReadOnly: true);
         m_CustomTrafficLightsLookup = state.GetComponentLookup<CustomTrafficLights>(isReadOnly: true);
@@ -190,6 +198,8 @@ public struct ExtraTypeHandle
         m_SecondaryLane.Update(ref state);
         m_TrafficGroupMember.Update(ref state);
         m_TrafficGroup.Update(ref state);
+        m_TrafficGroupRuntimeData.Update(ref state);
+        m_TrafficGroupPhaseMapping.Update(ref state);
         m_CustomPhaseDataLookup.Update(ref state);
         m_TrafficLightsLookup.Update(ref state);
         m_CustomTrafficLightsLookup.Update(ref state);

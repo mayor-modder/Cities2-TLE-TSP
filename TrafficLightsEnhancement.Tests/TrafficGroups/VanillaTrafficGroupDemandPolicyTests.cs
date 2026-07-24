@@ -49,14 +49,6 @@ public sealed class VanillaTrafficGroupDemandPolicyTests
         Assert.Equal(0b0010, remapped.SuppressedPhaseMask);
     }
 
-    [Theory]
-    [InlineData(0, 4, 0)]
-    [InlineData(4, 3, 1)]
-    public void Optional_phase_preserves_zero_and_wraps_nonzero(int phase, int phaseCount, int expected)
-    {
-        Assert.Equal(expected, VanillaTrafficGroupDemandPolicy.MapOptionalOneBasedPhase(phase, phaseCount));
-    }
-
     [Fact]
     public void Incomplete_phase_map_rejects_aggregation()
     {
@@ -82,15 +74,6 @@ public sealed class VanillaTrafficGroupDemandPolicyTests
 
         Assert.Equal(1, next);
         Assert.False(canExtend);
-    }
-
-    [Theory]
-    [InlineData(1, 4, 1)]
-    [InlineData(5, 4, 1)]
-    [InlineData(31, 31, 31)]
-    public void Required_phase_uses_one_based_wrapping(int phase, int phaseCount, int expected)
-    {
-        Assert.Equal(expected, VanillaTrafficGroupDemandPolicy.MapRequiredOneBasedPhase(phase, phaseCount));
     }
 
     [Fact]

@@ -159,6 +159,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
         public TrafficLightUpdatePass m_Pass;
 
+        [ReadOnly]
+        public uint m_UpdateFrameIndex;
+
         [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
         public NativeParallelHashMap<Entity, VanillaTrafficGroupDemand> m_LocalGroupedDemand;
 
@@ -167,9 +170,6 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
         [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
         public NativeParallelHashMap<Entity, TrafficGroupMasterSignalState> m_SameTickMasterState;
-
-        [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
-        public NativeParallelHashMap<Entity, byte> m_ActiveGroupedBaseDemand;
 
         private readonly struct VanillaDemandSource
         {
@@ -228,17 +228,18 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     out TrafficGroupMember groupMember,
                     out TrafficGroup trafficGroup,
                     out bool hasValidCoordinationInputs);
+                bool isActiveCoordinatedGroup = isCoordinatedBaseMember
+                    && IsActiveCoordinatedGroup(groupEntity);
 
                 if (m_Pass == TrafficLightUpdatePass.CollectGroupedBaseDemand)
                 {
                     if (isCoordinatedBaseMember
                         && hasValidCoordinationInputs
-                        && m_ActiveGroupedBaseDemand.TryGetValue(groupEntity, out byte leaderPhaseCount))
+                        && isActiveCoordinatedGroup)
                     {
                         CollectAndResetGroupedBaseDemand(
                             currentEntity,
                             groupEntity,
-                            leaderPhaseCount,
                             laneSignals,
                             trafficLights);
                     }
@@ -252,7 +253,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     if (!isCoordinatedBaseMember
                         || groupMember.m_IsGroupLeader
                         || !hasValidCoordinationInputs
-                        || !m_ActiveGroupedBaseDemand.ContainsKey(groupEntity))
+                        || !isActiveCoordinatedGroup)
                     {
                         laneSignals.Clear();
                         continue;
@@ -261,7 +262,8 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     bool hasLocalDemand = m_LocalGroupedDemand.TryGetValue(currentEntity, out var localDemand);
                     if (hasLocalDemand
                         && m_SameTickMasterState.TryGetValue(groupEntity, out var masterState)
-                        && IsValidMasterState(masterState))
+                        && IsValidMasterState(masterState)
+                        && CanMapMasterStateToMember(currentEntity, masterState))
                     {
                         CustomStateMachine.SyncSignalGroupWithLeader(
                             this,
@@ -291,6 +293,14 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     }
 
                     nativeArray2[i] = trafficLights;
+                    laneSignals.Clear();
+                    continue;
+                }
+
+                if (isCoordinatedBaseMember
+                    && !groupMember.m_IsGroupLeader
+                    && !isActiveCoordinatedGroup)
+                {
                     laneSignals.Clear();
                     continue;
                 }
@@ -404,7 +414,8 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 bool tspTraceWritten = false;
                 bool deferCoordinatedBaseFollower = isCoordinatedBaseMember
                     && !groupMember.m_IsGroupLeader
-                    && hasValidCoordinationInputs;
+                    && hasValidCoordinationInputs
+                    && isActiveCoordinatedGroup;
 
                 if (deferCoordinatedBaseFollower)
                 {
@@ -459,7 +470,11 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 {
                     VanillaDemandSource demandSource = default;
                     bool publishSameTickMaster = false;
-                    if (isCoordinatedBaseMember && groupMember.m_IsGroupLeader && hasValidCoordinationInputs)
+                    if (isCoordinatedBaseMember
+                        && groupMember.m_IsGroupLeader
+                        && hasValidCoordinationInputs
+                        && isActiveCoordinatedGroup
+                        && HasCompletePhaseMapping(currentEntity, trafficLights.m_SignalGroupCount))
                     {
                         demandSource = GetGroupedLeaderDemand(currentEntity, groupEntity);
                         publishSameTickMaster = demandSource.UseCollectedDemand;
@@ -575,17 +590,18 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
             groupEntity = member.m_GroupEntity;
             Entity leaderEntity = member.m_IsGroupLeader ? currentEntity : member.m_LeaderEntity;
-            hasValidCoordinationInputs = trafficLights.m_SignalGroupCount is >= 1 and <= 31
+            hasValidCoordinationInputs = trafficLights.m_SignalGroupCount is >= 1
+                    and <= TrafficGroupMovementMappingPolicy.MaximumMappedPhaseCount
                 && leaderEntity != Entity.Null
                 && m_ExtraTypeHandle.m_TrafficLightsLookup.TryGetComponent(leaderEntity, out var leaderTrafficLights)
-                && leaderTrafficLights.m_SignalGroupCount is >= 1 and <= 31;
+                && leaderTrafficLights.m_SignalGroupCount is >= 1
+                    and <= TrafficGroupMovementMappingPolicy.MaximumMappedPhaseCount;
             return true;
         }
 
         private void CollectAndResetGroupedBaseDemand(
             Entity currentEntity,
             Entity groupEntity,
-            int leaderPhaseCount,
             NativeList<Entity> laneSignals,
             TrafficLights trafficLights)
         {
@@ -673,10 +689,12 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 suppressedPhaseMask);
             m_LocalGroupedDemand.AsParallelWriter().TryAdd(currentEntity, localDemand);
 
-            if (VanillaTrafficGroupDemandPolicy.TryRemap(
+            if (m_ExtraTypeHandle.m_TrafficGroupPhaseMapping.TryGetComponent(
+                    currentEntity,
+                    out var phaseMapping)
+                && VanillaTrafficGroupDemandPolicy.TryRemapMemberToLeader(
                     localDemand,
-                    trafficLights.m_SignalGroupCount,
-                    leaderPhaseCount,
+                    phaseMapping.m_Map,
                     out var groupDemand))
             {
                 m_GroupedDemand.AsParallelWriter().Add(groupEntity, groupDemand);
@@ -708,7 +726,47 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
         private static bool IsValidMasterState(TrafficGroupMasterSignalState masterState)
         {
-            return masterState.SignalGroupCount is >= 1 and <= 31;
+            return masterState.SignalGroupCount is >= 1
+                and <= TrafficGroupMovementMappingPolicy.MaximumMappedPhaseCount;
+        }
+
+        private bool IsActiveCoordinatedGroup(Entity groupEntity)
+        {
+            return m_ExtraTypeHandle.m_TrafficGroupRuntimeData.TryGetComponent(
+                       groupEntity,
+                       out var runtimeData)
+                   && runtimeData.m_LeaderUpdateFrameIndex == m_UpdateFrameIndex;
+        }
+
+        private bool HasCompletePhaseMapping(Entity memberEntity, int memberPhaseCount)
+        {
+            return m_ExtraTypeHandle.m_TrafficGroupPhaseMapping.TryGetComponent(
+                       memberEntity,
+                       out var phaseMapping)
+                   && phaseMapping.m_Map.IsComplete
+                   && phaseMapping.m_Map.MemberPhaseCount == memberPhaseCount;
+        }
+
+        private bool CanMapMasterStateToMember(
+            Entity memberEntity,
+            TrafficGroupMasterSignalState masterState)
+        {
+            if (!m_ExtraTypeHandle.m_TrafficGroupPhaseMapping.TryGetComponent(
+                    memberEntity,
+                    out var phaseMapping)
+                || !phaseMapping.m_Map.IsComplete
+                || phaseMapping.m_Map.LeaderPhaseCount != masterState.SignalGroupCount
+                || !phaseMapping.m_Map.TryMapLeaderToMember(
+                    masterState.CurrentSignalGroup,
+                    out _))
+            {
+                return false;
+            }
+
+            return masterState.NextSignalGroup == 0
+                || phaseMapping.m_Map.TryMapLeaderToMember(
+                    masterState.NextSignalGroup,
+                    out _);
         }
 
         private void UpdateGroupedBaseFollowerIndependently(
@@ -1661,61 +1719,6 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         }
     }
 
-    [BurstCompile]
-    private struct DiscoverActiveGroupedBaseDemandJob : IJobChunk
-    {
-        [ReadOnly]
-        public EntityTypeHandle m_EntityType;
-
-        [ReadOnly]
-        public ComponentLookup<TrafficLights> m_TrafficLightsLookup;
-
-        [ReadOnly]
-        public ComponentLookup<CustomTrafficLights> m_CustomTrafficLightsLookup;
-
-        [ReadOnly]
-        public ComponentLookup<TrafficGroupMember> m_TrafficGroupMemberLookup;
-
-        [ReadOnly]
-        public ComponentLookup<TrafficGroup> m_TrafficGroupLookup;
-
-        public NativeParallelHashMap<Entity, byte>.ParallelWriter m_ActiveGroups;
-
-        public void Execute(
-            in ArchetypeChunk chunk,
-            int unfilteredChunkIndex,
-            bool useEnabledMask,
-            in v128 chunkEnabledMask)
-        {
-            NativeArray<Entity> entities = chunk.GetNativeArray(m_EntityType);
-            for (int i = 0; i < entities.Length; i++)
-            {
-                Entity entity = entities[i];
-                if (!m_TrafficGroupMemberLookup.TryGetComponent(entity, out var member)
-                    || !member.m_IsGroupLeader
-                    || member.m_GroupEntity == Entity.Null
-                    || !m_TrafficGroupLookup.TryGetComponent(member.m_GroupEntity, out var group)
-                    || !group.m_IsCoordinated
-                    || !m_TrafficLightsLookup.TryGetComponent(entity, out var trafficLights)
-                    || trafficLights.m_SignalGroupCount is < 1 or > 31)
-                {
-                    continue;
-                }
-
-                CustomTrafficLights customTrafficLights =
-                    m_CustomTrafficLightsLookup.TryGetComponent(entity, out var configuredLights)
-                        ? configuredLights
-                        : default;
-                bool usesCustomPhase = customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase
-                    && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0;
-                if (!usesCustomPhase)
-                {
-                    m_ActiveGroups.TryAdd(member.m_GroupEntity, trafficLights.m_SignalGroupCount);
-                }
-            }
-        }
-    }
-
     private struct TypeHandle
     {
         [ReadOnly]
@@ -1927,7 +1930,11 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
     protected override void OnUpdate()
     {
         m_TrafficLightQuery.ResetFilter();
-        m_TrafficLightQuery.SetSharedComponentFilter(new UpdateFrame(SimulationUtils.GetUpdateFrameWithInterval(m_SimulationSystem.frameIndex, (uint)GetUpdateInterval(SystemUpdatePhase.GameSimulation), 16)));
+        uint updateFrameIndex = SimulationUtils.GetUpdateFrameWithInterval(
+            m_SimulationSystem.frameIndex,
+            (uint)GetUpdateInterval(SystemUpdatePhase.GameSimulation),
+            16);
+        m_TrafficLightQuery.SetSharedComponentFilter(new UpdateFrame(updateFrameIndex));
         var updatedExtraTypeHandle = m_ExtraTypeHandle.Update(ref base.CheckedStateRef);
         bool hasTransitSignalPrioritySettings = !m_TransitSignalPrioritySettingsQuery.IsEmptyIgnoreFilter;
         bool shouldBuildTramApproachIndex = TspPolicy.ShouldBuildApproachIndex(
@@ -1954,16 +1961,13 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         int trafficLightCount = math.max(1, m_GroupedTrafficLightQuery.CalculateEntityCount());
         var localGroupedDemand = new NativeParallelHashMap<Entity, VanillaTrafficGroupDemand>(
             trafficLightCount,
-            Allocator.TempJob);
+            Allocator.Persistent);
         var groupedDemand = new NativeParallelMultiHashMap<Entity, VanillaTrafficGroupDemand>(
             trafficLightCount,
-            Allocator.TempJob);
+            Allocator.Persistent);
         var sameTickMasterState = new NativeParallelHashMap<Entity, TrafficGroupMasterSignalState>(
             trafficLightCount,
-            Allocator.TempJob);
-        var activeGroupedBaseDemand = new NativeParallelHashMap<Entity, byte>(
-            trafficLightCount,
-            Allocator.TempJob);
+            Allocator.Persistent);
 
         var updateJob = new UpdateTrafficLightsJob
         {
@@ -1998,33 +2002,17 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             m_CommandBuffer = m_EndFrameBarrier.CreateCommandBuffer().AsParallelWriter(),
             m_ExtraTypeHandle = updatedExtraTypeHandle,
             m_ExtraData = new ExtraData(this),
+            m_UpdateFrameIndex = updateFrameIndex,
             m_LocalGroupedDemand = localGroupedDemand,
             m_GroupedDemand = groupedDemand,
-            m_SameTickMasterState = sameTickMasterState,
-            m_ActiveGroupedBaseDemand = activeGroupedBaseDemand
+            m_SameTickMasterState = sameTickMasterState
         };
-
-        var discoverActiveGroupsJob = new DiscoverActiveGroupedBaseDemandJob
-        {
-            m_EntityType = InternalCompilerInterface.GetEntityTypeHandle(
-                ref __TypeHandle.__Unity_Entities_Entity_TypeHandle,
-                ref base.CheckedStateRef),
-            m_TrafficLightsLookup = updatedExtraTypeHandle.m_TrafficLightsLookup,
-            m_CustomTrafficLightsLookup = updatedExtraTypeHandle.m_CustomTrafficLightsLookup,
-            m_TrafficGroupMemberLookup = updatedExtraTypeHandle.m_TrafficGroupMember,
-            m_TrafficGroupLookup = updatedExtraTypeHandle.m_TrafficGroup,
-            m_ActiveGroups = activeGroupedBaseDemand.AsParallelWriter()
-        };
-        JobHandle discoverActiveGroupsDependency = JobChunkExtensions.ScheduleParallel(
-            discoverActiveGroupsJob,
-            m_TrafficLightQuery,
-            base.Dependency);
 
         updateJob.m_Pass = TrafficLightUpdatePass.CollectGroupedBaseDemand;
         JobHandle collectDependency = JobChunkExtensions.ScheduleParallel(
             updateJob,
             m_GroupedTrafficLightQuery,
-            discoverActiveGroupsDependency);
+            base.Dependency);
 
         updateJob.m_Pass = TrafficLightUpdatePass.UpdateLeadersAndIndependent;
         JobHandle leaderDependency = JobChunkExtensions.ScheduleParallel(
@@ -2043,7 +2031,6 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         JobHandle disposeLocalDemandDependency = localGroupedDemand.Dispose(followerDependency);
         JobHandle disposeGroupedDemandDependency = groupedDemand.Dispose(followerDependency);
         JobHandle disposeMasterStateDependency = sameTickMasterState.Dispose(followerDependency);
-        JobHandle disposeActiveGroupsDependency = activeGroupedBaseDemand.Dispose(followerDependency);
         JobHandle disposeIndexDependency = JobHandle.CombineDependencies(
             disposeTramIndexDependency,
             disposeBusIndexDependency);
@@ -2054,7 +2041,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             disposeIndexDependency,
             JobHandle.CombineDependencies(
                 disposeDemandDependency,
-                JobHandle.CombineDependencies(disposeMasterStateDependency, disposeActiveGroupsDependency)));
+                disposeMasterStateDependency));
         m_EndFrameBarrier.AddJobHandleForProducer(base.Dependency);
     }
 
