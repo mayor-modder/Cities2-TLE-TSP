@@ -50,9 +50,9 @@ public sealed class InheritedHardeningRegressionTests
     }
 
     [Fact]
-    public void Inherited_lane_system_scaffold_remains_unscheduled_and_disabled()
+    public void Inherited_lane_system_scaffold_remains_unscheduled_and_disabled_by_tle()
     {
-        string modSource = File.ReadAllText(GetRepoPath("CommonLibraries", "LaneSystem", "Mod.cs"));
+        string modSource = File.ReadAllText(GetRepoPath("TrafficLightsEnhancement", "Mod.cs"));
         string scaffoldSource = File.ReadAllText(GetRepoPath("CommonLibraries", "LaneSystem", "C2VMPatchedLaneSystem.cs"));
         string onLoadSource = ExtractMethod(modSource, "public void OnLoad");
         string activeOnLoadSource = RemoveLineComments(onLoadSource);
