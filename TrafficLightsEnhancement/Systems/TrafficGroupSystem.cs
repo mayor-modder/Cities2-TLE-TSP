@@ -11,6 +11,7 @@ using Unity.Mathematics;
 using System.Collections.Generic;
 using C2VM.TrafficLightsEnhancement.Domain;
 using C2VM.TrafficLightsEnhancement.Extensions;
+using C2VM.TrafficLightsEnhancement.Utils;
 using Colossal.Entities;
 using Game.SceneFlow;
 using TrafficLightsEnhancement.Logic.TrafficGroups;
@@ -56,6 +57,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 			{
 				continue;
 			}
+
+			Entity leaderEntity = GetGroupLeader(groupEntity);
+			RefreshGroupRuntimeState(groupEntity, leaderEntity);
+			RefreshMovementMappings(groupEntity, leaderEntity);
 			
 			group.m_CycleTimer += 1f;
 			if (group.m_CycleTimer >= group.m_CycleLength)
@@ -69,6 +74,181 @@ public partial class TrafficGroupSystem : GameSystemBase
 		
 		groups.Dispose();
 		groupComponents.Dispose();
+	}
+
+	private void RefreshGroupRuntimeState(Entity groupEntity, Entity leaderEntity)
+	{
+		if (leaderEntity == Entity.Null
+		    || !EntityManager.TryGetSharedComponent<UpdateFrame>(leaderEntity, out var updateFrame))
+		{
+			if (EntityManager.HasComponent<TrafficGroupRuntimeData>(groupEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupRuntimeData>(groupEntity);
+			}
+			return;
+		}
+
+		var runtimeData = new TrafficGroupRuntimeData
+		{
+			m_LeaderUpdateFrameIndex = updateFrame.m_Index
+		};
+		if (EntityManager.HasComponent<TrafficGroupRuntimeData>(groupEntity))
+		{
+			EntityManager.SetComponentData(groupEntity, runtimeData);
+		}
+		else
+		{
+			EntityManager.AddComponentData(groupEntity, runtimeData);
+		}
+	}
+
+	private void RefreshMovementMappings(Entity groupEntity, Entity leaderEntity)
+	{
+		if (leaderEntity == Entity.Null
+		    || !EntityManager.TryGetComponent(leaderEntity, out TrafficLights leaderLights))
+		{
+			RemoveMovementMappings(groupEntity);
+			return;
+		}
+
+		TrafficGroupPhaseSignature[] leaderSignatures =
+			BuildPhaseSignatures(leaderEntity, leaderLights);
+		var members = GetGroupMembers(groupEntity);
+		foreach (Entity memberEntity in members)
+		{
+			TrafficGroupPhaseMap phaseMap = default;
+			bool mapped = EntityManager.TryGetComponent(memberEntity, out TrafficLights memberLights)
+			              && TrafficGroupMovementMappingPolicy.TryBuild(
+				              leaderSignatures,
+				              BuildPhaseSignatures(memberEntity, memberLights),
+				              out phaseMap);
+			if (mapped)
+			{
+				var mapping = new TrafficGroupPhaseMapping { m_Map = phaseMap };
+				if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+				{
+					EntityManager.SetComponentData(memberEntity, mapping);
+				}
+				else
+				{
+					EntityManager.AddComponentData(memberEntity, mapping);
+				}
+			}
+			else if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+			}
+		}
+		members.Dispose();
+	}
+
+	private TrafficGroupPhaseSignature[] BuildPhaseSignatures(
+		Entity junctionEntity,
+		TrafficLights trafficLights)
+	{
+		int phaseCount = trafficLights.m_SignalGroupCount;
+		if (phaseCount < 1
+		    || phaseCount > TrafficGroupMovementMappingPolicy.MaximumMappedPhaseCount
+		    || !EntityManager.TryGetBuffer<SubLane>(junctionEntity, true, out var subLanes)
+		    || !EntityManager.TryGetBuffer<ConnectedEdge>(junctionEntity, true, out var connectedEdges)
+		    || !EntityManager.TryGetComponent(junctionEntity, out Node node))
+		{
+			return System.Array.Empty<TrafficGroupPhaseSignature>();
+		}
+
+		var subLaneLookup = GetBufferLookup<SubLane>(true);
+		var laneLookup = GetComponentLookup<Lane>(true);
+		var edgeLookup = GetComponentLookup<Edge>(true);
+		var edgeGeometryLookup = GetComponentLookup<EdgeGeometry>(true);
+		var carLaneLookup = GetComponentLookup<CarLane>(true);
+		var trackLaneLookup = GetComponentLookup<TrackLane>(true);
+		using NativeHashMap<Entity, NodeUtils.LaneConnection> laneConnectionMap =
+			NodeUtils.GetLaneConnectionMap(
+				Allocator.Temp,
+				subLanes,
+				connectedEdges,
+				subLaneLookup,
+				laneLookup);
+
+		var roadAxes = new ulong[phaseCount];
+		var trackAxes = new ulong[phaseCount];
+		for (int laneIndex = 0; laneIndex < subLanes.Length; laneIndex++)
+		{
+			Entity subLaneEntity = subLanes[laneIndex].m_SubLane;
+			if (!EntityManager.TryGetComponent(subLaneEntity, out LaneSignal laneSignal)
+			    || !laneConnectionMap.TryGetValue(
+				    subLaneEntity,
+				    out NodeUtils.LaneConnection laneConnection)
+			    || laneConnection.m_SourceEdge == Entity.Null)
+			{
+				continue;
+			}
+
+			bool isCarLane = carLaneLookup.HasComponent(subLaneEntity)
+			                 || (laneConnection.m_SourceSubLane != Entity.Null
+			                     && carLaneLookup.HasComponent(laneConnection.m_SourceSubLane));
+			bool isTrackLane = trackLaneLookup.HasComponent(subLaneEntity)
+			                   || (laneConnection.m_SourceSubLane != Entity.Null
+			                       && trackLaneLookup.HasComponent(laneConnection.m_SourceSubLane));
+			if (!isCarLane && !isTrackLane)
+			{
+				continue;
+			}
+
+			float3 edgePosition = GetEdgePositionForJunction(
+				junctionEntity,
+				laneConnection.m_SourceEdge,
+				edgeLookup,
+				edgeGeometryLookup);
+			int axisBin = TrafficGroupMovementMappingPolicy.QuantizeUndirectedAxis(
+				edgePosition.x - node.m_Position.x,
+				edgePosition.z - node.m_Position.z);
+			if (axisBin < 0)
+			{
+				continue;
+			}
+
+			ulong axisBit = 1UL << axisBin;
+			for (int phaseIndex = 0; phaseIndex < phaseCount; phaseIndex++)
+			{
+				if ((laneSignal.m_GroupMask & (1 << phaseIndex)) == 0)
+				{
+					continue;
+				}
+
+				if (isCarLane)
+				{
+					roadAxes[phaseIndex] |= axisBit;
+				}
+				if (isTrackLane)
+				{
+					trackAxes[phaseIndex] |= axisBit;
+				}
+			}
+		}
+
+		var signatures = new TrafficGroupPhaseSignature[phaseCount];
+		for (int phaseIndex = 0; phaseIndex < phaseCount; phaseIndex++)
+		{
+			signatures[phaseIndex] = new TrafficGroupPhaseSignature(
+				phaseIndex + 1,
+				roadAxes[phaseIndex],
+				trackAxes[phaseIndex]);
+		}
+		return signatures;
+	}
+
+	private void RemoveMovementMappings(Entity groupEntity)
+	{
+		var members = GetGroupMembers(groupEntity);
+		foreach (Entity memberEntity in members)
+		{
+			if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+			}
+		}
+		members.Dispose();
 	}
 
 	public Entity CreateGroup(string name = null)
@@ -203,6 +383,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var member = EntityManager.GetComponentData<TrafficGroupMember>(junctionEntity);
 		Entity groupEntity = member.m_GroupEntity;
 
+		if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(junctionEntity))
+		{
+			EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(junctionEntity);
+		}
 		EntityManager.RemoveComponent<TrafficGroupMember>(junctionEntity);
 
 		if (groupEntity != Entity.Null && EntityManager.HasComponent<TrafficGroup>(groupEntity))
@@ -235,6 +419,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var members = GetGroupMembers(groupEntity);
 		foreach (var memberEntity in members)
 		{
+			if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+			}
 			EntityManager.RemoveComponent<TrafficGroupMember>(memberEntity);
 		}
 		members.Dispose();

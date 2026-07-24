@@ -172,8 +172,8 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains("laneSignal.m_GroupMask", buildSignatures);
         Assert.Contains("laneConnection.m_SourceEdge", buildSignatures);
         Assert.Contains("GetEdgePositionForJunction", buildSignatures);
-        Assert.Contains("m_CarLane", buildSignatures);
-        Assert.Contains("m_TrackLane", buildSignatures);
+        Assert.Contains("carLaneLookup", buildSignatures);
+        Assert.Contains("trackLaneLookup", buildSignatures);
         Assert.Contains(
             "TrafficGroupMovementMappingPolicy.QuantizeUndirectedAxis",
             buildSignatures);
