@@ -33,30 +33,42 @@ public static class VanillaTrafficGroupDemandPolicy
         VanillaTrafficGroupDemand current,
         VanillaTrafficGroupDemand candidate)
     {
-        int suppressedPhaseMask = current.SuppressedPhaseMask | candidate.SuppressedPhaseMask;
-        if (candidate.HighestPriority > current.HighestPriority)
-        {
-            return new VanillaTrafficGroupDemand(
-                candidate.HighestPriority,
-                candidate.RequestedPhaseMask,
-                candidate.ExtendablePhaseMask,
-                suppressedPhaseMask);
-        }
-
-        if (candidate.HighestPriority == current.HighestPriority)
-        {
-            return new VanillaTrafficGroupDemand(
-                current.HighestPriority,
-                current.RequestedPhaseMask | candidate.RequestedPhaseMask,
-                current.ExtendablePhaseMask | candidate.ExtendablePhaseMask,
-                suppressedPhaseMask);
-        }
-
         return new VanillaTrafficGroupDemand(
-            current.HighestPriority,
-            current.RequestedPhaseMask,
-            current.ExtendablePhaseMask,
+            Math.Max(current.HighestPriority, candidate.HighestPriority),
+            current.RequestedPhaseMask | candidate.RequestedPhaseMask,
+            current.ExtendablePhaseMask | candidate.ExtendablePhaseMask,
+            current.SuppressedPhaseMask | candidate.SuppressedPhaseMask);
+    }
+
+    public static bool TryRemapMemberToLeader(
+        VanillaTrafficGroupDemand memberDemand,
+        TrafficGroupPhaseMap phaseMap,
+        out VanillaTrafficGroupDemand leaderDemand)
+    {
+        if (!phaseMap.IsComplete
+            || !TryRemapMemberMaskToLeader(
+                memberDemand.RequestedPhaseMask,
+                phaseMap,
+                out int requestedPhaseMask)
+            || !TryRemapMemberMaskToLeader(
+                memberDemand.ExtendablePhaseMask,
+                phaseMap,
+                out int extendablePhaseMask)
+            || !TryRemapMemberMaskToLeader(
+                memberDemand.SuppressedPhaseMask,
+                phaseMap,
+                out int suppressedPhaseMask))
+        {
+            leaderDemand = default;
+            return false;
+        }
+
+        leaderDemand = new VanillaTrafficGroupDemand(
+            memberDemand.HighestPriority,
+            requestedPhaseMask,
+            extendablePhaseMask,
             suppressedPhaseMask);
+        return true;
     }
 
     public static bool TryRemap(
@@ -151,6 +163,38 @@ public static class VanillaTrafficGroupDemandPolicy
         }
 
         return remapped;
+    }
+
+    private static bool TryRemapMemberMaskToLeader(
+        int memberMask,
+        TrafficGroupPhaseMap phaseMap,
+        out int leaderMask)
+    {
+        int validMemberMask = (1 << phaseMap.MemberPhaseCount) - 1;
+        if ((memberMask & ~validMemberMask) != 0)
+        {
+            leaderMask = 0;
+            return false;
+        }
+
+        leaderMask = 0;
+        for (int memberPhase = 1; memberPhase <= phaseMap.MemberPhaseCount; memberPhase++)
+        {
+            if ((memberMask & (1 << (memberPhase - 1))) == 0)
+            {
+                continue;
+            }
+
+            if (!phaseMap.TryMapMemberToLeader(memberPhase, out int leaderPhase))
+            {
+                leaderMask = 0;
+                return false;
+            }
+
+            leaderMask |= 1 << (leaderPhase - 1);
+        }
+
+        return true;
     }
 
     private static bool IsValidPhaseCount(int phaseCount)
