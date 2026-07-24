@@ -61,6 +61,7 @@ namespace C2VM.TrafficLightsEnhancement
             }
 
             m_World = updateSystem.World;
+            m_World.GetOrCreateSystemManaged<Game.Net.C2VMPatchedLaneSystem>().Enabled = false;
 
             m_TrafficLightInitializationSystem = m_World.GetOrCreateSystemManaged<Game.Net.TrafficLightInitializationSystem>();
             m_TrafficLightSystem = m_World.GetOrCreateSystemManaged<Game.Simulation.TrafficLightSystem>();

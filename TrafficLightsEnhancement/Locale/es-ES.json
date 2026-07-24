@@ -42,8 +42,6 @@
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ReleaseChannel]": "Muestra si esta compilación es estable o beta.",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_TleVersion]": "Versión de TLE",
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_TleVersion]": "Muestra la versión instalada del ensamblado Traffic Lights Enhancement Extended.",
-    "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]": "Versión del sistema de carriles",
-    "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]": "Muestra la versión de la biblioteca Lane System incluida que usa este mod.",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_SuppressCanaryWarning]": "Quitar advertencia de versión Canary",
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_SuppressCanaryWarning]": "Suprime temporalmente la advertencia de canary. Se volverá a activar cuando se actualice el mod.",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_SuppressCanaryWarning].tooltip": "Quita temporalmente la advertencia de versión Canary. Se volverá a activar automáticamente cuando se actualice el mod.",

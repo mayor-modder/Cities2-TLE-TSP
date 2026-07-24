@@ -42,8 +42,6 @@
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ReleaseChannel]": "显示此构建是稳定版还是测试版。",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_TleVersion]": "TLE 版本",
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_TleVersion]": "显示已安装的 Traffic Lights Enhancement Extended 程序集版本。",
-    "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]": "车道系统版本",
-    "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]": "显示此模组使用的内置 Lane System 库版本。",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_SuppressCanaryWarning]": "停用 Canary 警告",
     "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_SuppressCanaryWarning]": "暂时隐藏 Canary 警告。模组更新后会重新启用。",
     "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_SuppressCanaryWarning].tooltip": "暂时停用 Canary 警告。当模组更新后，此警告将重新启用。",

@@ -102,9 +102,6 @@ public class Settings : ModSetting
     [SettingsUISection(kTabGeneral, kGroupVersion)]
     public string m_TleVersion => Mod.Version;
 
-    [SettingsUISection(kTabGeneral, kGroupVersion)]
-    public string m_LaneSystemVersion => C2VM.CommonLibraries.LaneSystem.Mod.m_InformationalVersion.Substring(0, 20);
-
     [SettingsUISection(kTabGeneral, kGroupDefault)]
     [SettingsUIHideByCondition(typeof(Settings), "IsCompatibilityMode")]
     public bool m_DefaultSplitPhasing { get; set; }

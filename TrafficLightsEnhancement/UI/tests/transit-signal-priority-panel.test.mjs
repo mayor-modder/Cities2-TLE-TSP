@@ -683,7 +683,6 @@ test("static locale provides descriptions for visible mod options", async () => 
     "m_ClearSelectedComponent",
     "m_ReleaseChannel",
     "m_TleVersion",
-    "m_LaneSystemVersion",
     "m_SuppressCanaryWarning",
     "m_MainPanelToggleKeyboardBinding",
     "m_MultiSelectEntityKeyboardBinding",
