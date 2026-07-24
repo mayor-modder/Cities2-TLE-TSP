@@ -1130,7 +1130,7 @@ public partial class UISystem
             rows.Add(new { label = "TSPDiagnosticsTrafficGroupSignalDelay", value = trafficGroupMember.m_SignalDelay.ToString(CultureInfo.InvariantCulture) });
             rows.Add(new { label = "TSPDiagnosticsTrafficGroupPhaseOffset", value = trafficGroupMember.m_PhaseOffset.ToString(CultureInfo.InvariantCulture) });
             rows.Add(new { label = "TSPDiagnosticsTrafficGroupMemberCycleTimer", value = trafficGroupMember.m_MemberCycleTimer.ToString("0.##", CultureInfo.InvariantCulture) });
-            rows.Add(new { label = "TSPDiagnosticsTrafficGroupMasterPhase", value = FormatTrafficGroupMasterPhase(hasTrafficGroup, trafficGroup, hasTrafficLights, trafficLights) });
+            rows.Add(new { label = "TSPDiagnosticsTrafficGroupMasterPhase", value = FormatTrafficGroupMasterPhase(entity, hasTrafficGroup, trafficGroup, hasTrafficLights, trafficLights) });
             rows.Add(new { label = "TSPDiagnosticsTrafficGroupTspSuspended", value = "Yes" });
         }
 
@@ -1963,7 +1963,8 @@ public partial class UISystem
         return group.m_GreenWaveEnabled ? "Green wave" : "Lockstep";
     }
 
-    private static string FormatTrafficGroupMasterPhase(
+    private string FormatTrafficGroupMasterPhase(
+        Entity selectedEntity,
         bool hasGroup,
         TrafficGroup group,
         bool hasTrafficLights,
@@ -1974,10 +1975,51 @@ public partial class UISystem
             return "-";
         }
 
-        string selectedPhase = hasTrafficLights
-            ? $"; selected G{FormatByteValue(trafficLights.m_CurrentSignalGroup)} -> G{FormatByteValue(trafficLights.m_NextSignalGroup)}"
+        string leaderState =
+            $"leader G{FormatByteValue(group.m_MasterPhase)} -> G{FormatByteValue(group.m_MasterNextPhase)}";
+        if (!EntityManager.TryGetComponent(
+                selectedEntity,
+                out TrafficGroupPhaseMapping phaseMapping)
+            || !phaseMapping.m_Map.IsComplete
+            || !phaseMapping.m_Map.TryMapLeaderToMember(
+                group.m_MasterPhase,
+                out int mappedCurrentPhase)
+            || (group.m_MasterNextPhase != 0
+                && !phaseMapping.m_Map.TryMapLeaderToMember(
+                    group.m_MasterNextPhase,
+                    out _)))
+        {
+            return $"Movement mapping unavailable; running independently; {leaderState}";
+        }
+
+        int mappedNextPhase = group.m_MasterNextPhase == 0
+            ? 0
+            : MapDiagnosticLeaderPhase(phaseMapping, group.m_MasterNextPhase);
+        bool identityMapping = phaseMapping.m_Map.LeaderPhaseCount
+            == phaseMapping.m_Map.MemberPhaseCount;
+        for (int leaderPhase = 1;
+             identityMapping && leaderPhase <= phaseMapping.m_Map.LeaderPhaseCount;
+             leaderPhase++)
+        {
+            identityMapping = phaseMapping.m_Map.TryMapLeaderToMember(
+                                  leaderPhase,
+                                  out int memberPhase)
+                              && memberPhase == leaderPhase;
+        }
+
+        string mappingKind = identityMapping ? "Identity mapping" : "Movement mapping";
+        string actualMemberState = hasTrafficLights
+            ? $"; actual member G{FormatByteValue(trafficLights.m_CurrentSignalGroup)} -> G{FormatByteValue(trafficLights.m_NextSignalGroup)}"
             : string.Empty;
-        return $"leader G{FormatByteValue(group.m_MasterPhase)} -> G{FormatByteValue(group.m_MasterNextPhase)}{selectedPhase}; {group.m_MasterState}; timer {group.m_MasterTimer}; custom {group.m_MasterCustomTimer}";
+        return $"{mappingKind}; leader G{FormatByteValue(group.m_MasterPhase)} -> member G{mappedCurrentPhase}; next leader G{FormatByteValue(group.m_MasterNextPhase)} -> member G{FormatByteValue((byte)mappedNextPhase)}{actualMemberState}; {group.m_MasterState}; timer {group.m_MasterTimer}; custom {group.m_MasterCustomTimer}";
+    }
+
+    private static int MapDiagnosticLeaderPhase(
+        TrafficGroupPhaseMapping phaseMapping,
+        int leaderPhase)
+    {
+        phaseMapping.m_Map.TryMapLeaderToMember(leaderPhase, out int memberPhase);
+        return memberPhase;
     }
 
     private ArrayList GetTspLaneSignalTrace(

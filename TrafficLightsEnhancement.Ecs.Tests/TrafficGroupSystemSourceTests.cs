@@ -324,6 +324,24 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.DoesNotContain("Allocator.TempJob", allocations);
     }
 
+    [Fact]
+    public void Traffic_group_diagnostics_report_physical_mapping_or_unavailable()
+    {
+        string source = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "UI",
+            "UISystem.UIBIndings.cs"));
+        string formatter = ExtractMethod(
+            source,
+            "private string FormatTrafficGroupMasterPhase");
+
+        Assert.Contains("TrafficGroupPhaseMapping", formatter);
+        Assert.Contains("TryMapLeaderToMember", formatter);
+        Assert.Contains("Movement mapping unavailable; running independently", formatter);
+        Assert.DoesNotContain("selected G", formatter);
+    }
+
     private static string GetTrafficGroupSystemPath()
     {
         return GetRepositorySourcePath(
