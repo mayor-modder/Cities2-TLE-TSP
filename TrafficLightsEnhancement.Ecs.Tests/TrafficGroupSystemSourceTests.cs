@@ -158,16 +158,61 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
-    public void Active_leader_shard_collects_and_synchronizes_all_group_members()
+    public void Traffic_group_system_builds_movement_maps_from_live_lane_signals()
     {
-        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
-        string onCreate = ExtractMethod(source, "protected override void OnCreate");
-        string onUpdate = ExtractMethod(source, "protected override void OnUpdate");
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string buildSignatures = ExtractMethod(
+            source,
+            "private TrafficGroupPhaseSignature[] BuildPhaseSignatures");
+        string refreshMappings = ExtractMethod(
+            source,
+            "private void RefreshMovementMappings");
+
+        Assert.Contains("NodeUtils.GetLaneConnectionMap", buildSignatures);
+        Assert.Contains("laneSignal.m_GroupMask", buildSignatures);
+        Assert.Contains("laneConnection.m_SourceEdge", buildSignatures);
+        Assert.Contains("GetEdgePositionForJunction", buildSignatures);
+        Assert.Contains("m_CarLane", buildSignatures);
+        Assert.Contains("m_TrackLane", buildSignatures);
+        Assert.Contains(
+            "TrafficGroupMovementMappingPolicy.QuantizeUndirectedAxis",
+            buildSignatures);
+        Assert.Contains(
+            "TrafficGroupMovementMappingPolicy.TryBuild",
+            refreshMappings);
+        Assert.Contains("TrafficGroupPhaseMapping", refreshMappings);
+        Assert.Contains(
+            "EntityManager.RemoveComponent<TrafficGroupPhaseMapping>",
+            refreshMappings);
+    }
+
+    [Fact]
+    public void Leader_update_shard_routes_all_group_members_without_discovery_map()
+    {
+        string groupSource = File.ReadAllText(GetTrafficGroupSystemPath());
+        string refreshRuntimeState = ExtractMethod(
+            groupSource,
+            "private void RefreshGroupRuntimeState");
+        string simulationSource = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string onCreate = ExtractMethod(simulationSource, "protected override void OnCreate");
+        string onUpdate = ExtractMethod(simulationSource, "protected override void OnUpdate");
+        string execute = ExtractSection(
+            simulationSource,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
 
         Assert.Contains("m_GroupedTrafficLightQuery = GetEntityQuery", onCreate);
         Assert.Contains("ComponentType.ReadOnly<TrafficGroupMember>()", onCreate);
-        Assert.Contains("DiscoverActiveGroupedBaseDemandJob", onUpdate);
-        Assert.Contains("m_ActiveGroups = activeGroupedBaseDemand.AsParallelWriter()", onUpdate);
+        Assert.Contains(
+            "EntityManager.TryGetSharedComponent<UpdateFrame>",
+            refreshRuntimeState);
+        Assert.Contains("updateFrame.m_Index", refreshRuntimeState);
+        Assert.Contains("TrafficGroupRuntimeData", refreshRuntimeState);
+        Assert.Contains("m_UpdateFrameIndex = updateFrameIndex", onUpdate);
+        Assert.Contains("IsActiveCoordinatedGroup", execute);
+        Assert.DoesNotContain("DiscoverActiveGroupedBaseDemandJob", simulationSource);
+        Assert.DoesNotContain("m_ActiveGroupedBaseDemand", simulationSource);
+        Assert.DoesNotContain("activeGroupedBaseDemand", simulationSource);
 
         int collectPass = onUpdate.IndexOf(
             "TrafficLightUpdatePass.CollectGroupedBaseDemand",
@@ -234,22 +279,46 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
-    public void Follower_sync_preserves_optional_zero_next_phase()
+    public void Follower_sync_uses_physical_map_and_preserves_optional_zero()
     {
         string source = File.ReadAllText(GetCustomStateMachinePath());
         string syncSource = ExtractMethod(source, "public static void SyncSignalGroupWithLeader");
+        string patchedSource = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
+            patchedSource,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
 
         Assert.Contains(
-            "VanillaTrafficGroupDemandPolicy.MapRequiredOneBasedPhase",
+            "m_TrafficGroupPhaseMapping",
             syncSource);
         Assert.Contains(
-            "VanillaTrafficGroupDemandPolicy.MapOptionalOneBasedPhase",
+            "TryMapLeaderToMember",
             syncSource);
         Assert.Matches(
             new Regex(
                 @"m_CurrentSignalGroup\s*=.*?mappedPhase.*?m_NextSignalGroup\s*=.*?mappedNext",
                 RegexOptions.Singleline),
             syncSource);
+        Assert.Contains("masterState.NextSignalGroup == 0", syncSource);
+        Assert.Contains("UpdateGroupedBaseFollowerIndependently", execute);
+        Assert.DoesNotContain("MapRequiredOneBasedPhase", syncSource);
+        Assert.DoesNotContain("MapOptionalOneBasedPhase", syncSource);
+        Assert.DoesNotContain("WrapPhase", syncSource);
+    }
+
+    [Fact]
+    public void Coordination_containers_do_not_use_temp_job_allocator()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string onUpdate = ExtractMethod(source, "protected override void OnUpdate");
+        string allocations = ExtractSection(
+            onUpdate,
+            "var localGroupedDemand",
+            "var updateJob");
+
+        Assert.Contains("Allocator.Persistent", allocations);
+        Assert.DoesNotContain("Allocator.TempJob", allocations);
     }
 
     private static string GetTrafficGroupSystemPath()
