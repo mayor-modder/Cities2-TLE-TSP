@@ -12,23 +12,23 @@
 
 ## Task 1: Protect the naming boundary
 
-- [ ] Add a failing test that expects the exact publisher display name and confirms assembly/root namespace identifiers remain `C2VM.TrafficLightsEnhancement`.
-- [ ] Add a failing UI test that expects the exact display/deploy name while preserving the internal `id`.
-- [ ] Run the focused tests and confirm they fail on the old player-facing name.
+- [x] Add a failing test that expects the exact publisher display name and confirms assembly/root namespace identifiers remain `C2VM.TrafficLightsEnhancement`.
+- [x] Add a failing UI test that expects the exact display/deploy name while preserving the internal `id`.
+- [x] Run the focused tests and confirm they fail on the old player-facing name.
 
 ## Task 2: Apply the visible and folder rename
 
-- [ ] Add `displayName` and `deployFolder` to the UI manifest and use the filesystem-safe deploy folder for webpack output while keeping the internal ID for bundle and binding names.
-- [ ] Override the C# local deployment directory after the toolchain calculates its default.
-- [ ] Update the publisher display name, settings-section name, input-map name, English version description, and other base English product-name labels.
-- [ ] Update release staging so the archive contains the `TrafficLightsEnhancementExtended` folder.
-- [ ] Run the focused tests and confirm they pass.
+- [x] Add `displayName` and `deployFolder` to the UI manifest and use the filesystem-safe deploy folder for webpack output while keeping the internal ID for bundle and binding names.
+- [x] Override the C# local deployment directory after the toolchain calculates its default.
+- [x] Update the publisher display name, settings-section name, input-map name, English version description, and other base English product-name labels.
+- [x] Update release staging so the archive contains the `TrafficLightsEnhancementExtended` folder.
+- [x] Run the focused tests and confirm they pass.
 
 ## Task 3: Verify and install
 
-- [ ] Run all C#, serialization, and UI tests plus the UI and non-deploying Release builds.
-- [ ] Confirm Cities: Skylines II is closed.
-- [ ] Build and install into `Mods\TrafficLightsEnhancementExtended`.
-- [ ] Compare installed and built DLL hashes.
-- [ ] Remove the obsolete `Mods\C2VM.TrafficLightsEnhancement` folder after the new install is verified.
-- [ ] Restart Skyve normally and confirm its refreshed data uses the new folder name, TLE Extended 1.0.2, and one mod entry point.
+- [x] Run all C#, serialization, and UI tests plus the UI and non-deploying Release builds.
+- [x] Confirm Cities: Skylines II is closed.
+- [x] Build and install into `Mods\TrafficLightsEnhancementExtended`.
+- [x] Compare installed and built DLL hashes.
+- [x] Remove the obsolete `Mods\C2VM.TrafficLightsEnhancement` folder after the new install is verified.
+- [x] Restart Skyve normally and confirm its refreshed data uses the new folder name, TLE Extended 1.0.3, and one mod entry point.
