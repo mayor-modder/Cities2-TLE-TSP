@@ -10,7 +10,7 @@ The assembly names, namespaces, localization keys, UI binding namespace, seriali
 
 ## Design
 
-The local deployment folder and release archive folder become `Traffic Light Enhancements Extended`, because Skyve derives a local mod's name from the folder name. The UI build receives a separate deploy-folder value so its internal module ID remains unchanged. The settings section, key-binding map, publisher display name, and English product-name references use the new name.
+The local deployment folder and release archive folder become `TrafficLightEnhancementsExtended`, because mod folders cannot contain spaces and Skyve presents the CamelCase folder name as `Traffic Light Enhancements Extended`. The UI build receives a separate deploy-folder value so its internal module ID remains unchanged. The settings section, key-binding map, publisher display name, and English product-name references use the spaced display name.
 
 The old `C2VM.TrafficLightsEnhancement` local folder is removed only after Cities: Skylines II is confirmed closed and the renamed build is installed successfully. Skyve is then restarted normally to force a rescan.
 
