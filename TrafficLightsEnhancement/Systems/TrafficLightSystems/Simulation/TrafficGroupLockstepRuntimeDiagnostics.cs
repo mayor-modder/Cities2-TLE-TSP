@@ -1,4 +1,5 @@
 using C2VM.TrafficLightsEnhancement.Components;
+using Colossal.Entities;
 using Game.Net;
 using Unity.Collections;
 using Unity.Entities;
@@ -97,6 +98,72 @@ internal static class TrafficGroupLockstepRuntimeDiagnostics
         }
 
         return count;
+    }
+
+    public static ulong HashLaneSignals(
+        DynamicBuffer<SubLane> subLanes,
+        EntityManager entityManager)
+    {
+        ulong hash = TrafficGroupLockstepDiagnostics.FnvOffsetBasis;
+        for (int index = 0; index < subLanes.Length; index++)
+        {
+            Entity entity = subLanes[index].m_SubLane;
+            if (!entityManager.TryGetComponent(entity, out LaneSignal signal))
+            {
+                continue;
+            }
+
+            hash = AddEntity(hash, entity);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(hash, signal.m_GroupMask);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(hash, (byte)signal.m_Flags);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(hash, (byte)signal.m_Signal);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(hash, unchecked((byte)signal.m_Default));
+            hash = AddEntity(hash, signal.m_Petitioner);
+            hash = AddEntity(hash, signal.m_Blocker);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(hash, unchecked((byte)signal.m_Priority));
+
+            ExtraLaneSignal extra = entityManager.TryGetComponent(
+                entity,
+                out ExtraLaneSignal existing)
+                ? existing
+                : default;
+            hash = TrafficGroupLockstepDiagnostics.AddHash(hash, extra.m_YieldGroupMask);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(
+                hash,
+                extra.m_IgnorePriorityGroupMask);
+        }
+
+        return hash;
+    }
+
+    public static ulong HashRenderedLights(
+        DynamicBuffer<SubObject> subObjects,
+        EntityManager entityManager)
+    {
+        ulong hash = TrafficGroupLockstepDiagnostics.FnvOffsetBasis;
+        for (int index = 0; index < subObjects.Length; index++)
+        {
+            Entity entity = subObjects[index].m_SubObject;
+            if (!entityManager.TryGetComponent(
+                    entity,
+                    out RenderedTrafficLight rendered))
+            {
+                continue;
+            }
+
+            hash = AddEntity(hash, entity);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(
+                hash,
+                rendered.m_GroupMask0);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(
+                hash,
+                rendered.m_GroupMask1);
+            hash = TrafficGroupLockstepDiagnostics.AddHash(
+                hash,
+                (ushort)rendered.m_State);
+        }
+
+        return hash;
     }
 
     private static ulong AddEntity(ulong hash, Entity entity)

@@ -140,6 +140,51 @@ public sealed class TrafficGroupLockstepDiagnosticsTests
     }
 
     [Fact]
+    public void Classify_OngoingPhase_RequiresOnlyMappedCurrentOutput()
+    {
+        TrafficGroupLockstepEvidence evidence = CreateAppliedEvidence(
+            liveOutputGroupMask: 0b0010);
+
+        TrafficGroupLockstepClassification result =
+            TrafficGroupLockstepDiagnostics.Classify(in evidence);
+
+        Assert.Equal(TrafficGroupLockstepVerdict.InSync, result.Verdict);
+    }
+
+    [Fact]
+    public void Classify_BeginningPhase_RequiresMappedNextOutput()
+    {
+        TrafficGroupLockstepControllerSnapshot beginning =
+            new(1, 1, 2, 30, 300, 4);
+        TrafficGroupLockstepEvidence evidence = new(
+            hasDebugState: true,
+            isCoordinated: true,
+            isGreenWave: false,
+            TrafficGroupLockstepPassFlags.CollectionVisited
+                | TrafficGroupLockstepPassFlags.IndependentVisited
+                | TrafficGroupLockstepPassFlags.IndependentDeferred
+                | TrafficGroupLockstepPassFlags.SynchronizationVisited
+                | TrafficGroupLockstepPassFlags.SynchronizationApplied,
+            TrafficGroupLockstepSyncDisposition.Applied,
+            before: beginning,
+            master: beginning,
+            after: beginning,
+            live: beginning,
+            laneHashAfter: 0x1234UL,
+            liveLaneHash: 0x1234UL,
+            renderedHashAfter: 0xABCDUL,
+            liveRenderedHash: 0xABCDUL,
+            mappedCurrentGroupBit: 0b0010,
+            mappedNextGroupBit: 0b0100,
+            liveOutputGroupMask: 0b0100);
+
+        TrafficGroupLockstepClassification result =
+            TrafficGroupLockstepDiagnostics.Classify(in evidence);
+
+        Assert.Equal(TrafficGroupLockstepVerdict.InSync, result.Verdict);
+    }
+
+    [Fact]
     public void Classify_GreenWave_IsExplicitlyExcluded()
     {
         TrafficGroupLockstepEvidence evidence = CreateAppliedEvidence(isGreenWave: true);

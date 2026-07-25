@@ -287,8 +287,22 @@ public static class TrafficGroupLockstepDiagnostics
                 "Rendered traffic-light outputs changed after the synchronization pass.");
         }
 
-        ushort expectedMask =
-            (ushort)(evidence.MappedCurrentGroupBit | evidence.MappedNextGroupBit);
+        ushort expectedMask;
+        switch (evidence.Live.State)
+        {
+            case 1: // Beginning exposes the next phase.
+                expectedMask = evidence.MappedNextGroupBit;
+                break;
+            case 2: // Ongoing
+            case 3: // Ending
+            case 5: // Extending
+            case 6: // Extended
+                expectedMask = evidence.MappedCurrentGroupBit;
+                break;
+            default:
+                expectedMask = 0;
+                break;
+        }
         if (expectedMask != 0
             && (evidence.LiveOutputGroupMask & expectedMask) != expectedMask)
         {
