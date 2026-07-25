@@ -1358,6 +1358,10 @@ public partial class UISystem
     {
         PruneTspDiagnosticsEvents();
 
+        object trafficGroupLockstepTrace =
+            GetTrafficGroupLockstepTrace(entity);
+        string trafficGroupLockstepSignature =
+            JsonConvert.SerializeObject(trafficGroupLockstepTrace);
         string signature = GetTspDiagnosticsSignature(
             summary,
             hasTrafficLights,
@@ -1367,7 +1371,8 @@ public partial class UISystem
             hasBusApproachDebug,
             busApproachDebug,
             hasDecisionTrace,
-            decisionTrace);
+            decisionTrace,
+            trafficGroupLockstepSignature);
 
         bool isNewHistory = false;
         if (!m_TspDiagnosticsEvents.TryGetValue(entity, out TspDiagnosticsHistory history))
@@ -1407,7 +1412,8 @@ public partial class UISystem
                 busApproachDebug,
                 hasDecisionTrace,
                 decisionTrace,
-                selectedJunction);
+                selectedJunction,
+                trafficGroupLockstepTrace);
             RecordTspDiagnosticsEvent(history, summary);
 
             if (isNewSelection)
@@ -1471,7 +1477,8 @@ public partial class UISystem
         bool hasBusApproachDebug,
         TransitSignalPriorityBusApproachDebugInfo busApproachDebug,
         bool hasDecisionTrace,
-        TransitSignalPriorityDecisionTrace decisionTrace)
+        TransitSignalPriorityDecisionTrace decisionTrace,
+        string trafficGroupLockstepSignature)
     {
         string trafficSignature = hasTrafficLights
             ? $"{trafficLights.m_State}:{trafficLights.m_CurrentSignalGroup}:{trafficLights.m_NextSignalGroup}"
@@ -1486,7 +1493,7 @@ public partial class UISystem
             ? $"{decisionTrace.m_Reason}:{decisionTrace.m_BaseSignalGroup}:{decisionTrace.m_SelectedSignalGroup}:{decisionTrace.m_RequestTargetSignalGroup}:{decisionTrace.m_ExclusivePedestrianEnabled}:{decisionTrace.m_ActiveExclusivePedestrianPhase}:{decisionTrace.m_PendingPedestrianFairness}:{decisionTrace.m_PendingPedestrianSignalGroup}"
             : "no-decision";
 
-        return $"{summary}|{trafficSignature}|{requestSignature}|{busSignature}|{decisionSignature}";
+        return $"{summary}|{trafficSignature}|{requestSignature}|{busSignature}|{decisionSignature}|{trafficGroupLockstepSignature}";
     }
 
     private void WriteTspDiagnosticsTraceEvent(
@@ -1500,7 +1507,8 @@ public partial class UISystem
         TransitSignalPriorityBusApproachDebugInfo busApproachDebug,
         bool hasDecisionTrace,
         TransitSignalPriorityDecisionTrace decisionTrace,
-        SelectedJunctionDiagnosticsSnapshot selectedJunction)
+        SelectedJunctionDiagnosticsSnapshot selectedJunction,
+        object trafficGroupLockstepTrace)
     {
         try
         {
@@ -1514,7 +1522,7 @@ public partial class UISystem
                 selectedJunction = selectedJunction.ToTraceObject(),
                 trafficGroup = GetTspTrafficGroupTrace(entity),
                 leaderTrafficLights = GetTspTrafficGroupLeaderTrace(entity),
-                trafficGroupLockstep = GetTrafficGroupLockstepTrace(entity),
+                trafficGroupLockstep = trafficGroupLockstepTrace,
                 laneSignals = GetTspLaneSignalTrace(entity, hasTrafficLights, trafficLights, hasRuntimeDebug, runtimeDebug),
                 summary,
                 trafficLights = hasTrafficLights

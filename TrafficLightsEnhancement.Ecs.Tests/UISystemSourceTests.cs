@@ -136,6 +136,12 @@ public sealed class UISystemSourceTests
         string writerSource = ExtractMethod(
             writer,
             "private void WriteTspDiagnosticsTraceEvent");
+        string eventSource = ExtractMethod(
+            writer,
+            "private ArrayList GetTspDiagnosticsEvents");
+        string signatureSource = ExtractMethod(
+            writer,
+            "private static string GetTspDiagnosticsSignature");
         string groupTraceSource = ExtractMethod(
             lockstep,
             "private object GetTrafficGroupLockstepTrace");
@@ -150,8 +156,17 @@ public sealed class UISystemSourceTests
             "private void WarnLockstepVerdictIfChanged");
 
         Assert.Contains(
-            "trafficGroupLockstep = GetTrafficGroupLockstepTrace(entity)",
+            "trafficGroupLockstep = trafficGroupLockstepTrace",
             writerSource);
+        Assert.Contains("object trafficGroupLockstepTrace", eventSource);
+        Assert.Contains("GetTrafficGroupLockstepTrace(entity)", eventSource);
+        Assert.Contains(
+            "JsonConvert.SerializeObject(trafficGroupLockstepTrace)",
+            eventSource);
+        Assert.Contains("trafficGroupLockstepSignature", signatureSource);
+        Assert.Contains(
+            "trafficGroupLockstepSignature}",
+            signatureSource);
         Assert.Contains("GetGroupMembers", groupTraceSource);
         Assert.Contains("GetTrafficGroupLockstepMemberTrace", groupTraceSource);
         Assert.Contains("GetTspLaneSignalTrace", memberTraceSource);
