@@ -188,7 +188,9 @@ public sealed class TrafficGroupSystemSourceTests
 
         Assert.Contains("NodeUtils.GetLaneConnectionMap", buildSignatures);
         Assert.Contains("laneSignal.m_GroupMask", buildSignatures);
+        Assert.Contains("extraLaneSignal.m_YieldGroupMask", buildSignatures);
         Assert.Contains("laneConnection.m_SourceEdge", buildSignatures);
+        Assert.Contains("laneConnection.m_DestEdge", buildSignatures);
         Assert.Contains("GetEdgePositionForJunction", buildSignatures);
         Assert.Contains("carLaneLookup", buildSignatures);
         Assert.Contains("trackLaneLookup", buildSignatures);
@@ -202,6 +204,27 @@ public sealed class TrafficGroupSystemSourceTests
         Assert.Contains(
             "EntityManager.RemoveComponent<TrafficGroupPhaseMapping>",
             refreshMappings);
+    }
+
+    [Fact]
+    public void Traffic_group_system_logs_changed_mapping_failures_with_phase_signatures()
+    {
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string refreshSource = ExtractMethod(source, "private void RefreshMovementMappings");
+        string logSource = ExtractMethod(source, "private void LogMovementMappingFailureIfChanged");
+        string formatSource = ExtractMethod(source, "private static string FormatPhaseSignatures");
+
+        Assert.Contains(
+            "out TrafficGroupMovementMappingFailure mappingFailure",
+            refreshSource);
+        Assert.Contains("LogMovementMappingFailureIfChanged", refreshSource);
+        Assert.Contains("leaderSignatures", refreshSource);
+        Assert.Contains("memberSignatures", refreshSource);
+        Assert.Contains(
+            "m_LastMovementMappingFailureReports.TryGetValue",
+            logSource);
+        Assert.Contains("m_Log.Warn", logSource);
+        Assert.Contains("ToDiagnosticString", formatSource);
     }
 
     [Fact]
@@ -270,7 +293,7 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
-    public void Missing_same_tick_master_uses_independent_base_fallback()
+    public void Missing_same_tick_master_holds_lockstep_follower()
     {
         string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
         string execute = ExtractSection(
@@ -279,7 +302,7 @@ public sealed class TrafficGroupSystemSourceTests
             "private void FillLaneSignals");
 
         Assert.Contains("TryGetValue(groupEntity, out var masterState)", execute);
-        Assert.Contains("UpdateGroupedBaseFollowerIndependently", execute);
+        Assert.DoesNotContain("UpdateGroupedBaseFollowerIndependently", execute);
     }
 
     [Fact]
@@ -299,7 +322,7 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
-    public void Custom_followers_keep_the_existing_custom_sync_path()
+    public void Custom_followers_use_the_same_tick_leader_then_follower_path()
     {
         string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
         string execute = ExtractSection(
@@ -307,9 +330,22 @@ public sealed class TrafficGroupSystemSourceTests
             "public void Execute(in ArchetypeChunk chunk",
             "private void FillLaneSignals");
 
-        Assert.Contains("usesCustomPhase", execute);
-        Assert.Contains("CustomStateMachine.ShouldFollowLeader", execute);
+        Assert.Contains(
+            "bool isCoordinatedMember = TryGetCoordinatedMember(",
+            execute);
+        Assert.Contains(
+            "bool isCoordinatedBaseMember = isCoordinatedMember && !usesCustomPhase;",
+            execute);
+        Assert.Contains(
+            "bool deferCoordinatedFollower = isCoordinatedMember",
+            execute);
+        Assert.Contains(
+            "bool canSynchronizeFollower = usesCustomPhase",
+            execute);
         Assert.Contains("CustomStateMachine.SyncSignalGroupWithLeader", execute);
+        Assert.Contains(
+            "PublishSameTickMasterState(groupEntity, trafficLights, customTrafficLights);",
+            execute);
     }
 
     [Fact]
@@ -335,7 +371,7 @@ public sealed class TrafficGroupSystemSourceTests
                 RegexOptions.Singleline),
             syncSource);
         Assert.Contains("masterState.NextSignalGroup == 0", syncSource);
-        Assert.Contains("UpdateGroupedBaseFollowerIndependently", execute);
+        Assert.DoesNotContain("UpdateGroupedBaseFollowerIndependently", execute);
         Assert.DoesNotContain("MapRequiredOneBasedPhase", syncSource);
         Assert.DoesNotContain("MapOptionalOneBasedPhase", syncSource);
         Assert.DoesNotContain("WrapPhase", syncSource);
@@ -369,7 +405,7 @@ public sealed class TrafficGroupSystemSourceTests
 
         Assert.Contains("TrafficGroupPhaseMapping", formatter);
         Assert.Contains("TryMapLeaderToMember", formatter);
-        Assert.Contains("Movement mapping unavailable; running independently", formatter);
+        Assert.Contains("Movement mapping unavailable; follower held", formatter);
         Assert.DoesNotContain("selected G", formatter);
     }
 

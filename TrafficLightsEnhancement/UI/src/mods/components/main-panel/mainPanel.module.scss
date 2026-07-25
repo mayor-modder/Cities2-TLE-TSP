@@ -18,6 +18,10 @@
   padding: 0.25em;
 }
 
+.compactControlsPane {
+  width: 20.5em;
+}
+
 .diagnosticsPane {
   width: 30em;
   background-color: var(--panelColorDark);
@@ -28,6 +32,45 @@
   overflow: hidden;
   padding: 0.25em;
 }
+
+.diagnosticsContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 0.75em;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.diagnosticEventsSection {
+  border-bottom: 2rem solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 16em;
+  min-height: 0;
+  padding-bottom: 0.25em;
+}
+
+.diagnosticDetailsSection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 0.25em;
+}
+
+.diagnosticSectionTitle {
+  color: var(--textColorDim);
+  font-size: 1em;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 0.5em 0.5em 0.25em 0.5em;
+  text-align: start;
+  text-transform: uppercase;
+}
+
 .contentLabel {
   color: var(--textColorDim);
   display: flex;
@@ -46,14 +89,14 @@
 }
 
 .diagnosticEventTitle {
-  font-size: 0.9em;
+  font-size: 1em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .diagnosticEventDetail {
-  font-size: 0.75em;
+  font-size: 0.9em;
   opacity: 0.72;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -117,23 +160,25 @@
 
 .addMemberHeader {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 12rem;
-  padding-bottom: 8rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25em;
+  margin: 0.75em 0.5em;
 }
 
 .addMemberTitle {
-  font-size: var(--fontSizeM);
-  color: var(--textColor);
-  font-weight: 500;
-  flex: 1;
+  color: var(--textColorDim);
+  font-size: 0.75em;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .addMemberGroupName {
-  font-size: var(--fontSizeS);
-  color: var(--accentColorNormal);
+  color: var(--textColor);
+  font-size: 1.1em;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .addMemberMessage {
@@ -219,13 +264,13 @@
 
 .buttonRow {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  gap: 0.25em;
   padding: 0.5em;
-  justify-content: center;
   
   > * {
-    margin-left: 0.25em;
-    margin-right: 0.25em;
+    margin: 0;
+    width: 100%;
   }
 }
 .hover {

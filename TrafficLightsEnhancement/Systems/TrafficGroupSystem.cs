@@ -25,6 +25,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 	private EntityQuery m_GroupQuery;
 	private EntityQuery m_MemberQuery;
 	private SimulationSystem m_SimulationSystem;
+	private readonly Dictionary<Entity, string> m_LastMovementMappingFailureReports = new();
 
 	protected override void OnCreate()
 	{
@@ -116,14 +117,26 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var members = GetGroupMembers(groupEntity);
 		foreach (Entity memberEntity in members)
 		{
+			if (!EntityManager.TryGetComponent(memberEntity, out TrafficLights memberLights))
+			{
+				if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+				{
+					EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+				}
+				continue;
+			}
+
+			TrafficGroupPhaseSignature[] memberSignatures =
+				BuildPhaseSignatures(memberEntity, memberLights);
 			TrafficGroupPhaseMap phaseMap = default;
-			bool mapped = EntityManager.TryGetComponent(memberEntity, out TrafficLights memberLights)
-			              && TrafficGroupMovementMappingPolicy.TryBuild(
-				              leaderSignatures,
-				              BuildPhaseSignatures(memberEntity, memberLights),
-				              out phaseMap);
+			bool mapped = TrafficGroupMovementMappingPolicy.TryBuild(
+				leaderSignatures,
+				memberSignatures,
+				out phaseMap,
+				out TrafficGroupMovementMappingFailure mappingFailure);
 			if (mapped)
 			{
+				m_LastMovementMappingFailureReports.Remove(memberEntity);
 				var mapping = new TrafficGroupPhaseMapping { m_Map = phaseMap };
 				if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
 				{
@@ -138,8 +151,61 @@ public partial class TrafficGroupSystem : GameSystemBase
 			{
 				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
 			}
+
+			if (!mapped)
+			{
+				LogMovementMappingFailureIfChanged(
+					groupEntity,
+					leaderEntity,
+					memberEntity,
+					mappingFailure,
+					leaderSignatures,
+					memberSignatures);
+			}
 		}
 		members.Dispose();
+	}
+
+	private void LogMovementMappingFailureIfChanged(
+		Entity groupEntity,
+		Entity leaderEntity,
+		Entity memberEntity,
+		TrafficGroupMovementMappingFailure failure,
+		TrafficGroupPhaseSignature[] leaderSignatures,
+		TrafficGroupPhaseSignature[] memberSignatures)
+	{
+		string report =
+			$"[TLE][TrafficGroupMapping] group={groupEntity.Index}:{groupEntity.Version} "
+			+ $"leader={leaderEntity.Index}:{leaderEntity.Version} "
+			+ $"member={memberEntity.Index}:{memberEntity.Version} "
+			+ $"reason={failure.Reason} "
+			+ $"leaderPhase={failure.LeaderPhase} "
+			+ $"memberPhase={failure.MemberPhase} "
+			+ $"leaderSignatures=[{FormatPhaseSignatures(leaderSignatures)}] "
+			+ $"memberSignatures=[{FormatPhaseSignatures(memberSignatures)}]";
+
+		if (m_LastMovementMappingFailureReports.TryGetValue(
+			    memberEntity,
+			    out string previousReport)
+		    && previousReport == report)
+		{
+			return;
+		}
+
+		m_LastMovementMappingFailureReports[memberEntity] = report;
+		m_Log.Warn(report);
+	}
+
+	private static string FormatPhaseSignatures(
+		TrafficGroupPhaseSignature[] signatures)
+	{
+		var formatted = new string[signatures.Length];
+		for (int index = 0; index < signatures.Length; index++)
+		{
+			formatted[index] = signatures[index].ToDiagnosticString();
+		}
+
+		return string.Join(" | ", formatted);
 	}
 
 	private TrafficGroupPhaseSignature[] BuildPhaseSignatures(
@@ -172,6 +238,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 		var roadAxes = new ulong[phaseCount];
 		var trackAxes = new ulong[phaseCount];
+		var roadMovements = new TrafficGroupMovementMask[phaseCount];
+		var trackMovements = new TrafficGroupMovementMask[phaseCount];
+		var roadYieldMovements = new TrafficGroupMovementMask[phaseCount];
+		var trackYieldMovements = new TrafficGroupMovementMask[phaseCount];
 		for (int laneIndex = 0; laneIndex < subLanes.Length; laneIndex++)
 		{
 			Entity subLaneEntity = subLanes[laneIndex].m_SubLane;
@@ -209,20 +279,53 @@ public partial class TrafficGroupSystem : GameSystemBase
 			}
 
 			ulong axisBit = 1UL << axisBin;
+			ExtraLaneSignal extraLaneSignal =
+				EntityManager.TryGetComponent(subLaneEntity, out ExtraLaneSignal existingExtraLaneSignal)
+					? existingExtraLaneSignal
+					: default;
+			TrafficGroupMovementMask movementBit = default;
+			if (laneConnection.m_DestEdge != Entity.Null)
+			{
+				float3 destinationPosition = GetEdgePositionForJunction(
+					junctionEntity,
+					laneConnection.m_DestEdge,
+					edgeLookup,
+					edgeGeometryLookup);
+				int destinationAxisBin =
+					TrafficGroupMovementMappingPolicy.QuantizeUndirectedAxis(
+						destinationPosition.x - node.m_Position.x,
+						destinationPosition.z - node.m_Position.z);
+				movementBit = TrafficGroupMovementMask.FromAxisBins(
+					axisBin,
+					destinationAxisBin);
+			}
+
 			for (int phaseIndex = 0; phaseIndex < phaseCount; phaseIndex++)
 			{
-				if ((laneSignal.m_GroupMask & (1 << phaseIndex)) == 0)
+				int phaseBit = 1 << phaseIndex;
+				if ((laneSignal.m_GroupMask & phaseBit) == 0)
 				{
 					continue;
 				}
 
+				bool isYieldMovement = (extraLaneSignal.m_YieldGroupMask & phaseBit) != 0;
 				if (isCarLane)
 				{
 					roadAxes[phaseIndex] |= axisBit;
+					roadMovements[phaseIndex] |= movementBit;
+					if (isYieldMovement)
+					{
+						roadYieldMovements[phaseIndex] |= movementBit;
+					}
 				}
 				if (isTrackLane)
 				{
 					trackAxes[phaseIndex] |= axisBit;
+					trackMovements[phaseIndex] |= movementBit;
+					if (isYieldMovement)
+					{
+						trackYieldMovements[phaseIndex] |= movementBit;
+					}
 				}
 			}
 		}
@@ -233,7 +336,11 @@ public partial class TrafficGroupSystem : GameSystemBase
 			signatures[phaseIndex] = new TrafficGroupPhaseSignature(
 				phaseIndex + 1,
 				roadAxes[phaseIndex],
-				trackAxes[phaseIndex]);
+				trackAxes[phaseIndex],
+				roadMovements[phaseIndex],
+				trackMovements[phaseIndex],
+				roadYieldMovements[phaseIndex],
+				trackYieldMovements[phaseIndex]);
 		}
 		return signatures;
 	}
@@ -243,6 +350,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var members = GetGroupMembers(groupEntity);
 		foreach (Entity memberEntity in members)
 		{
+			m_LastMovementMappingFailureReports.Remove(memberEntity);
 			if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
 			{
 				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
@@ -1563,6 +1671,12 @@ public partial class TrafficGroupSystem : GameSystemBase
 			var sourceLights = EntityManager.GetComponentData<CustomTrafficLights>(sourceJunction);
 			sourcePattern = sourceLights.GetPattern();
 			sourceMode = sourceLights.GetMode();
+			if (sourceLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase
+			    && sourceMode != CustomTrafficLights.TrafficMode.Dynamic
+			    && sourceMode != CustomTrafficLights.TrafficMode.FixedTimed)
+			{
+				sourceMode = CustomTrafficLights.TrafficMode.Dynamic;
+			}
 		}
 
 		
@@ -1574,6 +1688,12 @@ public partial class TrafficGroupSystem : GameSystemBase
 			var targetLights = EntityManager.GetComponentData<CustomTrafficLights>(targetJunction);
 			targetPattern = targetLights.GetPattern();
 			targetMode = targetLights.GetMode();
+			if (targetLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase
+			    && targetMode != CustomTrafficLights.TrafficMode.Dynamic
+			    && targetMode != CustomTrafficLights.TrafficMode.FixedTimed)
+			{
+				targetMode = CustomTrafficLights.TrafficMode.Dynamic;
+			}
 		}
 
 		

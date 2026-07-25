@@ -198,19 +198,16 @@ const MemberFoldout = ({
 			initialExpanded={false}
 			disableFocus={true}
 		>
-			{isFollowerInLockstep ? (
+			<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]") ?? "Traffic signal"}</div>
+			{isFollowerInLockstep && (
 				<div className={styles.infoText} style={{ fontStyle: 'italic', padding: '0.5em' }}>
 					{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ControlledByLeader]") ?? "Controlled by leader: phases are synced in lockstep."}
 				</div>
-			) : (
-				<>
-					<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]") ?? "Traffic signal"}</div>
-					<MemberPatternSelector
-						memberIndex={member.index}
-						memberVersion={member.version}
-					/>
-				</>
 			)}
+			<MemberPatternSelector
+				memberIndex={member.index}
+				memberVersion={member.version}
+			/>
 		</PanelFoldout>
 	);
 };
@@ -757,7 +754,7 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							
 							<Divider />
 						
-							<ItemTitle title="Statistics" />
+							<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Statistics]") ?? "Statistics"}</div>
 							<ItemTitle title="GroupId" secondaryText={`${displayedGroup.groupIndex}:${displayedGroup.groupVersion}`} dim={true} />
 							<ItemTitle title="Coordinated" secondaryText={displayedGroup.isCoordinated ? "Yes" : "No"} dim={true} />
 							<ItemTitle title="GreenWave" secondaryText={displayedGroup.greenWaveEnabled ? "Enabled" : "Disabled"} dim={true} />

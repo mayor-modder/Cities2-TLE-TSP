@@ -63,6 +63,40 @@ public sealed class CopyPhasesToAllMembersSourceTests
         Assert.Contains("CopyPhasesToAllMembers(sourceJunction)", source);
     }
 
+    [Fact]
+    public void Group_member_custom_phase_navigation_initializes_an_editable_phase()
+    {
+        string source = File.ReadAllText(GetUiBindingsPath());
+        string handler = ExtractMethod(source, "protected void CallUpdateMemberPattern");
+
+        Assert.Contains(
+            "customTrafficLights.SetMode(CustomTrafficLights.TrafficMode.Dynamic);",
+            handler);
+        Assert.Contains("customPhaseDataBuffer.Length == 0", handler);
+        Assert.Contains("customPhaseDataBuffer.Add(new CustomPhaseData())", handler);
+        Assert.Contains("UpdateActiveEditingCustomPhaseIndex(0)", handler);
+    }
+
+    [Fact]
+    public void Copy_validation_recovers_custom_phases_with_the_legacy_invalid_mode()
+    {
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string validation = ExtractMethod(source, "private bool ValidatePhaseSyncCompatibility");
+
+        Assert.Equal(
+            2,
+            Regex.Matches(
+                validation,
+                @"GetPatternOnly\(\)\s*==\s*CustomTrafficLights\.Patterns\.CustomPhase")
+                .Count);
+        Assert.Contains(
+            "sourceMode = CustomTrafficLights.TrafficMode.Dynamic;",
+            validation);
+        Assert.Contains(
+            "targetMode = CustomTrafficLights.TrafficMode.Dynamic;",
+            validation);
+    }
+
     private static string GetTrafficGroupSystemPath() =>
         GetRepositorySourcePath("TrafficLightsEnhancement", "Systems", "TrafficGroupSystem.cs");
 

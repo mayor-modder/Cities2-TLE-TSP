@@ -92,6 +92,34 @@ public sealed class UISystemSourceTests
         Assert.Contains("masterSignalGroupCount = group.m_MasterSignalGroupCount", traceSource);
     }
 
+    [Fact]
+    public void Diagnostics_trace_captures_actual_leader_state_with_the_selected_follower()
+    {
+        string source = File.ReadAllText(GetRepoPath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "UI",
+            "UISystem.UIBIndings.cs"));
+        string writerSource = ExtractMethod(
+            source,
+            "private void WriteTspDiagnosticsTraceEvent");
+        string leaderTraceSource = ExtractMethod(
+            source,
+            "private object GetTspTrafficGroupLeaderTrace");
+
+        Assert.Contains(
+            "leaderTrafficLights = GetTspTrafficGroupLeaderTrace(entity)",
+            writerSource);
+        Assert.Contains("member.m_LeaderEntity", leaderTraceSource);
+        Assert.Contains(
+            "EntityManager.TryGetComponent(leaderEntity, out TrafficLights leaderLights)",
+            leaderTraceSource);
+        Assert.Contains("state = leaderLights.m_State.ToString()", leaderTraceSource);
+        Assert.Contains("currentGroup = leaderLights.m_CurrentSignalGroup", leaderTraceSource);
+        Assert.Contains("nextGroup = leaderLights.m_NextSignalGroup", leaderTraceSource);
+        Assert.Contains("updateFrameIndex = GetUpdateFrameIndex(leaderEntity)", leaderTraceSource);
+    }
+
     private static string GetRepoPath(params string[] segments)
     {
         string path = AppContext.BaseDirectory;

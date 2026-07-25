@@ -217,15 +217,15 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 bool usesCustomPhase = customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase
                     && i < customPhaseDataBufferAccessor.Length
                     && (trafficLights.m_Flags & TrafficLightFlags.MoveableBridge) == 0;
-                bool isCoordinatedBaseMember = TryGetCoordinatedBaseMember(
+                bool isCoordinatedMember = TryGetCoordinatedMember(
                     currentEntity,
                     trafficLights,
-                    usesCustomPhase,
                     out Entity groupEntity,
                     out TrafficGroupMember groupMember,
                     out TrafficGroup trafficGroup,
                     out bool hasValidCoordinationInputs);
-                bool isActiveCoordinatedGroup = isCoordinatedBaseMember
+                bool isCoordinatedBaseMember = isCoordinatedMember && !usesCustomPhase;
+                bool isActiveCoordinatedGroup = isCoordinatedMember
                     && IsActiveCoordinatedGroup(groupEntity);
 
                 if (m_Pass == TrafficLightUpdatePass.CollectGroupedBaseDemand)
@@ -247,7 +247,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                 if (m_Pass == TrafficLightUpdatePass.SynchronizeGroupedBaseFollowers)
                 {
-                    if (!isCoordinatedBaseMember
+                    if (!isCoordinatedMember
                         || groupMember.m_IsGroupLeader
                         || !hasValidCoordinationInputs
                         || !isActiveCoordinatedGroup)
@@ -256,8 +256,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         continue;
                     }
 
-                    bool hasLocalDemand = m_LocalGroupedDemand.TryGetValue(currentEntity, out var localDemand);
-                    if (hasLocalDemand
+                    bool canSynchronizeFollower = usesCustomPhase
+                        || m_LocalGroupedDemand.TryGetValue(currentEntity, out _);
+                    if (canSynchronizeFollower
                         && m_SameTickMasterState.TryGetValue(groupEntity, out var masterState)
                         && IsValidMasterState(masterState)
                         && CanMapMasterStateToMember(currentEntity, masterState))
@@ -272,18 +273,6 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         UpdateLaneSignals(laneSignals, trafficLights, resetPriority: false);
                         UpdateTrafficLightObjects(subObjects, trafficLights);
                     }
-                    else
-                    {
-                        UpdateGroupedBaseFollowerIndependently(
-                            currentEntity,
-                            laneSignals,
-                            subObjects,
-                            moveableBridgeData,
-                            hasLocalDemand ? new VanillaDemandSource(localDemand) : default,
-                            ref trafficLights,
-                            ref customTrafficLights);
-                    }
-
                     if (i < customTrafficLightsArray.Length)
                     {
                         customTrafficLightsArray[i] = customTrafficLights;
@@ -294,7 +283,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     continue;
                 }
 
-                if (isCoordinatedBaseMember
+                if (isCoordinatedMember
                     && !groupMember.m_IsGroupLeader
                     && !isActiveCoordinatedGroup)
                 {
@@ -409,12 +398,12 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 }
 
                 bool tspTraceWritten = false;
-                bool deferCoordinatedBaseFollower = isCoordinatedBaseMember
+                bool deferCoordinatedFollower = isCoordinatedMember
                     && !groupMember.m_IsGroupLeader
                     && hasValidCoordinationInputs
                     && isActiveCoordinatedGroup;
 
-                if (deferCoordinatedBaseFollower)
+                if (deferCoordinatedFollower)
                 {
                     // The dependent follower pass applies this tick's leader state.
                 }
@@ -462,6 +451,15 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         UpdateLaneSignals(laneSignals, trafficLights);
                         UpdateTrafficLightObjects(subObjects, trafficLights);
                     }
+
+                    if (isCoordinatedMember
+                        && groupMember.m_IsGroupLeader
+                        && hasValidCoordinationInputs
+                        && isActiveCoordinatedGroup
+                        && HasCompletePhaseMapping(currentEntity, trafficLights.m_SignalGroupCount))
+                    {
+                        PublishSameTickMasterState(groupEntity, trafficLights, customTrafficLights);
+                    }
                 }
                 else
                 {
@@ -497,15 +495,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                     if (publishSameTickMaster)
                     {
-                        m_SameTickMasterState.AsParallelWriter().TryAdd(
-                            groupEntity,
-                            new TrafficGroupMasterSignalState(
-                                trafficLights.m_State,
-                                trafficLights.m_CurrentSignalGroup,
-                                trafficLights.m_NextSignalGroup,
-                                trafficLights.m_Timer,
-                                customTrafficLights.m_Timer,
-                                trafficLights.m_SignalGroupCount));
+                        PublishSameTickMasterState(groupEntity, trafficLights, customTrafficLights);
                     }
 
                     if (tspSelection.Applied)
@@ -567,10 +557,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             laneSignals.Dispose();
         }
 
-        private bool TryGetCoordinatedBaseMember(
+        private bool TryGetCoordinatedMember(
             Entity currentEntity,
             TrafficLights trafficLights,
-            bool usesCustomPhase,
             out Entity groupEntity,
             out TrafficGroupMember member,
             out TrafficGroup group,
@@ -581,8 +570,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             group = default;
             hasValidCoordinationInputs = false;
 
-            if (usesCustomPhase
-                || !m_ExtraTypeHandle.m_TrafficGroupMember.TryGetComponent(currentEntity, out member)
+            if (!m_ExtraTypeHandle.m_TrafficGroupMember.TryGetComponent(currentEntity, out member)
                 || member.m_GroupEntity == Entity.Null
                 || !m_ExtraTypeHandle.m_TrafficGroup.TryGetComponent(member.m_GroupEntity, out group)
                 || !group.m_IsCoordinated)
@@ -599,6 +587,22 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 && leaderTrafficLights.m_SignalGroupCount is >= 1
                     and <= TrafficGroupMovementMappingPolicy.MaximumMappedPhaseCount;
             return true;
+        }
+
+        private void PublishSameTickMasterState(
+            Entity groupEntity,
+            TrafficLights trafficLights,
+            CustomTrafficLights customTrafficLights)
+        {
+            m_SameTickMasterState.AsParallelWriter().TryAdd(
+                groupEntity,
+                new TrafficGroupMasterSignalState(
+                    trafficLights.m_State,
+                    trafficLights.m_CurrentSignalGroup,
+                    trafficLights.m_NextSignalGroup,
+                    trafficLights.m_Timer,
+                    customTrafficLights.m_Timer,
+                    trafficLights.m_SignalGroupCount));
         }
 
         private void CollectAndResetGroupedBaseDemand(
@@ -776,48 +780,6 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 || phaseMapping.m_Map.TryMapLeaderToMember(
                     masterState.NextSignalGroup,
                     out _);
-        }
-
-        private void UpdateGroupedBaseFollowerIndependently(
-            Entity currentEntity,
-            NativeList<Entity> laneSignals,
-            DynamicBuffer<Game.Objects.SubObject> subObjects,
-            MoveableBridgeData moveableBridgeData,
-            VanillaDemandSource demandSource,
-            ref TrafficLights trafficLights,
-            ref CustomTrafficLights customTrafficLights)
-        {
-            TspPedestrianFairnessState pedestrianFairnessState =
-                m_ExtraTypeHandle.m_TransitSignalPriorityPedestrianFairnessState.TryGetComponent(
-                    currentEntity,
-                    out var pedestrianFairnessComponent)
-                    ? pedestrianFairnessComponent.ToLogicState()
-                    : TspPedestrianFairnessState.None;
-            TspVehicleFairnessState vehicleFairnessState =
-                m_ExtraTypeHandle.m_TransitSignalPriorityVehicleFairnessState.TryGetComponent(
-                    currentEntity,
-                    out var vehicleFairnessComponent)
-                    ? vehicleFairnessComponent.ToLogicState()
-                    : TspVehicleFairnessState.None;
-
-            bool updated = UpdateTrafficLightState(
-                laneSignals,
-                moveableBridgeData,
-                ref trafficLights,
-                ref customTrafficLights,
-                C2VM.TrafficLightsEnhancement.Components.TransitSignalPrioritySettings.CreateDefault(),
-                hasTspRequest: false,
-                tspRequest: default,
-                ref pedestrianFairnessState,
-                ref vehicleFairnessState,
-                demandSource,
-                out _);
-
-            if (updated)
-            {
-                UpdateLaneSignals(laneSignals, trafficLights, resetPriority: !demandSource.UseCollectedDemand);
-                UpdateTrafficLightObjects(subObjects, trafficLights);
-            }
         }
 
         private void FillLaneSignals(DynamicBuffer<Game.Net.SubLane> subLanes, NativeList<Entity> laneSignals)

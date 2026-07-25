@@ -101,6 +101,72 @@ public sealed class TrafficGroupPhaseMapTests
     }
 
     [Fact]
+    public void Movement_destinations_disambiguate_phases_with_the_same_approaches()
+    {
+        var leader = new[]
+        {
+            Phase(
+                1,
+                roadAxes: 0b0011,
+                roadMovements: Movements((0, 0), (0, 1))),
+            Phase(
+                2,
+                roadAxes: 0b0011,
+                roadMovements: Movements((1, 1), (1, 0))),
+        };
+        var member = new[]
+        {
+            Phase(
+                1,
+                roadAxes: 0b0011,
+                roadMovements: Movements((1, 1), (1, 0))),
+            Phase(
+                2,
+                roadAxes: 0b0011,
+                roadMovements: Movements((0, 0), (0, 1))),
+        };
+
+        Assert.True(TrafficGroupMovementMappingPolicy.TryBuild(leader, member, out var phaseMap));
+        Assert.Equal(2, MapLeader(phaseMap, 1));
+        Assert.Equal(1, MapLeader(phaseMap, 2));
+    }
+
+    [Fact]
+    public void Yield_assignments_disambiguate_phases_with_the_same_active_movements()
+    {
+        TrafficGroupMovementMask activeMovements = Movements((0, 0), (0, 1));
+        TrafficGroupMovementMask yieldingTurn = Movements((0, 1));
+        var leader = new[]
+        {
+            Phase(
+                1,
+                roadAxes: 0b0001,
+                roadMovements: activeMovements,
+                roadYieldMovements: yieldingTurn),
+            Phase(
+                2,
+                roadAxes: 0b0001,
+                roadMovements: activeMovements),
+        };
+        var member = new[]
+        {
+            Phase(
+                1,
+                roadAxes: 0b0001,
+                roadMovements: activeMovements),
+            Phase(
+                2,
+                roadAxes: 0b0001,
+                roadMovements: activeMovements,
+                roadYieldMovements: yieldingTurn),
+        };
+
+        Assert.True(TrafficGroupMovementMappingPolicy.TryBuild(leader, member, out var phaseMap));
+        Assert.Equal(2, MapLeader(phaseMap, 1));
+        Assert.Equal(1, MapLeader(phaseMap, 2));
+    }
+
+    [Fact]
     public void Ambiguous_candidates_reject_the_entire_map()
     {
         var leader = new[]
@@ -119,6 +185,32 @@ public sealed class TrafficGroupPhaseMapTests
     }
 
     [Fact]
+    public void Detailed_failure_identifies_ambiguous_exact_match()
+    {
+        var leader = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0010),
+        };
+        var member = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0001),
+        };
+
+        Assert.False(
+            TrafficGroupMovementMappingPolicy.TryBuild(
+                leader,
+                member,
+                out _,
+                out TrafficGroupMovementMappingFailure failure));
+        Assert.Equal(
+            TrafficGroupMovementMappingFailureReason.AmbiguousExactMatch,
+            failure.Reason);
+        Assert.Equal(1, failure.LeaderPhase);
+    }
+
+    [Fact]
     public void Empty_or_incomplete_signatures_reject_the_entire_map()
     {
         var leader = new[]
@@ -134,6 +226,81 @@ public sealed class TrafficGroupPhaseMapTests
 
         Assert.False(TrafficGroupMovementMappingPolicy.TryBuild(leader, member, out var phaseMap));
         Assert.False(phaseMap.IsComplete);
+    }
+
+    [Fact]
+    public void Detailed_failure_identifies_leader_phase_without_an_approach()
+    {
+        var leader = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0),
+        };
+        var member = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0010),
+        };
+
+        Assert.False(
+            TrafficGroupMovementMappingPolicy.TryBuild(
+                leader,
+                member,
+                out _,
+                out TrafficGroupMovementMappingFailure failure));
+        Assert.Equal(
+            TrafficGroupMovementMappingFailureReason.LeaderPhaseHasNoApproach,
+            failure.Reason);
+        Assert.Equal(2, failure.LeaderPhase);
+    }
+
+    [Fact]
+    public void Detailed_failure_identifies_member_phase_without_an_approach()
+    {
+        var leader = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0010),
+        };
+        var member = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0),
+        };
+
+        Assert.False(
+            TrafficGroupMovementMappingPolicy.TryBuild(
+                leader,
+                member,
+                out _,
+                out TrafficGroupMovementMappingFailure failure));
+        Assert.Equal(
+            TrafficGroupMovementMappingFailureReason.MemberPhaseHasNoApproach,
+            failure.Reason);
+        Assert.Equal(2, failure.MemberPhase);
+    }
+
+    [Fact]
+    public void Phase_signature_diagnostic_includes_all_mapping_inputs()
+    {
+        var signature = Phase(
+            2,
+            roadAxes: 0x12,
+            trackAxes: 0x34,
+            roadMovements: Movements((0, 1)),
+            trackMovements: Movements((2, 3)),
+            roadYieldMovements: Movements((4, 5)),
+            trackYieldMovements: Movements((6, 7)));
+
+        string diagnostic = signature.ToDiagnosticString();
+
+        Assert.Contains("group=2", diagnostic);
+        Assert.Contains("roadAxes=0000000000000012", diagnostic);
+        Assert.Contains("trackAxes=0000000000000034", diagnostic);
+        Assert.Contains("roadMovements=", diagnostic);
+        Assert.Contains("trackMovements=", diagnostic);
+        Assert.Contains("roadYield=", diagnostic);
+        Assert.Contains("trackYield=", diagnostic);
     }
 
     [Fact]
@@ -156,9 +323,32 @@ public sealed class TrafficGroupPhaseMapTests
     private static TrafficGroupPhaseSignature Phase(
         int signalGroup,
         ulong roadAxes,
-        ulong trackAxes = 0)
+        ulong trackAxes = 0,
+        TrafficGroupMovementMask roadMovements = default,
+        TrafficGroupMovementMask trackMovements = default,
+        TrafficGroupMovementMask roadYieldMovements = default,
+        TrafficGroupMovementMask trackYieldMovements = default)
     {
-        return new TrafficGroupPhaseSignature(signalGroup, roadAxes, trackAxes);
+        return new TrafficGroupPhaseSignature(
+            signalGroup,
+            roadAxes,
+            trackAxes,
+            roadMovements,
+            trackMovements,
+            roadYieldMovements,
+            trackYieldMovements);
+    }
+
+    private static TrafficGroupMovementMask Movements(
+        params (int SourceAxis, int DestinationAxis)[] movements)
+    {
+        TrafficGroupMovementMask mask = default;
+        foreach ((int sourceAxis, int destinationAxis) in movements)
+        {
+            mask |= TrafficGroupMovementMask.FromAxisBins(sourceAxis, destinationAxis);
+        }
+
+        return mask;
     }
 
     private static int MapLeader(TrafficGroupPhaseMap phaseMap, int leaderPhase)

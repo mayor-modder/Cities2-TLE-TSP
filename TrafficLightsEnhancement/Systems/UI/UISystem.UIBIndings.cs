@@ -13,7 +13,9 @@ using Colossal.UI.Binding;
 using Game.Common;
 using Game.Net;
 using Game.Rendering;
+using Game.Simulation;
 using Newtonsoft.Json;
+using TrafficLightsEnhancement.Logic.Diagnostics;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
@@ -25,7 +27,6 @@ public partial class UISystem
     private const long TspDiagnosticsTraceMaxBytes = 5 * 1024 * 1024;
     private const int TspDiagnosticsTraceMaxRotatedFiles = 3;
     private const int TspDiagnosticsEventHistoryLimit = 100;
-    private const int TspDiagnosticsEventDisplayLimit = 5;
     private static readonly object TspDiagnosticsTraceFileLock = new();
 
     private sealed class TspDiagnosticsHistory
@@ -1092,7 +1093,7 @@ public partial class UISystem
             busApproachDebug,
             hasDecisionTrace,
             decisionTrace);
-        var events = GetTspDiagnosticsEvents(
+        ArrayList diagnosticEvents = GetTspDiagnosticsEvents(
             entity,
             summary.value,
             hasTrafficLights,
@@ -1104,6 +1105,9 @@ public partial class UISystem
             hasDecisionTrace,
             decisionTrace,
             selectedJunction);
+        bool showTspEvents = settings.m_Enabled
+            && !EntityManager.HasComponent<TrafficGroupMember>(entity);
+        ArrayList events = showTspEvents ? diagnosticEvents : new ArrayList();
 
         var rows = new ArrayList
         {
@@ -1270,6 +1274,11 @@ public partial class UISystem
         bool hasDecisionTrace,
         TransitSignalPriorityDecisionTrace decisionTrace)
     {
+        if (!settings.m_Enabled)
+        {
+            return "Disabled";
+        }
+
         if (!hasRuntimeDebug)
         {
             if (hasBusApproachDebug && busApproachDebug.m_BusHitCount > 0)
@@ -1277,11 +1286,6 @@ public partial class UISystem
                 return hasTrafficLights
                     ? $"No active request | bus {GetBusProbeName(busApproachDebug.m_BusProbe)} | G{FormatByteValue(trafficLights.m_CurrentSignalGroup)} -> G{FormatByteValue(trafficLights.m_NextSignalGroup)} | {trafficLights.m_State}"
                     : $"No active request | bus {GetBusProbeName(busApproachDebug.m_BusProbe)}";
-            }
-
-            if (!settings.m_Enabled)
-            {
-                return "Disabled";
             }
 
             return hasTrafficLights
@@ -1378,7 +1382,13 @@ public partial class UISystem
         m_TspDiagnosticsSelectedEntity = entity;
 
         bool signatureChanged = history.LastSignature != signature;
-        bool shouldRecordEvent = isNewSelection || (signatureChanged && ShouldRecordTspDiagnosticsEvent(history, hasRuntimeDebug || hasBusApproachDebug || hasDecisionTrace));
+        bool hasTspActivity = hasRuntimeDebug || hasBusApproachDebug || hasDecisionTrace;
+        bool shouldRecordEvent = isNewSelection
+            || (signatureChanged
+                && ShouldRecordTspDiagnosticsEvent(
+                    history,
+                    hasTspActivity,
+                    EntityManager.HasComponent<TrafficGroupMember>(entity)));
         if (signatureChanged)
         {
             history.LastSignature = signature;
@@ -1407,7 +1417,7 @@ public partial class UISystem
         }
 
         var events = new ArrayList();
-        foreach (TspDiagnosticsEvent diagnosticsEvent in history.Events.Take(TspDiagnosticsEventDisplayLimit))
+        foreach (TspDiagnosticsEvent diagnosticsEvent in history.Events)
         {
             string[] eventParts = diagnosticsEvent.Value.Split(new[] { " | " }, 2, StringSplitOptions.None);
             string eventTitle = eventParts[0];
@@ -1439,21 +1449,17 @@ public partial class UISystem
         }
     }
 
-    private static bool ShouldRecordTspDiagnosticsEvent(TspDiagnosticsHistory history, bool hasTspActivity)
+    private static bool ShouldRecordTspDiagnosticsEvent(
+        TspDiagnosticsHistory history,
+        bool hasTspActivity,
+        bool isTrafficGroupMember)
     {
-        if (hasTspActivity)
-        {
-            history.HadTspActivity = true;
-            return true;
-        }
-
-        if (history.HadTspActivity)
-        {
-            history.HadTspActivity = false;
-            return true;
-        }
-
-        return false;
+        bool shouldRecord = DiagnosticsTracePolicy.ShouldRecordStateChange(
+            hasTspActivity,
+            history.HadTspActivity,
+            isTrafficGroupMember);
+        history.HadTspActivity = hasTspActivity;
+        return shouldRecord;
     }
 
     private static string GetTspDiagnosticsSignature(
@@ -1507,6 +1513,7 @@ public partial class UISystem
                 signalConfiguration = GetTspSignalConfigurationTrace(entity),
                 selectedJunction = selectedJunction.ToTraceObject(),
                 trafficGroup = GetTspTrafficGroupTrace(entity),
+                leaderTrafficLights = GetTspTrafficGroupLeaderTrace(entity),
                 laneSignals = GetTspLaneSignalTrace(entity, hasTrafficLights, trafficLights, hasRuntimeDebug, runtimeDebug),
                 summary,
                 trafficLights = hasTrafficLights
@@ -1517,6 +1524,7 @@ public partial class UISystem
                         nextGroup = trafficLights.m_NextSignalGroup,
                         timer = trafficLights.m_Timer,
                         signalGroupCount = trafficLights.m_SignalGroupCount,
+                        updateFrameIndex = GetUpdateFrameIndex(entity),
                     }
                     : null,
                 request = hasRuntimeDebug
@@ -1948,6 +1956,51 @@ public partial class UISystem
         };
     }
 
+    private object GetTspTrafficGroupLeaderTrace(Entity entity)
+    {
+        if (!EntityManager.TryGetComponent(entity, out TrafficGroupMember member))
+        {
+            return null;
+        }
+
+        Entity leaderEntity = member.m_IsGroupLeader ? entity : member.m_LeaderEntity;
+        if (leaderEntity == Entity.Null
+            || !EntityManager.TryGetComponent(leaderEntity, out TrafficLights leaderLights))
+        {
+            return new
+            {
+                entity = FormatEntity(leaderEntity),
+                available = false,
+            };
+        }
+
+        uint? customTimer = EntityManager.TryGetComponent(
+            leaderEntity,
+            out CustomTrafficLights leaderCustomLights)
+            ? leaderCustomLights.m_Timer
+            : null;
+        return new
+        {
+            entity = FormatEntity(leaderEntity),
+            available = true,
+            state = leaderLights.m_State.ToString(),
+            currentGroup = leaderLights.m_CurrentSignalGroup,
+            nextGroup = leaderLights.m_NextSignalGroup,
+            timer = leaderLights.m_Timer,
+            customTimer,
+            signalGroupCount = leaderLights.m_SignalGroupCount,
+            updateFrameIndex = GetUpdateFrameIndex(leaderEntity),
+        };
+    }
+
+    private uint? GetUpdateFrameIndex(Entity entity)
+    {
+        return entity != Entity.Null
+            && EntityManager.TryGetSharedComponent<UpdateFrame>(entity, out var updateFrame)
+                ? updateFrame.m_Index
+                : null;
+    }
+
     private static string FormatTrafficGroupMode(bool hasGroup, TrafficGroup group)
     {
         if (!hasGroup)
@@ -1989,7 +2042,7 @@ public partial class UISystem
                     group.m_MasterNextPhase,
                     out _)))
         {
-            return $"Movement mapping unavailable; running independently; {leaderState}";
+            return $"Movement mapping unavailable; follower held; {leaderState}";
         }
 
         int mappedNextPhase = group.m_MasterNextPhase == 0
@@ -3884,9 +3937,12 @@ public partial class UISystem
         
         if (customTrafficLights.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase)
         {
-            if (!EntityManager.HasBuffer<CustomPhaseData>(junctionEntity))
+            customTrafficLights.SetMode(CustomTrafficLights.TrafficMode.Dynamic);
+
+            DynamicBuffer<CustomPhaseData> customPhaseDataBuffer;
+            if (!EntityManager.TryGetBuffer(junctionEntity, false, out customPhaseDataBuffer))
             {
-                EntityManager.AddComponent<CustomPhaseData>(junctionEntity);
+                customPhaseDataBuffer = EntityManager.AddBuffer<CustomPhaseData>(junctionEntity);
             }
             if (!EntityManager.HasBuffer<EdgeGroupMask>(junctionEntity))
             {
@@ -3895,6 +3951,10 @@ public partial class UISystem
             if (!EntityManager.HasBuffer<SubLaneGroupMask>(junctionEntity))
             {
                 EntityManager.AddComponent<SubLaneGroupMask>(junctionEntity);
+            }
+            if (customPhaseDataBuffer.Length == 0)
+            {
+                customPhaseDataBuffer.Add(new CustomPhaseData());
             }
             customTrafficLights.SetPattern(CustomTrafficLights.Patterns.CustomPhase);
         }
@@ -3939,8 +3999,9 @@ public partial class UISystem
                 }
                 m_SelectedEntity = junctionEntity;
                 m_CustomTrafficLights = customTrafficLights;
-                UpdateEdgeInfo(junctionEntity);
             }
+            UpdateEdgeInfo(junctionEntity);
+            UpdateActiveEditingCustomPhaseIndex(0);
             SetMainPanelState(MainPanelState.CustomPhase);
         }
         else

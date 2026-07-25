@@ -66,11 +66,13 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
             defaultValue: 1,
             enableTextField: false,
         };
-        const showTransitSignalPriority = !!(
+        const hasVisibleTransitSignalPriority = !!(
             mainData.transitSignalPriority?.tram.isVisible
             || mainData.transitSignalPriority?.bus.isVisible
             || mainData.transitSignalPriority?.diagnostics
         );
+        const showTransitSignalPriority = !mainData.isGroupMember && hasVisibleTransitSignalPriority;
+        const showGroupedTransitSignalPriorityNotice = mainData.isGroupMember && hasVisibleTransitSignalPriority;
         const transitSignalPriorityDiagnostics = mainData.transitSignalPriority?.diagnostics;
 
         return (
@@ -114,6 +116,13 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                     )}
                     {mainData.isGroupMember && (
                         <Message itemType="message" message="EditPhasesFromGroupMenu" />
+                    )}
+                    {showGroupedTransitSignalPriorityNotice && (
+                        <>
+                            <Divider />
+                            <Title itemType="title" title="TransitSignalPriority" />
+                            <Message itemType="message" message="BusTransitPriorityGroupedUnavailable" />
+                        </>
                     )}
                     {showTransitSignalPriority && (
                         <>
@@ -209,32 +218,41 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
                 </div>
                 {transitSignalPriorityDiagnostics && (
                     <div className={styles.diagnosticsPane}>
-                        <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
-                            <Title itemType="title" title="TransitSignalPriorityDiagnostics" />
-                            {transitSignalPriorityDiagnostics.rows.map((row) => (
-                                <Row key={row.label} hoverEffect={false}>
-                                    <div className={styles.contentLabel}>
-                                        {translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${row.label}]`) ?? row.label}: {row.value}
+                        <div className={styles.diagnosticsContent}>
+                                {transitSignalPriorityDiagnostics.events && transitSignalPriorityDiagnostics.events.length > 0 && (
+                                    <div className={styles.diagnosticEventsSection}>
+                                        <div className={styles.diagnosticSectionTitle}>
+                                            {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TSPDiagnosticsEvents]") ?? "Recent TSP events"}
+                                        </div>
+                                        <Scrollable style={{flex: 1, minHeight: 0}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
+                                        {transitSignalPriorityDiagnostics.events.map((event) => (
+                                            <Row key={`${event.sequence}-${event.title}`} hoverEffect={false}>
+                                                <div className={styles.diagnosticEvent}>
+                                                    <div className={styles.diagnosticEventTitle}>{event.title}</div>
+                                                    {event.detail && (
+                                                        <div className={styles.diagnosticEventDetail}>{event.detail}</div>
+                                                    )}
+                                                </div>
+                                            </Row>
+                                        ))}
+                                    </Scrollable>
+                                </div>
+                                )}
+                                <div className={styles.diagnosticDetailsSection}>
+                                    <div className={styles.diagnosticSectionTitle}>
+                                        {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriorityDiagnostics]") ?? "Diagnostics"}
                                     </div>
-                                </Row>
-                            ))}
-                            {transitSignalPriorityDiagnostics.events && transitSignalPriorityDiagnostics.events.length > 0 && (
-                                <>
-                                    <Divider />
-                                    <Title itemType="title" title="TSPDiagnosticsEvents" />
-                                    {transitSignalPriorityDiagnostics.events.map((event) => (
-                                        <Row key={`${event.sequence}-${event.title}`} hoverEffect={false}>
-                                            <div className={styles.diagnosticEvent}>
-                                                <div className={styles.diagnosticEventTitle}>{event.title}</div>
-                                                {event.detail && (
-                                                    <div className={styles.diagnosticEventDetail}>{event.detail}</div>
-                                                )}
+                                    <Scrollable style={{flex: 1, minHeight: 0}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
+                                    {transitSignalPriorityDiagnostics.rows.map((row) => (
+                                        <Row key={row.label} hoverEffect={false}>
+                                            <div className={styles.contentLabel}>
+                                                {translate(`UI.LABEL[C2VM.TrafficLightsEnhancement.${row.label}]`) ?? row.label}: {row.value}
                                             </div>
                                         </Row>
                                     ))}
-                                </>
-                            )}
-                        </Scrollable>
+                                </Scrollable>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -247,10 +265,15 @@ export default function Content(props: { mainData?: MainPanelMainData | null, em
 
         return (
             <div className={styles.contentContainer}>
-                <div className={styles.controlsPane}>
+                <div className={`${styles.controlsPane} ${styles.compactControlsPane}`}>
                     <Scrollable style={{flex: 1}} contentStyle={{flex: 1}} trackStyle={{marginLeft: "0.25em"}}>
                     {isAddingMember ? (
-                        <Message itemType="message" message={`AddingMemberTo:${emptyData.targetGroupName}`} />
+                        <div className={styles.addMemberHeader}>
+                            <div className={styles.addMemberTitle}>
+                                {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.AddMember]") ?? "Add member"}
+                            </div>
+                            <div className={styles.addMemberGroupName}>{emptyData.targetGroupName}</div>
+                        </div>
                     ) : (
                         <Message itemType="message" message="PleaseSelectJunction" />
                     )}
