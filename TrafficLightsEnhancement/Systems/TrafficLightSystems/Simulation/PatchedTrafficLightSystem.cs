@@ -162,6 +162,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
         [ReadOnly]
         public uint m_UpdateFrameIndex;
 
+        [ReadOnly]
+        public uint m_SimulationFrame;
+
         public NativeParallelHashMap<Entity, VanillaTrafficGroupDemand> m_LocalGroupedDemand;
 
         public NativeParallelMultiHashMap<Entity, VanillaTrafficGroupDemand> m_GroupedDemand;
@@ -227,9 +230,64 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 bool isCoordinatedBaseMember = isCoordinatedMember && !usesCustomPhase;
                 bool isActiveCoordinatedGroup = isCoordinatedMember
                     && IsActiveCoordinatedGroup(groupEntity);
+                TrafficGroupMember rawGroupMember = default;
+                TrafficGroup rawTrafficGroup = default;
+                bool hasRawGroupMember =
+                    m_ExtraTypeHandle.m_TrafficGroupMember.TryGetComponent(
+                        currentEntity,
+                        out rawGroupMember);
+                bool hasRawTrafficGroup = false;
+                if (hasRawGroupMember && rawGroupMember.m_GroupEntity != Entity.Null)
+                {
+                    hasRawTrafficGroup =
+                        m_ExtraTypeHandle.m_TrafficGroup.TryGetComponent(
+                            rawGroupMember.m_GroupEntity,
+                            out rawTrafficGroup);
+                }
+                bool isExpectedLockstepFollower = hasRawTrafficGroup
+                    && rawTrafficGroup.m_IsCoordinated
+                    && !rawGroupMember.m_IsGroupLeader;
+                TrafficGroupLockstepDebugState lockstepDebug = default;
+                bool hasLockstepDebug = m_TransitSignalPriorityDiagnosticsEnabled
+                    && m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState.TryGetComponent(
+                        currentEntity,
+                        out lockstepDebug);
+                if (hasLockstepDebug)
+                {
+                    if (lockstepDebug.SimulationFrame != m_SimulationFrame)
+                    {
+                        lockstepDebug = default;
+                        lockstepDebug.SimulationFrame = m_SimulationFrame;
+                    }
+
+                    lockstepDebug.MemberUpdateFrame = m_UpdateFrameIndex;
+                    lockstepDebug.IsCoordinated =
+                        hasRawTrafficGroup && rawTrafficGroup.m_IsCoordinated;
+                    lockstepDebug.IsGreenWave =
+                        hasRawTrafficGroup && rawTrafficGroup.m_GreenWaveEnabled;
+                    lockstepDebug.HasCompleteMapping = HasCompletePhaseMapping(
+                        currentEntity,
+                        trafficLights.m_SignalGroupCount);
+                    if (hasRawTrafficGroup
+                        && m_ExtraTypeHandle.m_TrafficGroupRuntimeData.TryGetComponent(
+                            rawGroupMember.m_GroupEntity,
+                            out TrafficGroupRuntimeData runtimeData))
+                    {
+                        lockstepDebug.LeaderUpdateFrame =
+                            runtimeData.m_LeaderUpdateFrameIndex;
+                    }
+                }
 
                 if (m_Pass == TrafficLightUpdatePass.CollectGroupedBaseDemand)
                 {
+                    if (hasLockstepDebug)
+                    {
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.CollectionVisited;
+                        m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                            currentEntity] = lockstepDebug;
+                    }
+
                     if (isCoordinatedBaseMember
                         && hasValidCoordinationInputs
                         && isActiveCoordinatedGroup)
@@ -247,32 +305,176 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                 if (m_Pass == TrafficLightUpdatePass.SynchronizeGroupedBaseFollowers)
                 {
-                    if (!isCoordinatedMember
-                        || groupMember.m_IsGroupLeader
-                        || !hasValidCoordinationInputs
-                        || !isActiveCoordinatedGroup)
+                    if (hasLockstepDebug && isExpectedLockstepFollower)
                     {
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.SynchronizationVisited;
+                    }
+
+                    if (!isCoordinatedMember)
+                    {
+                        if (hasLockstepDebug && isExpectedLockstepFollower)
+                        {
+                            lockstepDebug.SyncDisposition =
+                                TrafficGroupLockstepSyncDisposition.NotLockstep;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
+                        laneSignals.Clear();
+                        continue;
+                    }
+
+                    if (groupMember.m_IsGroupLeader)
+                    {
+                        laneSignals.Clear();
+                        continue;
+                    }
+
+                    if (!hasValidCoordinationInputs)
+                    {
+                        if (hasLockstepDebug)
+                        {
+                            lockstepDebug.SyncDisposition =
+                                TrafficGroupLockstepSyncDisposition.InvalidMaster;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
+                        laneSignals.Clear();
+                        continue;
+                    }
+
+                    if (!isActiveCoordinatedGroup)
+                    {
+                        if (hasLockstepDebug)
+                        {
+                            lockstepDebug.SyncDisposition =
+                                TrafficGroupLockstepSyncDisposition.InactiveGroup;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
                         laneSignals.Clear();
                         continue;
                     }
 
                     bool canSynchronizeFollower = usesCustomPhase
                         || m_LocalGroupedDemand.TryGetValue(currentEntity, out _);
-                    if (canSynchronizeFollower
-                        && m_SameTickMasterState.TryGetValue(groupEntity, out var masterState)
-                        && IsValidMasterState(masterState)
-                        && CanMapMasterStateToMember(currentEntity, masterState))
+                    if (!canSynchronizeFollower)
                     {
-                        CustomStateMachine.SyncSignalGroupWithLeader(
-                            this,
-                            currentEntity,
-                            groupEntity,
-                            masterState,
-                            ref trafficLights,
-                            ref customTrafficLights);
-                        UpdateLaneSignals(laneSignals, trafficLights, resetPriority: false);
-                        UpdateTrafficLightObjects(subObjects, trafficLights);
+                        if (hasLockstepDebug)
+                        {
+                            lockstepDebug.SyncDisposition =
+                                TrafficGroupLockstepSyncDisposition.MissingLocalDemand;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
+                        laneSignals.Clear();
+                        continue;
                     }
+
+                    if (!m_SameTickMasterState.TryGetValue(groupEntity, out var masterState))
+                    {
+                        if (hasLockstepDebug)
+                        {
+                            lockstepDebug.SyncDisposition =
+                                TrafficGroupLockstepSyncDisposition.MissingMaster;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
+                        laneSignals.Clear();
+                        continue;
+                    }
+
+                    if (!IsValidMasterState(masterState))
+                    {
+                        if (hasLockstepDebug)
+                        {
+                            lockstepDebug.SyncDisposition =
+                                TrafficGroupLockstepSyncDisposition.InvalidMaster;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
+                        laneSignals.Clear();
+                        continue;
+                    }
+
+                    TrafficGroupLockstepSyncDisposition mappingDisposition =
+                        TryBuildMappedMasterSnapshot(
+                            currentEntity,
+                            trafficLights,
+                            masterState,
+                            out TrafficGroupLockstepControllerSnapshot mappedMaster,
+                            out byte mappedCurrentGroup,
+                            out byte mappedNextGroup);
+                    if (mappingDisposition != TrafficGroupLockstepSyncDisposition.Applied)
+                    {
+                        if (hasLockstepDebug)
+                        {
+                            lockstepDebug.SyncDisposition = mappingDisposition;
+                            m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                                currentEntity] = lockstepDebug;
+                        }
+                        laneSignals.Clear();
+                        continue;
+                    }
+
+                    if (hasLockstepDebug)
+                    {
+                        lockstepDebug.Before =
+                            TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
+                                trafficLights,
+                                customTrafficLights);
+                        lockstepDebug.Master = mappedMaster;
+                        lockstepDebug.MappedCurrentGroup = mappedCurrentGroup;
+                        lockstepDebug.MappedNextGroup = mappedNextGroup;
+                        lockstepDebug.LaneHashBefore =
+                            TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
+                                laneSignals,
+                                m_LaneSignalData,
+                                m_ExtraTypeHandle.m_ExtraLaneSignal);
+                        lockstepDebug.RenderedHashBefore =
+                            TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
+                                subObjects,
+                                m_TrafficLightData);
+                    }
+
+                    CustomStateMachine.SyncSignalGroupWithLeader(
+                        this,
+                        currentEntity,
+                        groupEntity,
+                        masterState,
+                        ref trafficLights,
+                        ref customTrafficLights);
+                    UpdateLaneSignals(laneSignals, trafficLights, resetPriority: false);
+                    UpdateTrafficLightObjects(subObjects, trafficLights);
+
+                    if (hasLockstepDebug)
+                    {
+                        lockstepDebug.After =
+                            TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
+                                trafficLights,
+                                customTrafficLights);
+                        lockstepDebug.LaneHashAfter =
+                            TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
+                                laneSignals,
+                                m_LaneSignalData,
+                                m_ExtraTypeHandle.m_ExtraLaneSignal);
+                        lockstepDebug.RenderedHashAfter =
+                            TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
+                                subObjects,
+                                m_TrafficLightData);
+                        lockstepDebug.LaneCount = laneSignals.Length;
+                        lockstepDebug.RenderedCount =
+                            TrafficGroupLockstepRuntimeDiagnostics.CountRenderedLights(
+                                subObjects,
+                                m_TrafficLightData);
+                        lockstepDebug.SyncDisposition =
+                            TrafficGroupLockstepSyncDisposition.Applied;
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.SynchronizationApplied;
+                        m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                            currentEntity] = lockstepDebug;
+                    }
+
                     if (i < customTrafficLightsArray.Length)
                     {
                         customTrafficLightsArray[i] = customTrafficLights;
@@ -287,8 +489,56 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     && !groupMember.m_IsGroupLeader
                     && !isActiveCoordinatedGroup)
                 {
+                    if (hasLockstepDebug)
+                    {
+                        TrafficGroupLockstepControllerSnapshot heldSnapshot =
+                            TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
+                                trafficLights,
+                                customTrafficLights);
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.IndependentVisited
+                            | TrafficGroupLockstepPassFlags.IndependentHeld;
+                        lockstepDebug.Before = heldSnapshot;
+                        lockstepDebug.After = heldSnapshot;
+                        lockstepDebug.LaneHashBefore =
+                            TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
+                                laneSignals,
+                                m_LaneSignalData,
+                                m_ExtraTypeHandle.m_ExtraLaneSignal);
+                        lockstepDebug.LaneHashAfter = lockstepDebug.LaneHashBefore;
+                        lockstepDebug.RenderedHashBefore =
+                            TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
+                                subObjects,
+                                m_TrafficLightData);
+                        lockstepDebug.RenderedHashAfter =
+                            lockstepDebug.RenderedHashBefore;
+                        m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                            currentEntity] = lockstepDebug;
+                    }
                     laneSignals.Clear();
                     continue;
+                }
+
+                TrafficGroupLockstepControllerSnapshot independentBefore = default;
+                ulong independentLaneHashBefore = 0;
+                ulong independentRenderedHashBefore = 0;
+                if (hasLockstepDebug && isExpectedLockstepFollower)
+                {
+                    independentBefore =
+                        TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
+                            trafficLights,
+                            customTrafficLights);
+                    independentLaneHashBefore =
+                        TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
+                            laneSignals,
+                            m_LaneSignalData,
+                            m_ExtraTypeHandle.m_ExtraLaneSignal);
+                    independentRenderedHashBefore =
+                        TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
+                            subObjects,
+                            m_TrafficLightData);
+                    lockstepDebug.PassFlags |=
+                        TrafficGroupLockstepPassFlags.IndependentVisited;
                 }
 
                 bool hasTspRequest = false;
@@ -406,6 +656,11 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 if (deferCoordinatedFollower)
                 {
                     // The dependent follower pass applies this tick's leader state.
+                    if (hasLockstepDebug)
+                    {
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.IndependentDeferred;
+                    }
                 }
                 else if (usesCustomPhase && CustomStateMachine.ShouldFollowLeader(this, currentEntity, out Entity customGroupEntity))
                 {
@@ -548,6 +803,35 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 if (i < customTrafficLightsArray.Length)
                 {
                     customTrafficLightsArray[i] = customTrafficLights;
+                }
+
+                if (hasLockstepDebug && isExpectedLockstepFollower)
+                {
+                    TrafficGroupLockstepControllerSnapshot independentAfter =
+                        TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
+                            trafficLights,
+                            customTrafficLights);
+                    lockstepDebug.Before = independentBefore;
+                    lockstepDebug.After = independentAfter;
+                    lockstepDebug.LaneHashBefore = independentLaneHashBefore;
+                    lockstepDebug.LaneHashAfter =
+                        TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
+                            laneSignals,
+                            m_LaneSignalData,
+                            m_ExtraTypeHandle.m_ExtraLaneSignal);
+                    lockstepDebug.RenderedHashBefore =
+                        independentRenderedHashBefore;
+                    lockstepDebug.RenderedHashAfter =
+                        TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
+                            subObjects,
+                            m_TrafficLightData);
+                    if (independentAfter != independentBefore)
+                    {
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.IndependentAdvanced;
+                    }
+                    m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
+                        currentEntity] = lockstepDebug;
                 }
 
                 nativeArray2[i] = trafficLights;
@@ -780,6 +1064,60 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 || phaseMapping.m_Map.TryMapLeaderToMember(
                     masterState.NextSignalGroup,
                     out _);
+        }
+
+        private TrafficGroupLockstepSyncDisposition TryBuildMappedMasterSnapshot(
+            Entity memberEntity,
+            TrafficLights memberTrafficLights,
+            TrafficGroupMasterSignalState masterState,
+            out TrafficGroupLockstepControllerSnapshot mappedMaster,
+            out byte mappedCurrentGroup,
+            out byte mappedNextGroup)
+        {
+            mappedMaster = default;
+            mappedCurrentGroup = 0;
+            mappedNextGroup = 0;
+            if (!m_ExtraTypeHandle.m_TrafficGroupPhaseMapping.TryGetComponent(
+                    memberEntity,
+                    out TrafficGroupPhaseMapping phaseMapping))
+            {
+                return TrafficGroupLockstepSyncDisposition.MissingMapping;
+            }
+
+            if (!phaseMapping.m_Map.IsComplete
+                || phaseMapping.m_Map.LeaderPhaseCount != masterState.SignalGroupCount
+                || phaseMapping.m_Map.MemberPhaseCount
+                    != memberTrafficLights.m_SignalGroupCount)
+            {
+                return TrafficGroupLockstepSyncDisposition.IncompleteMapping;
+            }
+
+            if (!phaseMapping.m_Map.TryMapLeaderToMember(
+                    masterState.CurrentSignalGroup,
+                    out int mappedCurrent))
+            {
+                return TrafficGroupLockstepSyncDisposition.UnmappedCurrentPhase;
+            }
+
+            int mappedNext = 0;
+            if (masterState.NextSignalGroup != 0
+                && !phaseMapping.m_Map.TryMapLeaderToMember(
+                    masterState.NextSignalGroup,
+                    out mappedNext))
+            {
+                return TrafficGroupLockstepSyncDisposition.UnmappedNextPhase;
+            }
+
+            mappedCurrentGroup = (byte)mappedCurrent;
+            mappedNextGroup = (byte)mappedNext;
+            mappedMaster = new TrafficGroupLockstepControllerSnapshot(
+                (byte)masterState.State,
+                mappedCurrentGroup,
+                mappedNextGroup,
+                masterState.Timer,
+                masterState.CustomTimer,
+                memberTrafficLights.m_SignalGroupCount);
+            return TrafficGroupLockstepSyncDisposition.Applied;
         }
 
         private void FillLaneSignals(DynamicBuffer<Game.Net.SubLane> subLanes, NativeList<Entity> laneSignals)
@@ -1974,6 +2312,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
             m_ExtraTypeHandle = updatedExtraTypeHandle,
             m_ExtraData = new ExtraData(this),
             m_UpdateFrameIndex = updateFrameIndex,
+            m_SimulationFrame = m_SimulationSystem.frameIndex,
             m_LocalGroupedDemand = localGroupedDemand,
             m_GroupedDemand = groupedDemand,
             m_SameTickMasterState = sameTickMasterState

@@ -5,6 +5,7 @@ using Game.Objects;
 using Game.Prefabs;
 using Game.Vehicles;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using ObjectMoving = Game.Objects.Moving;
 using NetCarLane = Game.Net.CarLane;
@@ -93,6 +94,9 @@ public struct ExtraTypeHandle
     [ReadOnly]
     public ComponentLookup<TrafficGroupPhaseMapping> m_TrafficGroupPhaseMapping;
 
+    [NativeDisableParallelForRestriction]
+    public ComponentLookup<TrafficGroupLockstepDebugState> m_TrafficGroupLockstepDebugState;
+
     [ReadOnly]
     public BufferLookup<CustomPhaseData> m_CustomPhaseDataLookup;
 
@@ -158,6 +162,8 @@ public struct ExtraTypeHandle
         m_TrafficGroup = state.GetComponentLookup<TrafficGroup>(isReadOnly: true);
         m_TrafficGroupRuntimeData = state.GetComponentLookup<TrafficGroupRuntimeData>(isReadOnly: true);
         m_TrafficGroupPhaseMapping = state.GetComponentLookup<TrafficGroupPhaseMapping>(isReadOnly: true);
+        m_TrafficGroupLockstepDebugState =
+            state.GetComponentLookup<TrafficGroupLockstepDebugState>(isReadOnly: false);
         m_CustomPhaseDataLookup = state.GetBufferLookup<CustomPhaseData>(isReadOnly: true);
         m_TrafficLightsLookup = state.GetComponentLookup<Game.Net.TrafficLights>(isReadOnly: true);
         m_CustomTrafficLightsLookup = state.GetComponentLookup<CustomTrafficLights>(isReadOnly: true);
@@ -200,6 +206,7 @@ public struct ExtraTypeHandle
         m_TrafficGroup.Update(ref state);
         m_TrafficGroupRuntimeData.Update(ref state);
         m_TrafficGroupPhaseMapping.Update(ref state);
+        m_TrafficGroupLockstepDebugState.Update(ref state);
         m_CustomPhaseDataLookup.Update(ref state);
         m_TrafficLightsLookup.Update(ref state);
         m_CustomTrafficLightsLookup.Update(ref state);

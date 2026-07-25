@@ -259,6 +259,51 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Lockstep_simulation_records_every_boundary_without_mutating_gameplay_state()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
+            source,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
+        string helper = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "TrafficGroupLockstepRuntimeDiagnostics.cs"));
+        string extraTypeHandle = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "TrafficLightSystems",
+            "Simulation",
+            "ExtraTypeHandle.cs"));
+
+        Assert.Contains("TrafficGroupLockstepPassFlags.CollectionVisited", execute);
+        Assert.Contains("TrafficGroupLockstepPassFlags.IndependentDeferred", execute);
+        Assert.Contains("TrafficGroupLockstepPassFlags.IndependentHeld", execute);
+        Assert.Contains("TrafficGroupLockstepPassFlags.IndependentAdvanced", execute);
+        Assert.Contains("TrafficGroupLockstepPassFlags.SynchronizationVisited", execute);
+        Assert.Contains("TrafficGroupLockstepPassFlags.SynchronizationApplied", execute);
+        Assert.Contains("TrafficGroupLockstepSyncDisposition.MissingMaster", execute);
+        Assert.Contains("TrafficGroupLockstepSyncDisposition.InvalidMaster", execute);
+        Assert.Contains("TrafficGroupLockstepSyncDisposition.IncompleteMapping", execute);
+        Assert.Contains("HashLaneSignals", execute);
+        Assert.Contains("HashRenderedLights", execute);
+        Assert.Contains("m_TransitSignalPriorityDiagnosticsEnabled", execute);
+        Assert.Contains(
+            "ComponentLookup<TrafficGroupLockstepDebugState>",
+            extraTypeHandle);
+        Assert.Contains("isReadOnly: false", extraTypeHandle);
+        Assert.Contains("TrafficGroupLockstepDiagnostics.AddHash", helper);
+        Assert.DoesNotContain("m_LaneSignalData[", helper);
+        Assert.DoesNotContain("m_TrafficLightData[", helper);
+        Assert.DoesNotContain("ref TrafficLights", helper);
+        Assert.DoesNotContain("ref LaneSignal", helper);
+        Assert.DoesNotContain("ref TrafficLight", helper);
+    }
+
+    [Fact]
     public void Leader_update_shard_routes_all_group_members_without_discovery_map()
     {
         string groupSource = File.ReadAllText(GetTrafficGroupSystemPath());
