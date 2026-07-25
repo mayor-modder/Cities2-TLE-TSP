@@ -10,6 +10,7 @@ namespace C2VM.TrafficLightsEnhancement.Components;
 public struct TrafficGroupLockstepDebugState : IComponentData
 {
     public uint SimulationFrame;
+    public uint IndependentSimulationFrame;
     public uint MemberUpdateFrame;
     public uint LeaderUpdateFrame;
     public TrafficGroupLockstepPassFlags PassFlags;
@@ -22,6 +23,8 @@ public struct TrafficGroupLockstepDebugState : IComponentData
     public TrafficGroupLockstepControllerSnapshot Before;
     public TrafficGroupLockstepControllerSnapshot Master;
     public TrafficGroupLockstepControllerSnapshot After;
+    public TrafficGroupLockstepControllerSnapshot IndependentBefore;
+    public TrafficGroupLockstepControllerSnapshot IndependentAfter;
     public ulong LaneHashBefore;
     public ulong LaneHashAfter;
     public ulong RenderedHashBefore;

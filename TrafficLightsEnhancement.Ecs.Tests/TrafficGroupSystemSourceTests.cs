@@ -304,6 +304,35 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Lockstep_simulation_preserves_cross_shard_evidence_until_next_matching_pass()
+    {
+        string source = File.ReadAllText(GetPatchedTrafficLightSystemPath());
+        string execute = ExtractSection(
+            source,
+            "public void Execute(in ArchetypeChunk chunk",
+            "private void FillLaneSignals");
+        string component = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Components",
+            "TrafficGroupLockstepDebugState.cs"));
+
+        Assert.DoesNotContain(
+            "if (lockstepDebug.SimulationFrame != m_SimulationFrame)",
+            execute);
+        Assert.Contains("IndependentSimulationFrame", component);
+        Assert.Contains("IndependentBefore", component);
+        Assert.Contains("IndependentAfter", component);
+        Assert.Contains("lockstepDebug.IndependentBefore", execute);
+        Assert.Contains("lockstepDebug.IndependentAfter", execute);
+        Assert.DoesNotContain(
+            "lockstepDebug.Before = independentBefore",
+            execute);
+        Assert.DoesNotContain(
+            "lockstepDebug.After = independentAfter",
+            execute);
+    }
+
+    [Fact]
     public void Leader_update_shard_routes_all_group_members_without_discovery_map()
     {
         string groupSource = File.ReadAllText(GetTrafficGroupSystemPath());

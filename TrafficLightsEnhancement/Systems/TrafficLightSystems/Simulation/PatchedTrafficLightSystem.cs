@@ -254,12 +254,6 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         out lockstepDebug);
                 if (hasLockstepDebug)
                 {
-                    if (lockstepDebug.SimulationFrame != m_SimulationFrame)
-                    {
-                        lockstepDebug = default;
-                        lockstepDebug.SimulationFrame = m_SimulationFrame;
-                    }
-
                     lockstepDebug.MemberUpdateFrame = m_UpdateFrameIndex;
                     lockstepDebug.IsCoordinated =
                         hasRawTrafficGroup && rawTrafficGroup.m_IsCoordinated;
@@ -280,10 +274,17 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                 if (m_Pass == TrafficLightUpdatePass.CollectGroupedBaseDemand)
                 {
-                    if (hasLockstepDebug)
+                    if (hasLockstepDebug && isActiveCoordinatedGroup)
                     {
+                        lockstepDebug.SimulationFrame = m_SimulationFrame;
+                        lockstepDebug.PassFlags &=
+                            ~(TrafficGroupLockstepPassFlags.CollectionVisited
+                                | TrafficGroupLockstepPassFlags.SynchronizationVisited
+                                | TrafficGroupLockstepPassFlags.SynchronizationApplied);
                         lockstepDebug.PassFlags |=
                             TrafficGroupLockstepPassFlags.CollectionVisited;
+                        lockstepDebug.SyncDisposition =
+                            TrafficGroupLockstepSyncDisposition.None;
                         m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
                             currentEntity] = lockstepDebug;
                     }
@@ -305,16 +306,13 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                 if (m_Pass == TrafficLightUpdatePass.SynchronizeGroupedBaseFollowers)
                 {
-                    if (hasLockstepDebug && isExpectedLockstepFollower)
-                    {
-                        lockstepDebug.PassFlags |=
-                            TrafficGroupLockstepPassFlags.SynchronizationVisited;
-                    }
-
                     if (!isCoordinatedMember)
                     {
                         if (hasLockstepDebug && isExpectedLockstepFollower)
                         {
+                            lockstepDebug.SimulationFrame = m_SimulationFrame;
+                            lockstepDebug.PassFlags |=
+                                TrafficGroupLockstepPassFlags.SynchronizationVisited;
                             lockstepDebug.SyncDisposition =
                                 TrafficGroupLockstepSyncDisposition.NotLockstep;
                             m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
@@ -334,6 +332,9 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                     {
                         if (hasLockstepDebug)
                         {
+                            lockstepDebug.SimulationFrame = m_SimulationFrame;
+                            lockstepDebug.PassFlags |=
+                                TrafficGroupLockstepPassFlags.SynchronizationVisited;
                             lockstepDebug.SyncDisposition =
                                 TrafficGroupLockstepSyncDisposition.InvalidMaster;
                             m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
@@ -345,8 +346,13 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
 
                     if (!isActiveCoordinatedGroup)
                     {
-                        if (hasLockstepDebug)
+                        if (hasLockstepDebug
+                            && (lockstepDebug.PassFlags
+                                & TrafficGroupLockstepPassFlags.SynchronizationVisited) == 0)
                         {
+                            lockstepDebug.SimulationFrame = m_SimulationFrame;
+                            lockstepDebug.PassFlags |=
+                                TrafficGroupLockstepPassFlags.SynchronizationVisited;
                             lockstepDebug.SyncDisposition =
                                 TrafficGroupLockstepSyncDisposition.InactiveGroup;
                             m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
@@ -354,6 +360,13 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         }
                         laneSignals.Clear();
                         continue;
+                    }
+
+                    if (hasLockstepDebug)
+                    {
+                        lockstepDebug.SimulationFrame = m_SimulationFrame;
+                        lockstepDebug.PassFlags |=
+                            TrafficGroupLockstepPassFlags.SynchronizationVisited;
                     }
 
                     bool canSynchronizeFollower = usesCustomPhase
@@ -495,23 +508,17 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                             TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
                                 trafficLights,
                                 customTrafficLights);
+                        lockstepDebug.IndependentSimulationFrame = m_SimulationFrame;
+                        lockstepDebug.PassFlags &=
+                            ~(TrafficGroupLockstepPassFlags.IndependentVisited
+                                | TrafficGroupLockstepPassFlags.IndependentDeferred
+                                | TrafficGroupLockstepPassFlags.IndependentHeld
+                                | TrafficGroupLockstepPassFlags.IndependentAdvanced);
                         lockstepDebug.PassFlags |=
                             TrafficGroupLockstepPassFlags.IndependentVisited
                             | TrafficGroupLockstepPassFlags.IndependentHeld;
-                        lockstepDebug.Before = heldSnapshot;
-                        lockstepDebug.After = heldSnapshot;
-                        lockstepDebug.LaneHashBefore =
-                            TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
-                                laneSignals,
-                                m_LaneSignalData,
-                                m_ExtraTypeHandle.m_ExtraLaneSignal);
-                        lockstepDebug.LaneHashAfter = lockstepDebug.LaneHashBefore;
-                        lockstepDebug.RenderedHashBefore =
-                            TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
-                                subObjects,
-                                m_TrafficLightData);
-                        lockstepDebug.RenderedHashAfter =
-                            lockstepDebug.RenderedHashBefore;
+                        lockstepDebug.IndependentBefore = heldSnapshot;
+                        lockstepDebug.IndependentAfter = heldSnapshot;
                         m_ExtraTypeHandle.m_TrafficGroupLockstepDebugState[
                             currentEntity] = lockstepDebug;
                     }
@@ -520,23 +527,19 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                 }
 
                 TrafficGroupLockstepControllerSnapshot independentBefore = default;
-                ulong independentLaneHashBefore = 0;
-                ulong independentRenderedHashBefore = 0;
                 if (hasLockstepDebug && isExpectedLockstepFollower)
                 {
+                    lockstepDebug.IndependentSimulationFrame = m_SimulationFrame;
+                    lockstepDebug.PassFlags &=
+                        ~(TrafficGroupLockstepPassFlags.IndependentVisited
+                            | TrafficGroupLockstepPassFlags.IndependentDeferred
+                            | TrafficGroupLockstepPassFlags.IndependentHeld
+                            | TrafficGroupLockstepPassFlags.IndependentAdvanced);
                     independentBefore =
                         TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
                             trafficLights,
                             customTrafficLights);
-                    independentLaneHashBefore =
-                        TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
-                            laneSignals,
-                            m_LaneSignalData,
-                            m_ExtraTypeHandle.m_ExtraLaneSignal);
-                    independentRenderedHashBefore =
-                        TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
-                            subObjects,
-                            m_TrafficLightData);
+                    lockstepDebug.IndependentBefore = independentBefore;
                     lockstepDebug.PassFlags |=
                         TrafficGroupLockstepPassFlags.IndependentVisited;
                 }
@@ -811,20 +814,7 @@ public partial class PatchedTrafficLightSystem : GameSystemBase
                         TrafficGroupLockstepRuntimeDiagnostics.Snapshot(
                             trafficLights,
                             customTrafficLights);
-                    lockstepDebug.Before = independentBefore;
-                    lockstepDebug.After = independentAfter;
-                    lockstepDebug.LaneHashBefore = independentLaneHashBefore;
-                    lockstepDebug.LaneHashAfter =
-                        TrafficGroupLockstepRuntimeDiagnostics.HashLaneSignals(
-                            laneSignals,
-                            m_LaneSignalData,
-                            m_ExtraTypeHandle.m_ExtraLaneSignal);
-                    lockstepDebug.RenderedHashBefore =
-                        independentRenderedHashBefore;
-                    lockstepDebug.RenderedHashAfter =
-                        TrafficGroupLockstepRuntimeDiagnostics.HashRenderedLights(
-                            subObjects,
-                            m_TrafficLightData);
+                    lockstepDebug.IndependentAfter = independentAfter;
                     if (independentAfter != independentBefore)
                     {
                         lockstepDebug.PassFlags |=

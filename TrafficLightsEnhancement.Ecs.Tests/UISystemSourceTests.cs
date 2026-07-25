@@ -174,6 +174,9 @@ public sealed class UISystemSourceTests
         Assert.Contains("laneSignal.m_Priority", laneTraceSource);
         Assert.Contains("laneSignal.m_Default", laneTraceSource);
         Assert.Contains("laneSignal.m_Flags.ToString()", laneTraceSource);
+        Assert.DoesNotContain(
+            "$\"|{debugState.SimulationFrame}",
+            warningSource);
     }
 
     private static string GetRepoPath(params string[] segments)

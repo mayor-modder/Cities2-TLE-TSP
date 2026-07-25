@@ -137,6 +137,8 @@ public partial class UISystem
         bool hasDebugState = EntityManager.TryGetComponent(
             memberEntity,
             out TrafficGroupLockstepDebugState debugState);
+        hasDebugState = hasDebugState
+            && debugState.PassFlags != TrafficGroupLockstepPassFlags.None;
         bool hasMapping = EntityManager.TryGetComponent(
             memberEntity,
             out TrafficGroupPhaseMapping phaseMapping);
@@ -289,6 +291,8 @@ public partial class UISystem
                 {
                     available = true,
                     simulationFrame = debugState.SimulationFrame,
+                    independentSimulationFrame =
+                        debugState.IndependentSimulationFrame,
                     memberUpdateFrame = debugState.MemberUpdateFrame,
                     leaderUpdateFrame = debugState.LeaderUpdateFrame,
                     passFlags = debugState.PassFlags.ToString(),
@@ -301,6 +305,10 @@ public partial class UISystem
                     before = ControllerTrace(debugState.Before),
                     mappedMaster = ControllerTrace(debugState.Master),
                     after = ControllerTrace(debugState.After),
+                    independentBefore =
+                        ControllerTrace(debugState.IndependentBefore),
+                    independentAfter =
+                        ControllerTrace(debugState.IndependentAfter),
                     laneHashBefore = FormatHash(debugState.LaneHashBefore),
                     laneHashAfter = FormatHash(debugState.LaneHashAfter),
                     renderedHashBefore = FormatHash(debugState.RenderedHashBefore),
@@ -383,7 +391,7 @@ public partial class UISystem
 
         string signature =
             $"{classification.Verdict}|{classification.Reason}"
-            + $"|{debugState.SimulationFrame}|{debugState.PassFlags}"
+            + $"|{debugState.PassFlags}"
             + $"|{FormatController(debugState.Before)}"
             + $"|{FormatController(debugState.After)}"
             + $"|{FormatController(live)}"

@@ -241,6 +241,13 @@ public static class TrafficGroupLockstepDiagnostics
                 "The follower controller advanced during the independent pass.");
         }
 
+        if (evidence.SyncDisposition == TrafficGroupLockstepSyncDisposition.InactiveGroup)
+        {
+            return Result(
+                TrafficGroupLockstepVerdict.InsufficientEvidence,
+                "The group leader shard was inactive during this sampled update.");
+        }
+
         if ((evidence.PassFlags & TrafficGroupLockstepPassFlags.SynchronizationVisited) == 0
             || evidence.SyncDisposition == TrafficGroupLockstepSyncDisposition.MissingMaster)
         {

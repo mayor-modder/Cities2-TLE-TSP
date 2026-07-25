@@ -196,6 +196,22 @@ public sealed class TrafficGroupLockstepDiagnosticsTests
     }
 
     [Fact]
+    public void Classify_InactiveLeaderShard_IsInsufficientEvidence()
+    {
+        TrafficGroupLockstepEvidence evidence = CreateAppliedEvidence(
+            passFlags: TrafficGroupLockstepPassFlags.SynchronizationVisited,
+            disposition: TrafficGroupLockstepSyncDisposition.InactiveGroup);
+
+        TrafficGroupLockstepClassification result =
+            TrafficGroupLockstepDiagnostics.Classify(in evidence);
+
+        Assert.Equal(
+            TrafficGroupLockstepVerdict.InsufficientEvidence,
+            result.Verdict);
+        Assert.Contains("shard", result.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Classify_MissingRuntimeState_IsInsufficientEvidence()
     {
         TrafficGroupLockstepEvidence evidence = CreateAppliedEvidence(hasDebugState: false);
