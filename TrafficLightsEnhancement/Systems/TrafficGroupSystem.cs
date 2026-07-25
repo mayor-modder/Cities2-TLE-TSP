@@ -24,6 +24,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 	private EntityQuery m_GroupQuery;
 	private EntityQuery m_MemberQuery;
+	private EntityQuery m_LockstepDiagnosticQuery;
 	private SimulationSystem m_SimulationSystem;
 	private readonly Dictionary<Entity, string> m_LastMovementMappingFailureReports = new();
 
@@ -38,12 +39,20 @@ public partial class TrafficGroupSystem : GameSystemBase
 		m_MemberQuery = GetEntityQuery(
 			ComponentType.ReadOnly<TrafficGroupMember>()
 		);
+
+		m_LockstepDiagnosticQuery = GetEntityQuery(
+			ComponentType.ReadOnly<TrafficGroupLockstepDebugState>()
+		);
 		
 		m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
 	}
 
 	protected override void OnUpdate()
 	{
+		MaintainLockstepDiagnosticsComponents(
+			Mod.m_Setting != null
+			&& Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics);
+
 		float currentTick = m_SimulationSystem.frameIndex;
 		
 		var groups = m_GroupQuery.ToEntityArray(Allocator.Temp);
@@ -75,6 +84,44 @@ public partial class TrafficGroupSystem : GameSystemBase
 		
 		groups.Dispose();
 		groupComponents.Dispose();
+	}
+
+	private void MaintainLockstepDiagnosticsComponents(bool diagnosticsEnabled)
+	{
+		using NativeArray<Entity> memberEntities =
+			m_MemberQuery.ToEntityArray(Allocator.Temp);
+		if (diagnosticsEnabled)
+		{
+			foreach (Entity memberEntity in memberEntities)
+			{
+				if (!EntityManager.HasComponent<TrafficGroupLockstepDebugState>(memberEntity))
+				{
+					EntityManager.AddComponentData(
+						memberEntity,
+						default(TrafficGroupLockstepDebugState));
+				}
+			}
+
+			using NativeArray<Entity> diagnosticEntities =
+				m_LockstepDiagnosticQuery.ToEntityArray(Allocator.Temp);
+			foreach (Entity diagnosticEntity in diagnosticEntities)
+			{
+				if (!EntityManager.HasComponent<TrafficGroupMember>(diagnosticEntity))
+				{
+					EntityManager.RemoveComponent<TrafficGroupLockstepDebugState>(
+						diagnosticEntity);
+				}
+			}
+			return;
+		}
+
+		using NativeArray<Entity> existingDiagnosticEntities =
+			m_LockstepDiagnosticQuery.ToEntityArray(Allocator.Temp);
+		foreach (Entity diagnosticEntity in existingDiagnosticEntities)
+		{
+			EntityManager.RemoveComponent<TrafficGroupLockstepDebugState>(
+				diagnosticEntity);
+		}
 	}
 
 	private void RefreshGroupRuntimeState(Entity groupEntity, Entity leaderEntity)

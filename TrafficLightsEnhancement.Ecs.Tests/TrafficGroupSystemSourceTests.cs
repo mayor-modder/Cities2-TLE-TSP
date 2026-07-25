@@ -228,6 +228,37 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Lockstep_diagnostic_state_is_runtime_only_and_follows_diagnostic_toggle()
+    {
+        string componentSource = File.ReadAllText(GetRepositorySourcePath(
+            "TrafficLightsEnhancement",
+            "Components",
+            "TrafficGroupLockstepDebugState.cs"));
+        string groupSource = File.ReadAllText(GetTrafficGroupSystemPath());
+        string onUpdate = ExtractMethod(groupSource, "protected override void OnUpdate");
+        string maintenance = ExtractMethod(
+            groupSource,
+            "private void MaintainLockstepDiagnosticsComponents");
+
+        Assert.Contains(
+            "struct TrafficGroupLockstepDebugState : IComponentData",
+            componentSource);
+        Assert.DoesNotContain("ISerializable", componentSource);
+        Assert.DoesNotContain("Serialize<", componentSource);
+        Assert.DoesNotContain("Deserialize<", componentSource);
+        Assert.Contains(
+            "Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics",
+            onUpdate);
+        Assert.Contains("MaintainLockstepDiagnosticsComponents", onUpdate);
+        Assert.Contains("m_MemberQuery.ToEntityArray", maintenance);
+        Assert.Contains("EntityManager.AddComponentData", maintenance);
+        Assert.Contains("default(TrafficGroupLockstepDebugState)", maintenance);
+        Assert.Contains(
+            "EntityManager.RemoveComponent<TrafficGroupLockstepDebugState>",
+            maintenance);
+    }
+
+    [Fact]
     public void Leader_update_shard_routes_all_group_members_without_discovery_map()
     {
         string groupSource = File.ReadAllText(GetTrafficGroupSystemPath());
