@@ -204,8 +204,17 @@ traffic-light data it needs:
 - `EdgeGroupMask`
 - `SubLaneGroupMask`
 
-If the junction is already in a custom traffic mode that is not dynamic or fixed
-timed, the group system switches it to dynamic mode.
+`EnsureMemberCustomPhaseSetup(...)` is the shared, idempotent initializer used
+when a member is added, when its custom phase editor opens, when the leader
+propagates a custom pattern, and when missing phases are repaired during load.
+If the leader uses custom phases, the initializer adds enough member phase
+records to match the leader and copies only each new phase's minimum and maximum
+duration. Existing member phase records are not removed or overwritten.
+
+The initializer also materializes missing `EdgeGroupMask` entries from the
+member's own `ConnectedEdge` topology. New movement masks are stopped by
+default. Existing `EdgeGroupMask` and `SubLaneGroupMask` values remain local to
+the member and are never cleared or translated from another junction.
 
 ## Diagnostics
 
@@ -216,38 +225,28 @@ mapping** row to expose the runtime result:
   number.
 - `Movement mapping` lists the leader's current/next phases, their translated
   member phases, and the member's actual current/next state.
-- `Movement mapping unavailable; running independently` means the runtime
-  rejected an empty, incomplete, or ambiguous map and did not use raw-number
-  lockstep.
+- `Movement mapping unavailable; follower held` means the runtime rejected an
+  empty, incomplete, or ambiguous map and did not use raw-number lockstep.
 
 This diagnostic is opt-in with the existing TSP diagnostics setting. It reports
 coordination state but does not enable local TSP for grouped intersections.
 
-## Phase Copying And Geometry Matching
+## Phase Ownership
 
-Inferred from current behavior: traffic groups include helpers for copying a
-leader's custom phase setup to member junctions, but this is more topology
-sensitive than the green-wave timing math.
+Traffic groups intentionally separate coordination data from physical movement
+data:
 
-`CopyPhasesToJunction(...)` first checks a coarse compatibility boundary, then
-copies or creates `CustomTrafficLights`, `CustomPhaseData`, `EdgeGroupMask`, and
-`SubLaneGroupMask` data on the target junction.
+- The leader owns coordinated phase count and timing.
+- Each junction owns its vehicle, track, bicycle, and pedestrian movement
+  permissions.
+- **Match phase timings to leader** updates minimum and maximum durations only.
+- No production action copies movement masks between junctions.
+- A follower without a complete physical movement map remains fail-closed and
+  appears as **needs phase setup** in the traffic-groups panel.
 
-`CopyEdgeGroupMaskWithDirectionMatching(...)` tries two edge-matching strategies:
-
-- path-following through connected edges for nearby source/target junctions
-- angle matching around the source and target junction centers as a fallback
-
-`CopySubLaneGroupMaskWithLaneTypeMatching(...)` maps sub-lane masks after edge
-matching. It scores candidate source lanes by turn type first, then by lane
-position. Car and track lane flags are classified as straight, left, right,
-U-turn, or other.
-
-Needs in-game evidence: the code documents the intended matching strategy, but
-the repository does not currently have a full ECS/in-game topology harness that
-proves copied edge and sub-lane masks are correct across different junction
-shapes, tram tracks, bike lanes, or asymmetric lane counts. Treat changes here
-as high-risk until backed by focused diagnostics or playtesting.
+This boundary is required even when two junctions look similar. Rotation,
+asymmetric lanes, tram tracks, bicycle lanes, and local turn rules can make the
+same phase number represent different physical movements.
 
 ## TSP Interaction
 
@@ -316,10 +315,10 @@ Compatibility rules for future work:
   pure tests and small docs before changing runtime behavior.
 - Serialization, stale member reuse, timing math, movement-map matching,
   demand remapping, scheduler contracts, and fail-closed synchronization have
-  automated coverage. Actual signal sync and phase-copy geometry matching still
-  require in-game evidence.
+  automated coverage. Actual rendered signal indications and end-to-end group
+  synchronization still require in-game evidence.
 - Future hardening should extract more pure helpers only when their behavior can
   be described without Unity ECS state. Good candidates are phase metric
-  selection, green-wave delay selection, and lane/edge matching scoring. Avoid
+  selection and green-wave delay selection. Avoid
   broad refactors that change saved components or group semantics at the same
   time.

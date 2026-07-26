@@ -34,7 +34,10 @@ public sealed class TrafficGroupSystemSourceTests
         string propagateSource = ExtractMethod(source, "public void PropagatePatternToMembers");
 
         Assert.Contains("memberLights.SetPattern(pattern)", propagateSource);
-        Assert.Contains("EntityManager.AddComponentData(memberEntity, default(Updated))", propagateSource);
+        Assert.Contains("MarkMemberUpdated(memberEntity)", propagateSource);
+        Assert.Contains(
+            "EnsureMemberCustomPhaseSetup(groupEntity, memberEntity)",
+            propagateSource);
     }
 
     [Fact]

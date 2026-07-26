@@ -32,21 +32,23 @@ public sealed class InheritedHardeningRegressionTests
     }
 
     [Fact]
-    public void Migration_system_disposes_pending_missing_phase_dialog_groups_on_destroy()
+    public void Missing_phase_migration_requires_no_persistent_dialog_state()
     {
         string source = File.ReadAllText(GetRepoPath(
             "TrafficLightsEnhancement",
             "Systems",
             "Serialization",
             "TLEDataMigrationSystem.cs"));
-        string onDestroySource = ExtractMethod(source, "protected override void OnDestroy");
+        string migrationSource = ExtractMethod(
+            source,
+            "private void CheckGroupsWithMissingPhases");
 
-        Assert.Contains("_affectedGroupsForMigration.IsCreated", onDestroySource);
-        Assert.Contains("_affectedGroupsForMigration.Dispose()", onDestroySource);
-        Assert.True(
-            onDestroySource.IndexOf("_affectedGroupsForMigration.Dispose()", StringComparison.Ordinal)
-                < onDestroySource.IndexOf("base.OnDestroy()", StringComparison.Ordinal),
-            "Pending migration dialog data should be disposed before base.OnDestroy().");
+        Assert.Contains(
+            "EnsureMemberCustomPhaseSetup(groupEntity, memberEntity)",
+            migrationSource);
+        Assert.Contains("LocalizedString.Id(\"Common.OK\")", migrationSource);
+        Assert.DoesNotContain("_affectedGroupsForMigration", source);
+        Assert.DoesNotContain("OnMissingPhasesDialogResult", source);
     }
 
     [Fact]
