@@ -20,7 +20,7 @@ import {
 	callSetTrafficGroupName, 
 	
 	setPanelState,
-	callCopyPhasesToAllMembers,
+	callMatchPhaseDurationsToLeader,
 	callUpdateMemberPattern,
 	edgeInfo
 } from '../../../../../bindings';
@@ -178,6 +178,7 @@ const MemberFoldout = ({
 }) => {
 	const { translate } = useLocalization();
 	const isFollowerInLockstep = isLockstep && !member.isLeader;
+	const needsPhaseSetup = isFollowerInLockstep && !member.phaseSetupComplete;
 
 	const headerContent = (
 		<div 
@@ -188,7 +189,14 @@ const MemberFoldout = ({
 			{member.isLeader && <span className={styles.leaderBadge}>({translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Leader]") ?? "leader"}) </span>}
 			{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Intersection]") ?? "Intersection"} {member.index}
 			{member.isCurrentJunction && <span className={styles.youBadge}> ({translate("UI.LABEL[C2VM.TrafficLightsEnhancement.You]") ?? "you"})</span>}
-			{isFollowerInLockstep && <span style={{ color: 'var(--textColorDim)', fontStyle: 'italic', marginLeft: '4rem' }}> - {translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Synced]") ?? "synced"}</span>}
+			{isFollowerInLockstep && (
+				<span style={{ color: 'var(--textColorDim)', fontStyle: 'italic', marginLeft: '4rem' }}>
+					{" - "}
+					{needsPhaseSetup
+						? (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.NeedsPhaseSetup]") ?? "needs phase setup")
+						: (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Synced]") ?? "synced")}
+				</span>
+			)}
 		</div>
 	);
 
@@ -201,7 +209,9 @@ const MemberFoldout = ({
 			<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.TrafficSignal]") ?? "Traffic signal"}</div>
 			{isFollowerInLockstep && (
 				<div className={styles.infoText} style={{ fontStyle: 'italic', padding: '0.5em' }}>
-					{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ControlledByLeader]") ?? "Controlled by leader: phases are synced in lockstep."}
+					{needsPhaseSetup
+						? (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ConfigureMemberPhases]") ?? "Configure this member's permitted movements in the custom phase editor before lockstep synchronization can control it.")
+						: (translate("UI.LABEL[C2VM.TrafficLightsEnhancement.ControlledByLeader]") ?? "Controlled by leader: phases are synced in lockstep.")}
 				</div>
 			)}
 			<MemberPatternSelector
@@ -249,28 +259,21 @@ const SelectMemberInWorldButton = ({ currentGroup }: { currentGroup: MainPanelIt
 	);
 };
 
-const CopyPhasesToMemberButton = ({ 
-	displayedGroup, 
-	currentJunctionIndex, 
-	currentJunctionVersion 
-}: { 
+const MatchPhaseTimingsButton = ({
+	displayedGroup
+}: {
 	displayedGroup: MainPanelItemTrafficGroup;
-	currentJunctionIndex: number;
-	currentJunctionVersion: number;
 }) => {
-	const copyToAllMembers = () => {
-		if (!displayedGroup.members) return;
-		
-		
-		callCopyPhasesToAllMembers(JSON.stringify({
-			sourceIndex: currentJunctionIndex,
-			sourceVersion: currentJunctionVersion
+	const matchPhaseTimings = () => {
+		callMatchPhaseDurationsToLeader(JSON.stringify({
+			groupIndex: displayedGroup.groupIndex,
+			groupVersion: displayedGroup.groupVersion
 		}));
 	};
 	
 	return (
 		<Row hoverEffect={true}>
-			<Button label="CopyPhasesToAllMembers" onClick={copyToAllMembers} />
+			<Button label="MatchPhaseTimingsToLeader" onClick={matchPhaseTimings} />
 		</Row>
 	);
 };
@@ -662,30 +665,9 @@ export default function TrafficGroupsMainPanel(props: { groups: MainPanelItemTra
 							<AddMemberButton currentGroup={displayedGroup} />
 							<SelectMemberInWorldButton currentGroup={displayedGroup} />
 							{currentGroup && <RemoveFromGroupButton />}
-							{displayedGroup.isCurrentJunctionInGroup && displayedGroup.members && displayedGroup.members.length > 1 && (() => {
-								const isLockstep = displayedGroup.isCoordinated && !displayedGroup.greenWaveEnabled;
-								const leaderMember = displayedGroup.members.find(m => m.isLeader);
-								const currentMember = displayedGroup.members.find(m => m.isCurrentJunction);
-								if (isLockstep && leaderMember) {
-									return (
-										<CopyPhasesToMemberButton 
-											displayedGroup={displayedGroup}
-											currentJunctionIndex={leaderMember.index}
-											currentJunctionVersion={leaderMember.version}
-										/>
-									);
-								}
-								if (currentMember) {
-									return (
-										<CopyPhasesToMemberButton 
-											displayedGroup={displayedGroup}
-											currentJunctionIndex={currentMember.index}
-											currentJunctionVersion={currentMember.version}
-										/>
-									);
-								}
-								return null;
-							})()}
+							{displayedGroup.members && displayedGroup.members.length > 1 && (
+								<MatchPhaseTimingsButton displayedGroup={displayedGroup} />
+							)}
 							<Divider />
 							<div className={styles.sectionTitle}>{translate("UI.LABEL[C2VM.TrafficLightsEnhancement.GroupSettings]") ?? "Group settings"}</div>
 							

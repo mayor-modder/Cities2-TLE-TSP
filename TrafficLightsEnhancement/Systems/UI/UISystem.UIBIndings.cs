@@ -773,6 +773,12 @@ public partial class UISystem
                                     availablePatterns.Add(new { name = "CustomPhases", value = (uint)CustomTrafficLights.Patterns.CustomPhase });
                                 }
                             }
+
+                            bool phaseSetupComplete = memberData.m_IsGroupLeader
+                                || (EntityManager.TryGetComponent(
+                                        memberEntity,
+                                        out TrafficGroupPhaseMapping phaseMapping)
+                                    && phaseMapping.m_Map.IsComplete);
                             
                             var memberInfo = new {
                                 entity = memberEntity,
@@ -788,7 +794,8 @@ public partial class UISystem
                                 phaseCount = phases.Count,
                                 currentPattern = currentPattern,
                                 availablePatterns = availablePatterns,
-                                hasTrainTrack = hasTrainTrack
+                                hasTrainTrack = hasTrainTrack,
+                                phaseSetupComplete = phaseSetupComplete
                             };
                             
                             if (memberData.m_IsGroupLeader)
