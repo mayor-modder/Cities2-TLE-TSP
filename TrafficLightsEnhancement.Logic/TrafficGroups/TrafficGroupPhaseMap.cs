@@ -398,6 +398,65 @@ public static class TrafficGroupMovementMappingPolicy
         return Math.Min(AxisBinCount - 1, Math.Max(0, bin));
     }
 
+    public static bool TryBuildIdentity(
+        IReadOnlyList<TrafficGroupPhaseSignature> leader,
+        IReadOnlyList<TrafficGroupPhaseSignature> member,
+        out TrafficGroupPhaseMap map,
+        out TrafficGroupMovementMappingFailure failure)
+    {
+        if (!HasValidSignatures(
+                leader,
+                TrafficGroupMovementMappingFailureReason.LeaderPhaseCountOutOfRange,
+                TrafficGroupMovementMappingFailureReason.LeaderSignalGroupOutOfSequence,
+                TrafficGroupMovementMappingFailureReason.LeaderPhaseHasNoApproach,
+                true,
+                out failure))
+        {
+            map = default;
+            return false;
+        }
+
+        if (!HasValidSignatures(
+                member,
+                TrafficGroupMovementMappingFailureReason.MemberPhaseCountOutOfRange,
+                TrafficGroupMovementMappingFailureReason.MemberSignalGroupOutOfSequence,
+                TrafficGroupMovementMappingFailureReason.MemberPhaseHasNoApproach,
+                false,
+                out failure))
+        {
+            map = default;
+            return false;
+        }
+
+        if (member.Count < leader.Count)
+        {
+            map = default;
+            failure = new TrafficGroupMovementMappingFailure(
+                TrafficGroupMovementMappingFailureReason.MemberHasFewerPhases);
+            return false;
+        }
+
+        var memberPhaseByLeaderPhase = new int[leader.Count];
+        for (int phaseIndex = 0; phaseIndex < leader.Count; phaseIndex++)
+        {
+            memberPhaseByLeaderPhase[phaseIndex] = phaseIndex + 1;
+        }
+
+        if (!TrafficGroupPhaseMap.TryCreate(
+                leader.Count,
+                member.Count,
+                memberPhaseByLeaderPhase,
+                out map))
+        {
+            failure = new TrafficGroupMovementMappingFailure(
+                TrafficGroupMovementMappingFailureReason.InvalidFinalMap);
+            return false;
+        }
+
+        failure = default;
+        return true;
+    }
+
     public static bool TryBuild(
         IReadOnlyList<TrafficGroupPhaseSignature> leader,
         IReadOnlyList<TrafficGroupPhaseSignature> member,

@@ -176,11 +176,20 @@ public partial class TrafficGroupSystem : GameSystemBase
 			TrafficGroupPhaseSignature[] memberSignatures =
 				BuildPhaseSignatures(memberEntity, memberLights);
 			TrafficGroupPhaseMap phaseMap = default;
-			bool mapped = TrafficGroupMovementMappingPolicy.TryBuild(
-				leaderSignatures,
-				memberSignatures,
-				out phaseMap,
-				out TrafficGroupMovementMappingFailure mappingFailure);
+			TrafficGroupMovementMappingFailure mappingFailure;
+			bool useIdentityMapping = memberEntity == leaderEntity
+				|| (UsesCustomPhase(leaderEntity) && UsesCustomPhase(memberEntity));
+			bool mapped = useIdentityMapping
+				? TrafficGroupMovementMappingPolicy.TryBuildIdentity(
+					leaderSignatures,
+					memberSignatures,
+					out phaseMap,
+					out mappingFailure)
+				: TrafficGroupMovementMappingPolicy.TryBuild(
+					leaderSignatures,
+					memberSignatures,
+					out phaseMap,
+					out mappingFailure);
 			if (mapped)
 			{
 				m_LastMovementMappingFailureReports.Remove(memberEntity);
@@ -211,6 +220,15 @@ public partial class TrafficGroupSystem : GameSystemBase
 			}
 		}
 		members.Dispose();
+	}
+
+	private bool UsesCustomPhase(Entity junctionEntity)
+	{
+		return EntityManager.TryGetComponent(
+			       junctionEntity,
+			       out CustomTrafficLights customTrafficLights)
+		       && customTrafficLights.GetPatternOnly()
+		       == CustomTrafficLights.Patterns.CustomPhase;
 	}
 
 	private void LogMovementMappingFailureIfChanged(

@@ -231,6 +231,18 @@ mapping** row to expose the runtime result:
 This diagnostic is opt-in with the existing TSP diagnostics setting. It reports
 coordination state but does not enable local TSP for grouped intersections.
 
+Mapping strategy follows the signal pattern:
+
+- custom-phase groups use validated phase-number identity, because the player
+  explicitly defines what each numbered phase serves at every junction;
+- automatically derived patterns use physical movement signatures so
+  equivalent movements can still be coordinated across rotated junctions;
+- the leader always maps each phase number to itself.
+
+Identity mapping still requires every synchronized local phase to contain a
+supported approach. An empty phase therefore remains fail-closed and appears
+as needing setup.
+
 ## Phase Ownership
 
 Traffic groups intentionally separate coordination data from physical movement

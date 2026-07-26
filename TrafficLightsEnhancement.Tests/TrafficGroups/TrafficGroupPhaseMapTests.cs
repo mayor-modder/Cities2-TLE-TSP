@@ -281,6 +281,99 @@ public sealed class TrafficGroupPhaseMapTests
     }
 
     [Fact]
+    public void Identity_mapping_preserves_custom_phase_numbers_without_physical_overlap()
+    {
+        var leader = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0010),
+        };
+        var member = new[]
+        {
+            Phase(1, roadAxes: 0b0100),
+            Phase(2, roadAxes: 0b1000),
+        };
+
+        Assert.True(
+            TrafficGroupMovementMappingPolicy.TryBuildIdentity(
+                leader,
+                member,
+                out TrafficGroupPhaseMap phaseMap,
+                out _));
+        Assert.Equal(1, MapLeader(phaseMap, 1));
+        Assert.Equal(2, MapLeader(phaseMap, 2));
+    }
+
+    [Fact]
+    public void Identity_mapping_accepts_duplicate_physical_signatures()
+    {
+        var duplicatePhases = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0001),
+        };
+
+        Assert.True(
+            TrafficGroupMovementMappingPolicy.TryBuildIdentity(
+                duplicatePhases,
+                duplicatePhases,
+                out TrafficGroupPhaseMap phaseMap,
+                out _));
+        Assert.Equal(1, MapLeader(phaseMap, 1));
+        Assert.Equal(2, MapLeader(phaseMap, 2));
+    }
+
+    [Fact]
+    public void Identity_mapping_rejects_an_empty_local_phase()
+    {
+        var leader = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0010),
+        };
+        var member = new[]
+        {
+            Phase(1, roadAxes: 0b0100),
+            Phase(2, roadAxes: 0),
+        };
+
+        Assert.False(
+            TrafficGroupMovementMappingPolicy.TryBuildIdentity(
+                leader,
+                member,
+                out _,
+                out TrafficGroupMovementMappingFailure failure));
+        Assert.Equal(
+            TrafficGroupMovementMappingFailureReason.MemberPhaseHasNoApproach,
+            failure.Reason);
+        Assert.Equal(2, failure.MemberPhase);
+    }
+
+    [Fact]
+    public void Identity_mapping_rejects_a_member_with_fewer_phases()
+    {
+        var leader = new[]
+        {
+            Phase(1, roadAxes: 0b0001),
+            Phase(2, roadAxes: 0b0010),
+        };
+        var member = new[]
+        {
+            Phase(1, roadAxes: 0b0100),
+        };
+
+        Assert.False(
+            TrafficGroupMovementMappingPolicy.TryBuildIdentity(
+                leader,
+                member,
+                out _,
+                out TrafficGroupMovementMappingFailure failure));
+        Assert.Equal(
+            TrafficGroupMovementMappingFailureReason.MemberHasFewerPhases,
+            failure.Reason);
+    }
+
+    [Fact]
     public void Phase_signature_diagnostic_includes_all_mapping_inputs()
     {
         var signature = Phase(

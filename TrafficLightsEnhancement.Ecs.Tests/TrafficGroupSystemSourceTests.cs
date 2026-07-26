@@ -210,6 +210,28 @@ public sealed class TrafficGroupSystemSourceTests
     }
 
     [Fact]
+    public void Custom_group_phase_mapping_uses_explicit_phase_numbers()
+    {
+        string source = File.ReadAllText(GetTrafficGroupSystemPath());
+        string refreshMappings = ExtractMethod(
+            source,
+            "private void RefreshMovementMappings");
+
+        Assert.Contains(
+            "bool useIdentityMapping = memberEntity == leaderEntity",
+            refreshMappings);
+        Assert.Contains(
+            "UsesCustomPhase(leaderEntity) && UsesCustomPhase(memberEntity)",
+            refreshMappings);
+        Assert.Contains(
+            "TrafficGroupMovementMappingPolicy.TryBuildIdentity",
+            refreshMappings);
+        Assert.Contains(
+            "TrafficGroupMovementMappingPolicy.TryBuild(",
+            refreshMappings);
+    }
+
+    [Fact]
     public void Traffic_group_system_logs_changed_mapping_failures_with_phase_signatures()
     {
         string source = File.ReadAllText(GetTrafficGroupSystemPath());
@@ -218,8 +240,9 @@ public sealed class TrafficGroupSystemSourceTests
         string formatSource = ExtractMethod(source, "private static string FormatPhaseSignatures");
 
         Assert.Contains(
-            "out TrafficGroupMovementMappingFailure mappingFailure",
+            "TrafficGroupMovementMappingFailure mappingFailure;",
             refreshSource);
+        Assert.Contains("out mappingFailure", refreshSource);
         Assert.Contains("LogMovementMappingFailureIfChanged", refreshSource);
         Assert.Contains("leaderSignatures", refreshSource);
         Assert.Contains("memberSignatures", refreshSource);
