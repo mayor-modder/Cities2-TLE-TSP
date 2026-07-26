@@ -321,8 +321,6 @@ public partial class UISystem
         CreateTrigger<string>("CallJoinGroups", CallJoinGroups);
         CreateTrigger<string>("CallSetGroupLeader", CallSetGroupLeader);
         CreateTrigger<string>("CallSkipStep", CallSkipStep);
-        CreateTrigger<string>("CallCopyPhasesToJunction", CallCopyPhasesToJunction);
-        CreateTrigger<string>("CallCopyPhasesToAllMembers", CallCopyPhasesToAllMembers);
         CreateTrigger<string>("CallMatchPhaseDurationsToLeader", CallMatchPhaseDurationsToLeader);
         CreateTrigger<string>("CallApplyBestPhase", CallApplyBestPhase);
         CreateTrigger<string>("CallHousekeepingGroup", CallHousekeepingGroup);
@@ -3646,57 +3644,6 @@ public partial class UISystem
         }
     }
 
-    protected void CallCopyPhasesToJunction(string input)
-    {
-        var definition = new { sourceIndex = 0, sourceVersion = 0, targetIndex = 0, targetVersion = 0 };
-        var data = JsonConvert.DeserializeAnonymousType(input, definition);
-        
-        if (data == null)
-        {
-            return;
-        }
-        
-        Entity sourceJunction = new Entity { Index = data.sourceIndex, Version = data.sourceVersion };
-        Entity targetJunction = new Entity { Index = data.targetIndex, Version = data.targetVersion };
-        
-        if (sourceJunction == Entity.Null && m_SelectedEntity != Entity.Null)
-        {
-            sourceJunction = m_SelectedEntity;
-        }
-        
-        if (sourceJunction != Entity.Null && targetJunction != Entity.Null)
-        {
-            var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
-            trafficGroupSystem.CopyPhasesToJunction(sourceJunction, targetJunction);
-            m_MainPanelBinding.Update();
-        }
-    }
-
-    protected void CallCopyPhasesToAllMembers(string input)
-    {
-        var definition = new { sourceIndex = 0, sourceVersion = 0 };
-        var data = JsonConvert.DeserializeAnonymousType(input, definition);
-
-        if (data == null)
-        {
-            return;
-        }
-
-        Entity sourceJunction = new Entity { Index = data.sourceIndex, Version = data.sourceVersion };
-
-        if (sourceJunction == Entity.Null && m_SelectedEntity != Entity.Null)
-        {
-            sourceJunction = m_SelectedEntity;
-        }
-
-        if (sourceJunction != Entity.Null)
-        {
-            var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
-            trafficGroupSystem.CopyPhasesToAllMembers(sourceJunction);
-            m_MainPanelBinding.Update();
-        }
-    }
-
     protected void CallMatchPhaseDurationsToLeader(string input)
     {
         Entity groupEntity = Entity.Null;
@@ -3966,7 +3913,8 @@ public partial class UISystem
             {
                 EntityManager.AddComponent<SubLaneGroupMask>(junctionEntity);
             }
-            if (customPhaseDataBuffer.Length == 0)
+            if (customPhaseDataBuffer.Length == 0
+                && !EntityManager.HasComponent<TrafficGroupMember>(junctionEntity))
             {
                 customPhaseDataBuffer.Add(new CustomPhaseData());
             }
@@ -3990,7 +3938,22 @@ public partial class UISystem
         }
         
         EntityManager.SetComponentData(junctionEntity, customTrafficLights);
-        EntityManager.AddComponentData(junctionEntity, default(Game.Common.Updated));
+        if (EntityManager.HasComponent<TrafficGroupMember>(junctionEntity))
+        {
+            var member =
+                EntityManager.GetComponentData<TrafficGroupMember>(junctionEntity);
+            var trafficGroupSystem =
+                World.GetOrCreateSystemManaged<TrafficGroupSystem>();
+            trafficGroupSystem.EnsureMemberCustomPhaseSetup(member.m_GroupEntity, junctionEntity);
+            customTrafficLights =
+                EntityManager.GetComponentData<CustomTrafficLights>(junctionEntity);
+        }
+        if (!EntityManager.HasComponent<Game.Common.Updated>(junctionEntity))
+        {
+            EntityManager.AddComponentData(
+                junctionEntity,
+                default(Game.Common.Updated));
+        }
         
         
         if (junctionEntity == m_SelectedEntity)
