@@ -7,7 +7,7 @@ namespace TrafficLightsEnhancement.Tests.Compatibility;
 public class ReleaseVersionTests
 {
     private const string ExpectedSemanticVersion = "1.0.7";
-    private const string ExpectedDisplayName = "Traffic Lights Enhancement Extended";
+    private const string ExpectedDisplayName = "Traffic Lights Enhancement";
     private const string ExpectedDeployFolder = "TrafficLightsEnhancementExtended";
 
     [Fact]
@@ -42,7 +42,7 @@ public class ReleaseVersionTests
     }
 
     [Fact]
-    public void Tle_uses_the_extended_display_name_without_changing_compatibility_identifiers()
+    public void Tle_uses_the_player_facing_display_name_without_changing_compatibility_identifiers()
     {
         string repositoryRoot = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));

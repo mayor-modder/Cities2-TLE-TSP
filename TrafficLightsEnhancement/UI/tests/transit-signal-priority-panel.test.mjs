@@ -360,7 +360,7 @@ test("add-member heading presents its localized action and group name separately
   assert.match(styles, /\.addMemberTitle\s*\{[^}]*text-transform:\s*uppercase;/s);
 });
 
-test("compact main panels are wide enough for the extended title", async () => {
+test("compact main panels are wide enough for the product title", async () => {
   const content = await source("src/mods/components/main-panel/content.tsx");
   const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
   const mainPanelStart = content.indexOf("if (mainData)");
@@ -837,7 +837,7 @@ test("display name is separate from compatibility identifiers", async () => {
   const webpack = await repoSource("UI/webpack.config.js");
 
   assert.equal(manifest.id, "C2VM.TrafficLightsEnhancement");
-  assert.equal(manifest.displayName, "Traffic Lights Enhancement Extended");
+  assert.equal(manifest.displayName, "Traffic Lights Enhancement");
   assert.equal(manifest.deployFolder, "TrafficLightsEnhancementExtended");
   assert.equal(
     locale["Options.SECTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod]"],
@@ -848,6 +848,29 @@ test("display name is separate from compatibility identifiers", async () => {
     manifest.displayName,
   );
   assert.match(webpack, /Mods\\\\\$\{MOD\.deployFolder\}/);
+});
+
+test("packaged player-facing sources use the Traffic Lights Enhancement brand", async () => {
+  const localeFiles = (await readdir(new URL("../../Locale", import.meta.url)))
+    .filter(file => file.endsWith(".json"))
+    .map(file => `Locale/${file}`);
+  const playerFacingFiles = [
+    "Locale.json",
+    ...localeFiles,
+    "Properties/PublishConfiguration.xml",
+    "Systems/Serialization/TLEDataMigrationSystem.cs",
+    "Systems/UI/UISystem.UIBIndings.cs",
+    "UI/mod.json",
+  ];
+
+  for (const file of playerFacingFiles) {
+    const contents = await repoSource(file);
+    assert.doesNotMatch(
+      contents,
+      /Traffic Lights Enhancement Extended|TLE Extended/,
+      `${file} contains the retired in-game brand`,
+    );
+  }
 });
 
 test("UI does not carry unused TypeScript localization fallback dictionaries", async () => {

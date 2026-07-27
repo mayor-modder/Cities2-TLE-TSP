@@ -863,7 +863,7 @@ public partial class UISystem
 
         var menu = new
         {
-            title = Mod.IsBeta() ? "TLE Beta" : "Traffic Lights Enhancement Extended",
+            title = Mod.IsBeta() ? "TLE Beta" : "Traffic Lights Enhancement",
             image = "Media/Game/Icons/TrafficLights.svg",
             position = m_MainPanelPosition,
             showPanel = m_MainPanelState != MainPanelState.Hidden,

@@ -110,7 +110,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                     message = string.Format(
                         LocaleHelper.Translate(
                             "UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationOrphanedMessage]",
-                            "Traffic Lights Enhancement Extended mod detected {0} intersection(s) with corrupted data.\n\nThis is likely due to a component version mismatch. The affected intersections have been reset to vanilla signals.\n\nClick on an intersection in the list to navigate to it and reconfigure."),
+                            "Traffic Lights Enhancement mod detected {0} intersection(s) with corrupted data.\n\nThis is likely due to a component version mismatch. The affected intersections have been reset to vanilla signals.\n\nClick on an intersection in the list to navigate to it and reconfigure."),
                         orphanedCount);
                 }
                 else
@@ -124,7 +124,7 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 var messageDialog = new MessageDialog(
                     LocaleHelper.Translate(
                         "UI.LABEL[C2VM.TrafficLightsEnhancement.DataMigrationDialogTitle]",
-                        "Traffic Lights Enhancement Extended - Data migration"),
+                        "Traffic Lights Enhancement - Data migration"),
                     message,
                     LocalizedString.Id("Common.OK"));
                 GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
@@ -138,8 +138,8 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 Mod.log.Warn($"{nameof(TLEDataMigrationSystem)} found {affectedCount} affected entities of {totalEntities} total");
                 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement Extended - Data migration",
-                    $"Traffic Lights Enhancement Extended mod detected data from an older version.\n\n" +
+                    "Traffic Lights Enhancement - Data migration",
+                    $"Traffic Lights Enhancement mod detected data from an older version.\n\n" +
                     $"Found {affectedCount} of {totalEntities} entities that needed migration.\n\n" +
                     "Some traffic light configurations may need to be reconfigured.",
                     LocalizedString.Id("Common.OK"));
@@ -151,8 +151,8 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 Mod.log.Warn($"{nameof(TLEDataMigrationSystem)} found {customTrafficLightsCount} CustomTrafficLights entities with invalid node references");
                 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement Extended - CustomTrafficLights migration",
-                    $"Traffic Lights Enhancement Extended mod detected {customTrafficLightsCount} traffic light(s) with invalid node references.\n\n" +
+                    "Traffic Lights Enhancement - CustomTrafficLights migration",
+                    $"Traffic Lights Enhancement mod detected {customTrafficLightsCount} traffic light(s) with invalid node references.\n\n" +
                     "These configurations have been removed.",
                     LocalizedString.Id("Common.OK"));
                 GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
@@ -163,8 +163,8 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
                 Mod.log.Warn($"{nameof(TLEDataMigrationSystem)} found {subLaneGroupMaskCount} SubLaneGroupMask entities with invalid sublane references");
                 
                 var messageDialog = new MessageDialog(
-                    "Traffic Lights Enhancement Extended - SubLane migration",
-                    $"Traffic Lights Enhancement Extended mod detected {subLaneGroupMaskCount} traffic light(s) with invalid sublane references.\n\n" +
+                    "Traffic Lights Enhancement - SubLane migration",
+                    $"Traffic Lights Enhancement mod detected {subLaneGroupMaskCount} traffic light(s) with invalid sublane references.\n\n" +
                     "These references have been removed. Some lane signal configurations may need to be reconfigured.",
                     LocalizedString.Id("Common.OK"));
                 GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
@@ -720,11 +720,11 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
             var messageDialog = new MessageDialog(
                 LocaleHelper.Translate(
                     "UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseConfigurationDialogTitle]",
-                    "Traffic Lights Enhancement Extended - Phase configuration"),
+                    "Traffic Lights Enhancement - Phase configuration"),
                 string.Format(
                     LocaleHelper.Translate(
                         "UI.LABEL[C2VM.TrafficLightsEnhancement.MissingPhasesMessage]",
-                        "Detected {0} group member(s) in {1} group(s) with missing custom phases. TLE Extended restored their phase count and timings without copying movement permissions. Review each affected member in the custom phase editor and select the movements served by every phase."),
+                        "Detected {0} group member(s) in {1} group(s) with missing custom phases. Traffic Lights Enhancement restored their phase count and timings without copying movement permissions. Review each affected member in the custom phase editor and select the movements served by every phase."),
                     affectedFollowerCount,
                     affectedGroupCount),
                 LocalizedString.Id("Common.OK"));
