@@ -28,7 +28,7 @@ Read the smallest useful set before editing:
 | Main mod | `TrafficLightsEnhancement/` | net48 Cities II mod assembly. Assembly/root namespace remain `C2VM.TrafficLightsEnhancement` for compatibility. |
 | Pure logic | `TrafficLightsEnhancement.Logic/` | netstandard2.0 C# policy layer with no Unity dependencies. Prefer changes here for testable TSP decisions. |
 | In-game UI | `TrafficLightsEnhancement/UI/` | React/TypeScript UI built by webpack and installed during mod build. |
-| Shared lane system | `CommonLibraries/LaneSystem/` | Submodule-backed lane support used by the mod. Be careful around serialization. |
+| Shared lane system | `CommonLibraries/LaneSystem/` | Repository-owned copy of the required Lane System sources. Preserve its assembly, namespaces, component types, and serialization schemas. |
 | Unit tests | `TrafficLightsEnhancement.Tests/` | Pure logic and compatibility tests. |
 | ECS tests | `TrafficLightsEnhancement.Ecs.Tests/` | Runtime/ECS-oriented tests and regression coverage. |
 | Serialization tests | `TrafficLightsEnhancement.Serialization.Tests/` | Save format, migration, and component serialization coverage. |

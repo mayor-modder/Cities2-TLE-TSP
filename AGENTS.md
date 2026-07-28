@@ -14,6 +14,8 @@ Prefer existing repo docs over memory. `README.md`, `BUILD.md`, `GUIDE.md`, `doc
 
 Before implementing a feature, bugfix, or GitHub issue, work on a dedicated task branch and preferably in a separate git worktree. Do not make issue/feature/fix edits directly on `main`; if the current checkout is `main`, create or switch to an isolated branch/worktree first. If the tree is dirty, preserve the user's work and ask before moving or mixing unrelated changes.
 
+Before declaring a branch or pull request ready, verify that the exact pushed head can be checked out in a fresh clone and passes the required restore/build checks. Before handing a build to the user for gameplay testing, run the normal deploying Release build and confirm the installed main assembly's informational version identifies the commit used to build it. Record that installed/playtested commit; if runtime, UI, dependency, build, or packaging files change afterward, explicitly say that the earlier playtest is stale and install/retest the affected surface. Documentation-only and CI-only commits may follow without invalidating gameplay evidence, but record that they were not part of the installed assembly.
+
 These skills use the portable `SKILL.md` layout with YAML `name` and `description` frontmatter. If an agent does not auto-discover repo-local skills, read the relevant `SKILL.md` file from `.agents/skills/<skill-name>/SKILL.md` manually.
 
 Client-specific files such as `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/agents.mdc`, `.cursorrules`, `.windsurfrules`, `.clinerules`, and `.github/copilot-instructions.md` are compatibility shims. Keep this file and `.agents/skills` canonical rather than duplicating project rules into those shims.

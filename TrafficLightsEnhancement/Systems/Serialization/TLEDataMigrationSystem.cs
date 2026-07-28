@@ -70,16 +70,6 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
             _uiSystem = World.GetOrCreateSystemManaged<Systems.UI.UISystem>();
         }
 
-        protected override void OnDestroy()
-        {
-            if (_affectedGroupsForMigration.IsCreated)
-            {
-                _affectedGroupsForMigration.Dispose();
-            }
-
-            base.OnDestroy();
-        }
-
         protected override void OnUpdate()
         {
             if (!_loaded)
@@ -656,175 +646,91 @@ namespace C2VM.TrafficLightsEnhancement.Systems.Serialization
 
         private void CheckGroupsWithMissingPhases()
         {
-            var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
-            var affectedGroups = new NativeList<Entity>(Allocator.Temp);
+            var trafficGroupSystem =
+                World.GetOrCreateSystemManaged<TrafficGroupSystem>();
+            int affectedGroupCount = 0;
             int affectedFollowerCount = 0;
 
-            using (var groupEntities = _trafficGroupQuery.ToEntityArray(Allocator.Temp))
+            using var groupEntities =
+                _trafficGroupQuery.ToEntityArray(Allocator.Temp);
+            foreach (Entity groupEntity in groupEntities)
             {
-                foreach (var groupEntity in groupEntities)
+                Entity leaderEntity =
+                    trafficGroupSystem.GetGroupLeader(groupEntity);
+                if (leaderEntity == Entity.Null
+                    || !EntityManager.HasComponent<CustomTrafficLights>(
+                        leaderEntity)
+                    || EntityManager.GetComponentData<CustomTrafficLights>(
+                            leaderEntity)
+                        .GetPatternOnly()
+                        != CustomTrafficLights.Patterns.CustomPhase
+                    || !EntityManager.HasBuffer<CustomPhaseData>(leaderEntity)
+                    || EntityManager.GetBuffer<CustomPhaseData>(leaderEntity)
+                        .Length == 0)
                 {
-                    Entity leaderEntity = trafficGroupSystem.GetGroupLeader(groupEntity);
-                    if (leaderEntity == Entity.Null)
-                        continue;
-
-                    
-                    if (!EntityManager.HasComponent<CustomTrafficLights>(leaderEntity))
-                        continue;
-
-                    var leaderLights = EntityManager.GetComponentData<CustomTrafficLights>(leaderEntity);
-                    var leaderPattern = leaderLights.GetPatternOnly();
-
-                    
-                    if (leaderPattern != CustomTrafficLights.Patterns.CustomPhase)
-                        continue;
-
-                    
-                    if (!EntityManager.HasBuffer<CustomPhaseData>(leaderEntity))
-                        continue;
-
-                    EntityManager.TryGetBuffer<CustomPhaseData>(leaderEntity, false, out var leaderPhases);
-                    if (leaderPhases.Length == 0)
-                        continue;
-
-                    
-                    var members = trafficGroupSystem.GetGroupMembers(groupEntity);
-                    bool hasAffectedFollower = false;
-
-                    foreach (var memberEntity in members)
-                    {
-                        if (memberEntity == leaderEntity)
-                            continue;
-
-                        
-                        if (EntityManager.HasComponent<CustomTrafficLights>(memberEntity))
-                        {
-                            var memberLights = EntityManager.GetComponentData<CustomTrafficLights>(memberEntity);
-                            var memberPattern = memberLights.GetPatternOnly();
-
-                            if (memberPattern == CustomTrafficLights.Patterns.CustomPhase)
-                            {
-                                bool hasPhases = EntityManager.HasBuffer<CustomPhaseData>(memberEntity) &&
-                                    EntityManager.TryGetBuffer<CustomPhaseData>(memberEntity, false, out var memberPhases);
-
-                                if (!hasPhases )
-                                {
-                                    hasAffectedFollower = true;
-                                    affectedFollowerCount++;
-                                }
-                            }
-                        }
-                    }
-
-                    members.Dispose();
-
-                    if (hasAffectedFollower)
-                    {
-                        affectedGroups.Add(groupEntity);
-                    }
+                    continue;
                 }
-            }
 
-            if (affectedGroups.Length > 0)
-            {
-                Mod.log.Warn($"Found {affectedGroups.Length} groups with {affectedFollowerCount} followers missing custom phases");
-
-                
-                _affectedGroupsForMigration = affectedGroups.ToArray(Allocator.Persistent);
-
-                var messageDialog = new MessageDialog(
-                    LocaleHelper.Translate(
-                        "UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseConfigurationDialogTitle]",
-                        "Traffic Lights Enhancement - Phase configuration"),
-                    string.Format(
-                        LocaleHelper.Translate(
-                            "UI.LABEL[C2VM.TrafficLightsEnhancement.MissingPhasesMessage]",
-                            "Detected {0} group member(s) in {1} group(s) that have Custom phases enabled but no phases configured.\n\nWould you like to copy phase configurations from the group leader to these members?\n\n• Yes - Copy phases from leader (recommended)\n• No - Reset signal configuration (you will need to reconfigure manually)"),
-                        affectedFollowerCount, affectedGroups.Length),
-                    LocalizedString.Id("Common.YES"),
-                    LocalizedString.Id("Common.NO"));
-
-                GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, OnMissingPhasesDialogResult);
-            }
-
-            affectedGroups.Dispose();
-        }
-
-        private NativeArray<Entity> _affectedGroupsForMigration;
-
-        private void OnMissingPhasesDialogResult(int result)
-        {
-            if (!_affectedGroupsForMigration.IsCreated)
-                return;
-
-            var trafficGroupSystem = World.GetOrCreateSystemManaged<TrafficGroupSystem>();
-            bool copyFromLeader = result == 0; 
-
-            Mod.log.Info($"User selected {(copyFromLeader ? "copy from leader" : "reset to vanilla")} for affected followers");
-
-            foreach (var groupEntity in _affectedGroupsForMigration)
-            {
-                if (!EntityManager.Exists(groupEntity))
-                    continue;
-
-                Entity leaderEntity = trafficGroupSystem.GetGroupLeader(groupEntity);
-                if (leaderEntity == Entity.Null)
-                    continue;
-
-                var members = trafficGroupSystem.GetGroupMembers(groupEntity);
-
-                foreach (var memberEntity in members)
+                bool groupAffected = false;
+                var members =
+                    trafficGroupSystem.GetGroupMembers(groupEntity);
+                foreach (Entity memberEntity in members)
                 {
-                    if (memberEntity == leaderEntity)
+                    if (memberEntity == leaderEntity
+                        || !EntityManager.HasComponent<CustomTrafficLights>(
+                            memberEntity)
+                        || EntityManager.GetComponentData<CustomTrafficLights>(
+                                memberEntity)
+                            .GetPatternOnly()
+                            != CustomTrafficLights.Patterns.CustomPhase)
+                    {
                         continue;
+                    }
 
-                    if (!EntityManager.HasComponent<CustomTrafficLights>(memberEntity))
-                        continue;
-
-                    var memberLights = EntityManager.GetComponentData<CustomTrafficLights>(memberEntity);
-                    var memberPattern = memberLights.GetPatternOnly();
-
-                    if (memberPattern != CustomTrafficLights.Patterns.CustomPhase)
-                        continue;
-
-                    bool hasPhases = EntityManager.HasBuffer<CustomPhaseData>(memberEntity) &&
-                        EntityManager.GetBuffer<CustomPhaseData>(memberEntity).Length > 0;
-
+                    bool hasPhases =
+                        EntityManager.HasBuffer<CustomPhaseData>(memberEntity)
+                        && EntityManager.GetBuffer<CustomPhaseData>(memberEntity)
+                            .Length > 0;
                     if (hasPhases)
+                    {
                         continue;
-
-                    if (copyFromLeader)
-                    {
-                        
-                        trafficGroupSystem.TryCopyPhasesToJunction(leaderEntity, memberEntity, out _);
-                        Mod.log.Info($"Copied phases from leader to member {memberEntity.Index}");
-                    }
-                    else
-                    {
-                        
-                        if (EntityManager.HasBuffer<EdgeGroupMask>(memberEntity))
-                        {
-                            EntityManager.TryGetBuffer<EdgeGroupMask>(memberEntity, false, out var edgeMasks);
-                            edgeMasks.Clear();
-                        }
-
-                        
-                        if (EntityManager.HasBuffer<SubLaneGroupMask>(memberEntity))
-                        {
-                            EntityManager.TryGetBuffer<SubLaneGroupMask>(memberEntity, false, out var subLaneMasks);
-                            subLaneMasks.Clear();
-                        }
-
-                        Mod.log.Info($"Reset EdgeGroupMask for member {memberEntity.Index} - user must reconfigure");
                     }
 
-                    EntityManager.AddComponentData(memberEntity, default(Updated));
+                    trafficGroupSystem.EnsureMemberCustomPhaseSetup(groupEntity, memberEntity);
+                    affectedFollowerCount++;
+                    groupAffected = true;
+                    Mod.log.Info(
+                        $"Initialized local custom phases for member {memberEntity.Index}");
                 }
-
                 members.Dispose();
+
+                if (groupAffected)
+                {
+                    affectedGroupCount++;
+                }
             }
 
-            _affectedGroupsForMigration.Dispose();
+            if (affectedFollowerCount == 0)
+            {
+                return;
+            }
+
+            Mod.log.Warn(
+                $"Initialized {affectedFollowerCount} followers with missing custom phases in {affectedGroupCount} groups");
+            var messageDialog = new MessageDialog(
+                LocaleHelper.Translate(
+                    "UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseConfigurationDialogTitle]",
+                    "Traffic Lights Enhancement - Phase configuration"),
+                string.Format(
+                    LocaleHelper.Translate(
+                        "UI.LABEL[C2VM.TrafficLightsEnhancement.MissingPhasesMessage]",
+                        "Detected {0} group member(s) in {1} group(s) with missing custom phases. Traffic Lights Enhancement restored their phase count and timings without copying movement permissions. Review each affected member in the custom phase editor and select the movements served by every phase."),
+                    affectedFollowerCount,
+                    affectedGroupCount),
+                LocalizedString.Id("Common.OK"));
+            GameManager.instance.userInterface.appBindings.ShowMessageDialog(
+                messageDialog,
+                null);
         }
 
         protected override void OnGameLoaded(Context serializationContext)

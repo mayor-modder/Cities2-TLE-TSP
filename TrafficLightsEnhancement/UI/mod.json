@@ -1,6 +1,8 @@
 {
   "id": "C2VM.TrafficLightsEnhancement",
+  "displayName": "Traffic Lights Enhancement",
+  "deployFolder": "TrafficLightsEnhancementExtended",
   "author": "Bruceyboy24804",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "dependencies": []
 }

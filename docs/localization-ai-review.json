@@ -5,7 +5,7 @@
   "locales": {
     "de-DE": {
       "source": "upstream-crowdin-plus-ai-fill",
-      "aiTranslatedKeyCount": 181,
+      "aiTranslatedKeyCount": 180,
       "aiTranslatedKeys": [
         "Options.GROUP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.GroupDiagnostics]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]",
@@ -17,7 +17,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -192,7 +191,7 @@
     },
     "es-ES": {
       "source": "upstream-crowdin-plus-ai-fill",
-      "aiTranslatedKeyCount": 181,
+      "aiTranslatedKeyCount": 180,
       "aiTranslatedKeys": [
         "Options.GROUP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.GroupDiagnostics]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]",
@@ -204,7 +203,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -379,7 +377,7 @@
     },
     "fr-FR": {
       "source": "upstream-crowdin-plus-ai-fallback",
-      "aiTranslatedKeyCount": 327,
+      "aiTranslatedKeyCount": 325,
       "aiTranslatedKeys": [
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMainPanelToggle]",
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMultiSelectEntity]",
@@ -403,7 +401,6 @@
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate].tooltip",
-        "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
@@ -424,7 +421,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -712,7 +708,7 @@
     },
     "it-IT": {
       "source": "upstream-crowdin-plus-ai-fallback",
-      "aiTranslatedKeyCount": 330,
+      "aiTranslatedKeyCount": 328,
       "aiTranslatedKeys": [
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMainPanelToggle]",
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMultiSelectEntity]",
@@ -737,7 +733,6 @@
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate].tooltip",
-        "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
@@ -758,7 +753,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -1048,7 +1042,7 @@
     },
     "ja-JP": {
       "source": "upstream-crowdin-plus-ai-fallback",
-      "aiTranslatedKeyCount": 331,
+      "aiTranslatedKeyCount": 329,
       "aiTranslatedKeys": [
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMainPanelToggle]",
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMultiSelectEntity]",
@@ -1073,7 +1067,6 @@
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate].tooltip",
-        "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
@@ -1094,7 +1087,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -1385,7 +1377,7 @@
     },
     "ko-KR": {
       "source": "upstream-crowdin-plus-ai-fill",
-      "aiTranslatedKeyCount": 182,
+      "aiTranslatedKeyCount": 181,
       "aiTranslatedKeys": [
         "Options.GROUP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.GroupDiagnostics]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]",
@@ -1397,7 +1389,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -1573,7 +1564,7 @@
     },
     "pl-PL": {
       "source": "upstream-crowdin-plus-ai-fill",
-      "aiTranslatedKeyCount": 184,
+      "aiTranslatedKeyCount": 183,
       "aiTranslatedKeys": [
         "Options.GROUP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.GroupDiagnostics]",
         "Options.GROUP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.GroupKeyBindingReset]",
@@ -1586,7 +1577,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -1763,7 +1753,7 @@
     },
     "pt-PT": {
       "source": "upstream-crowdin-plus-ai-fallback",
-      "aiTranslatedKeyCount": 331,
+      "aiTranslatedKeyCount": 329,
       "aiTranslatedKeys": [
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMainPanelToggle]",
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMultiSelectEntity]",
@@ -1788,7 +1778,6 @@
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate].tooltip",
-        "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
@@ -1809,7 +1798,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -2100,7 +2088,7 @@
     },
     "ru-RU": {
       "source": "upstream-crowdin-plus-ai-fallback",
-      "aiTranslatedKeyCount": 331,
+      "aiTranslatedKeyCount": 329,
       "aiTranslatedKeys": [
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMainPanelToggle]",
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMultiSelectEntity]",
@@ -2125,7 +2113,6 @@
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate].tooltip",
-        "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
@@ -2146,7 +2133,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -2437,7 +2423,7 @@
     },
     "zh-CN": {
       "source": "upstream-crowdin-plus-ai-fill",
-      "aiTranslatedKeyCount": 182,
+      "aiTranslatedKeyCount": 181,
       "aiTranslatedKeys": [
         "Options.GROUP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.GroupDiagnostics]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ShowTransitSignalPriorityDiagnostics]",
@@ -2449,7 +2435,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",
@@ -2625,7 +2610,7 @@
     },
     "zh-TW": {
       "source": "upstream-crowdin-plus-ai-fallback",
-      "aiTranslatedKeyCount": 331,
+      "aiTranslatedKeyCount": 329,
       "aiTranslatedKeys": [
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMainPanelToggle]",
         "Common.ACTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod/KeyboardBindingMultiSelectEntity]",
@@ -2650,7 +2635,6 @@
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate].tooltip",
-        "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption].tooltip",
         "Options.OPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
@@ -2671,7 +2655,6 @@
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultExclusivePedestrian]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_DefaultSplitPhasing]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_ForceNodeUpdate]",
-        "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LaneSystemVersion]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_LocaleOption]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MainPanelToggleKeyboardBinding]",
         "Options.OPTION_DESCRIPTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod.Settings.m_MultiSelectEntityKeyboardBinding]",

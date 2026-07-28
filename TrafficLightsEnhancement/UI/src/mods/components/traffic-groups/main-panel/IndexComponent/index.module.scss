@@ -112,26 +112,30 @@
 .rightPanelContainer {
     width: 55em;
     max-width: 55em;
-    background-color:  var(--sectionBackgroundColor);
+    background-color: var(--panelColorDark);
     backdrop-filter: var(--panelBlur);
     flex: 1;
     position: relative;
     padding:  0.25em;
+    text-align: start;
 }
 
 .infoText {
     padding: 0.5em;
     color: var(--textColorDim);
     font-size: 0.85em;
-    text-align: center;
+    text-align: start;
     font-family: 'Overpass';
 }
 
 .sectionTitle {
     padding: 0.5em 0.5em 0.25em 0.5em;
-    color: var(--textColor);
-    font-size: 1em;
-    font-weight: 500;
+    color: var(--textColorDim);
+    font-size: 0.75em;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-align: start;
+    text-transform: uppercase;
 }
 
 .statRow {
@@ -165,10 +169,17 @@
     flex: 1;
     justify-content: flex-end;
     min-width: 0;
+
+    > div {
+        flex: 1;
+        min-width: 0;
+    }
     
     input {
         width: 100%;
-        max-width: 200px;
+        max-width: none;
+        min-width: 0;
+        text-align: start;
     }
     
     input::placeholder {

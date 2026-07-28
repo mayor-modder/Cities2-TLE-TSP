@@ -13,10 +13,16 @@ const Container = styled.div`
 `;
 
 const TitleText = styled.div`
-  color: var(--textColor);
+  color: var(--textColorDim);
   flex-grow: 1;
   flex-shrink: 1;
   flex-basis: auto;
+  font-size: 0.75em;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 0.5em 0.5em 0.25em 0.5em;
+  text-align: start;
+  text-transform: uppercase;
 `;
 
 const SecondaryText = styled.div`

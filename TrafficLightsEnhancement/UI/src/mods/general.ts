@@ -350,6 +350,7 @@ export interface GroupMemberInfo {
   currentPattern?: number;
   availablePatterns?: PatternInfo[];
   hasTrainTrack?: boolean;
+  phaseSetupComplete: boolean;
 }
 
 export interface MainPanelItemTrafficGroup {

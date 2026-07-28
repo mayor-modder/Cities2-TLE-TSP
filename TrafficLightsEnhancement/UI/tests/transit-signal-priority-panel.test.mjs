@@ -84,22 +84,37 @@ test("migration issue UI derives boolean state from affected entities", async ()
   assert.doesNotMatch(uiBindings, /HasLoadingErrors/);
 });
 
-test("main panel renders tram and bus controls under one transit signal priority section", async () => {
+test("main panel renders tram and bus controls together before the diagnostics pane", async () => {
   const content = await source("src/mods/components/main-panel/content.tsx");
-  const panelStart = content.indexOf("TransitSignalPriority");
+  const controlsStart = content.indexOf('title="TransitSignalPriority"');
+  const controlsEnd = content.indexOf("{transitSignalPriorityDiagnostics && (", controlsStart);
+  const controlsSource = content.slice(controlsStart, controlsEnd);
+  const diagnosticsSource = content.slice(controlsEnd);
 
-  assert.notEqual(panelStart, -1);
-  const panelEnd = content.indexOf("{mainData.hasLaneDirectionTool", panelStart);
-  const panelSource = panelEnd === -1 ? content.slice(panelStart) : content.slice(panelStart, panelEnd);
+  assert.notEqual(controlsStart, -1);
+  assert.notEqual(controlsEnd, -1);
+  assert.match(controlsSource, /TransitSignalPriority/);
+  assert.match(controlsSource, /EnableTransitPriorityForTrams/);
+  assert.match(controlsSource, /EnableTransitPriorityForBuses/);
+  assert.match(controlsSource, /toggleTransitSignalPriorityForBuses/);
+  assert.doesNotMatch(controlsSource, /TransitSignalPriorityDiagnostics/);
+  assert.match(diagnosticsSource, /TransitSignalPriorityDiagnostics/);
+  assert.doesNotMatch(controlsSource, /title="TransitPriorityForBuses"/);
+  assert.doesNotMatch(controlsSource, /source/i);
+  assert.doesNotMatch(controlsSource, /public[-\s]?car|publicCar/i);
+});
 
-  assert.match(panelSource, /TransitSignalPriority/);
-  assert.match(panelSource, /EnableTransitPriorityForTrams/);
-  assert.match(panelSource, /EnableTransitPriorityForBuses/);
-  assert.match(panelSource, /toggleTransitSignalPriorityForBuses/);
-  assert.match(panelSource, /TransitSignalPriorityDiagnostics/);
-  assert.doesNotMatch(panelSource, /title="TransitPriorityForBuses"/);
-  assert.doesNotMatch(panelSource, /source/i);
-  assert.doesNotMatch(panelSource, /public[-\s]?car|publicCar/i);
+test("grouped intersections replace transit priority toggles with one disabled notice", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const locale = JSON.parse(await repoSource("Locale.json"));
+
+  assert.match(content, /const\s+showTransitSignalPriority\s*=\s*!mainData\.isGroupMember\s*&&/);
+  assert.match(content, /const\s+showGroupedTransitSignalPriorityNotice\s*=\s*mainData\.isGroupMember\s*&&/);
+  assert.match(content, /showGroupedTransitSignalPriorityNotice\s*&&[\s\S]*message="BusTransitPriorityGroupedUnavailable"/);
+  assert.equal(
+    locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"],
+    "Transit signal priority is disabled while this intersection is in a traffic group."
+  );
 });
 
 test("bus source row is visible independently from tram source row", async () => {
@@ -147,7 +162,7 @@ test("transit signal priority has concise English base labels", async () => {
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForTrams]"], "Enable for trams");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.EnableTransitPriorityForBuses]"], "Enable for buses");
   assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.TransitSignalPriorityDiagnostics]"], "Diagnostics");
-  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"], "Transit signal priority is suspended while this intersection is in a traffic group.");
+  assert.equal(locale["UI.LABEL[C2VM.TrafficLightsEnhancement.BusTransitPriorityGroupedUnavailable]"], "Transit signal priority is disabled while this intersection is in a traffic group.");
 });
 
 test("selected-junction diagnostics are gated by a general TLE mod option", async () => {
@@ -209,13 +224,19 @@ test("backend provides transit signal priority summary and event history", async
   assert.match(uiBindings, /RecordTspDiagnosticsEvent/);
   assert.match(uiBindings, /history\.Events\.Count\s*>\s*TspDiagnosticsEventHistoryLimit/);
   assert.match(uiBindings, /summary\s*=\s*GetTspDiagnosticsSummary/);
-  assert.match(uiBindings, /events\s*=\s*GetTspDiagnosticsEvents/);
+  assert.match(uiBindings, /diagnosticEvents\s*=\s*GetTspDiagnosticsEvents/);
+  assert.match(uiBindings, /events\s*=\s*showTspEvents\s*\?\s*diagnosticEvents\s*:\s*new ArrayList\(\)/);
+  assert.ok(
+    uiBindings.indexOf("diagnosticEvents = GetTspDiagnosticsEvents") <
+      uiBindings.indexOf("events = showTspEvents"),
+    "trace collection must run before event visibility is filtered"
+  );
   assert.match(uiSystem, /m_TspDiagnosticsEvents/);
   assert.match(locale, /TSPDiagnosticsSummary/);
   assert.match(locale, /TSPDiagnosticsEvents/);
 });
 
-test("backend keeps transit signal priority history at 100 but renders a bounded recent slice", async () => {
+test("backend exposes the retained transit signal priority history for scrolling", async () => {
   const uiBindings = await repoSource("Systems/UI/UISystem.UIBIndings.cs");
   const eventsStart = uiBindings.indexOf("private ArrayList GetTspDiagnosticsEvents");
   const eventsEnd = uiBindings.indexOf("private void PruneTspDiagnosticsEvents", eventsStart);
@@ -224,28 +245,161 @@ test("backend keeps transit signal priority history at 100 but renders a bounded
   assert.notEqual(eventsStart, -1);
   assert.notEqual(eventsEnd, -1);
   assert.match(uiBindings, /private\s+const\s+int\s+TspDiagnosticsEventHistoryLimit\s*=\s*100\s*;/);
-  assert.match(uiBindings, /private\s+const\s+int\s+TspDiagnosticsEventDisplayLimit\s*=\s*5\s*;/);
   assert.match(uiBindings, /history\.Events\.Count\s*>\s*TspDiagnosticsEventHistoryLimit/);
-  assert.match(eventsSource, /history\.Events\.Take\(TspDiagnosticsEventDisplayLimit\)/);
-  assert.doesNotMatch(eventsSource, /foreach\s*\(\s*TspDiagnosticsEvent\s+diagnosticsEvent\s+in\s+history\.Events\s*\)/);
+  assert.match(eventsSource, /foreach\s*\(\s*TspDiagnosticsEvent\s+diagnosticsEvent\s+in\s+history\.Events\s*\)/);
+  assert.doesNotMatch(uiBindings, /TspDiagnosticsEventDisplayLimit/);
 });
 
-test("diagnostics panel renders details before compact recent events", async () => {
+test("diagnostics panel keeps recent events above the full diagnostic rows", async () => {
   const content = await source("src/mods/components/main-panel/content.tsx");
-  const diagnosticsStart = content.indexOf('title="TransitSignalPriorityDiagnostics"');
-  const diagnosticsEnd = content.indexOf("{mainData.hasLaneDirectionTool", diagnosticsStart);
+  const diagnosticsStart = content.indexOf("styles.diagnosticsPane");
+  const diagnosticsEnd = content.indexOf("if (emptyData)", diagnosticsStart);
   const diagnosticsSource = content.slice(diagnosticsStart, diagnosticsEnd);
 
   assert.notEqual(diagnosticsStart, -1);
   assert.notEqual(diagnosticsEnd, -1);
   assert.doesNotMatch(diagnosticsSource, /transitSignalPriorityDiagnostics\.summary/);
   assert.ok(
-    diagnosticsSource.indexOf("transitSignalPriorityDiagnostics.rows.map") <
-      diagnosticsSource.indexOf("transitSignalPriorityDiagnostics.events.map"),
-    "diagnostic rows should render before event history"
+    diagnosticsSource.indexOf("transitSignalPriorityDiagnostics.events.map") <
+      diagnosticsSource.indexOf("transitSignalPriorityDiagnostics.rows.map"),
+    "event history should render before diagnostic rows"
   );
   assert.match(diagnosticsSource, /styles\.diagnosticEventTitle/);
   assert.match(diagnosticsSource, /styles\.diagnosticEventDetail/);
+});
+
+test("diagnostics use compact independently scrollable event and detail regions", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
+  const controlsPane = content.indexOf("styles.controlsPane");
+  const diagnosticsCondition = content.indexOf("{transitSignalPriorityDiagnostics && (");
+  const diagnosticsPane = content.indexOf("styles.diagnosticsPane", diagnosticsCondition);
+  const diagnosticsTitle = content.indexOf("TrafficLightsEnhancement.TransitSignalPriorityDiagnostics", diagnosticsPane);
+
+  assert.notEqual(controlsPane, -1);
+  assert.notEqual(diagnosticsCondition, -1);
+  assert.notEqual(diagnosticsPane, -1);
+  assert.notEqual(diagnosticsTitle, -1);
+  assert.ok(controlsPane < diagnosticsCondition);
+  assert.ok(diagnosticsCondition < diagnosticsPane);
+  assert.ok(diagnosticsPane < diagnosticsTitle);
+  assert.match(styles, /\.controlsPane\s*\{[^}]*width:\s*18em;/s);
+  assert.match(styles, /\.diagnosticsPane\s*\{[^}]*width:\s*30em;/s);
+  assert.match(styles, /\.controlsPane\s*\{[^}]*background-color:\s*var\(--panelColorNormal\);/s);
+  assert.match(styles, /\.diagnosticsPane\s*\{[^}]*background-color:\s*var\(--panelColorDark\);/s);
+  assert.match(styles, /\.diagnosticsPane\s*\{[^}]*backdrop-filter:\s*var\(--panelBlur\);/s);
+  assert.match(content, /styles\.diagnosticEventsSection[\s\S]*<Scrollable[\s\S]*transitSignalPriorityDiagnostics\.events\.map/);
+  assert.match(content, /styles\.diagnosticDetailsSection[\s\S]*<Scrollable[\s\S]*transitSignalPriorityDiagnostics\.rows\.map/);
+  assert.match(styles, /\.diagnosticsContent\s*\{[^}]*font-size:\s*0\.75em;/s);
+  assert.match(styles, /\.diagnosticEventsSection\s*\{[^}]*height:\s*16em;/s);
+  assert.match(styles, /\.diagnosticDetailsSection\s*\{[^}]*flex:\s*1;/s);
+});
+
+test("diagnostic section headings use the traffic-group heading treatment", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
+
+  assert.equal((content.match(/styles\.diagnosticSectionTitle/g) ?? []).length, 2);
+  assert.match(styles, /\.diagnosticSectionTitle\s*\{[^}]*color:\s*var\(--textColorDim\);/s);
+  assert.match(styles, /\.diagnosticSectionTitle\s*\{[^}]*font-weight:\s*400;/s);
+  assert.match(styles, /\.diagnosticSectionTitle\s*\{[^}]*letter-spacing:\s*0\.04em;/s);
+  assert.match(styles, /\.diagnosticSectionTitle\s*\{[^}]*text-align:\s*start;/s);
+  assert.match(styles, /\.diagnosticSectionTitle\s*\{[^}]*text-transform:\s*uppercase;/s);
+});
+
+test("traffic group sections use the native-style secondary heading treatment", async () => {
+  const styles = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.module.scss");
+
+  assert.match(styles, /\.sectionTitle\s*\{[^}]*color:\s*var\(--textColorDim\);/s);
+  assert.match(styles, /\.sectionTitle\s*\{[^}]*font-size:\s*0\.75em;/s);
+  assert.match(styles, /\.sectionTitle\s*\{[^}]*text-align:\s*start;/s);
+  assert.match(styles, /\.sectionTitle\s*\{[^}]*text-transform:\s*uppercase;/s);
+});
+
+test("traffic group details use the same dark panel background as diagnostics", async () => {
+  const styles = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.module.scss");
+
+  assert.match(styles, /\.rightPanelContainer\s*\{[^}]*background-color:\s*var\(--panelColorDark\);/s);
+  assert.match(styles, /\.rightPanelContainer\s*\{[^}]*backdrop-filter:\s*var\(--panelBlur\);/s);
+});
+
+test("traffic group labels are start-aligned and the name field fills its row", async () => {
+  const styles = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.module.scss");
+
+  assert.match(styles, /\.rightPanelContainer\s*\{[^}]*text-align:\s*start;/s);
+  assert.match(styles, /\.infoText\s*\{[^}]*text-align:\s*start;/s);
+  assert.match(styles, /\.nameInputContainer\s*\{[\s\S]*?input\s*\{[^}]*max-width:\s*none;/s);
+  assert.match(styles, /\.nameInputContainer\s*\{[\s\S]*?>\s*div\s*\{[^}]*flex:\s*1;/s);
+});
+
+test("traffic group list labels and icon buttons share vertical alignment", async () => {
+  const styles = await source("src/mods/components/traffic-groups/main-panel/GroupItemComponent/group-item.module.scss");
+
+  assert.match(styles, /\.labelWrapper\s*\{[^}]*align-items:\s*center;/s);
+  assert.match(styles, /\.labelWrapper\s*\{[^}]*display:\s*flex;/s);
+  assert.match(styles, /\.icon-bar-container\s*\{[^}]*align-items:\s*center;/s);
+  assert.match(styles, /\.icon-container\s*\{[^}]*align-items:\s*center;/s);
+  assert.match(styles, /\.icon-container\s*\{[^}]*justify-content:\s*center;/s);
+});
+
+test("add-member actions stack vertically within the panel", async () => {
+  const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
+
+  assert.match(styles, /\.buttonRow\s*\{[^}]*flex-direction:\s*column;/s);
+  assert.match(styles, /\.buttonRow\s*\{[\s\S]*?>\s*\*\s*\{[^}]*width:\s*100%;/s);
+});
+
+test("add-member heading presents its localized action and group name separately", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
+
+  assert.doesNotMatch(content, /AddingMemberTo:\$\{emptyData\.targetGroupName\}/);
+  assert.match(content, /UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.AddMember\]/);
+  assert.match(content, /styles\.addMemberGroupName[\s\S]*emptyData\.targetGroupName/);
+  assert.match(styles, /\.addMemberHeader\s*\{[^}]*flex-direction:\s*column;/s);
+  assert.match(styles, /\.addMemberTitle\s*\{[^}]*text-transform:\s*uppercase;/s);
+});
+
+test("compact main panels are wide enough for the product title", async () => {
+  const content = await source("src/mods/components/main-panel/content.tsx");
+  const styles = await source("src/mods/components/main-panel/mainPanel.module.scss");
+  const mainPanelStart = content.indexOf("if (mainData)");
+  const compactPanelStart = content.indexOf("if (emptyData)");
+  const mainPanelSource = content.slice(mainPanelStart, compactPanelStart);
+  const compactPanelSource = content.slice(compactPanelStart);
+
+  assert.doesNotMatch(mainPanelSource, /styles\.compactControlsPane/);
+  assert.match(compactPanelSource, /styles\.controlsPane\}\s+\$\{styles\.compactControlsPane/);
+  assert.match(styles, /\.compactControlsPane\s*\{[^}]*width:\s*20\.5em;/s);
+});
+
+test("custom phase details use the standard dark panel background", async () => {
+  const styles = await source("src/mods/components/custom-phase-tool/main-panel/modules/index.module.scss");
+
+  assert.match(styles, /\.rightPanelContainer\s*\{[^}]*background-color:\s*var\(--panelColorDark\);/s);
+  assert.match(styles, /\.rightPanelContainer\s*\{[^}]*backdrop-filter:\s*var\(--panelBlur\);/s);
+  assert.doesNotMatch(styles, /\.rightPanelContainer\s*\{[^}]*var\(--sectionBackgroundColor\)/s);
+});
+
+test("main panel section titles use the secondary all-caps treatment", async () => {
+  const title = await source("src/mods/components/main-panel/items/title.tsx");
+
+  assert.match(title, /color:\s*var\(--textColorDim\);/);
+  assert.match(title, /font-size:\s*0\.75em;/);
+  assert.match(title, /font-weight:\s*400;/);
+  assert.match(title, /letter-spacing:\s*0\.04em;/);
+  assert.match(title, /text-align:\s*start;/);
+  assert.match(title, /text-transform:\s*uppercase;/);
+});
+
+test("group statistics uses the group section-header treatment", async () => {
+  const trafficGroups = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.tsx");
+
+  assert.match(
+    trafficGroups,
+    /className=\{styles\.sectionTitle\}[^>]*>\{translate\("UI\.LABEL\[C2VM\.TrafficLightsEnhancement\.Statistics\]"\)/
+  );
+  assert.doesNotMatch(trafficGroups, /<ItemTitle title="Statistics"\s*\/>/);
 });
 
 test("backend event history provides compact event title and detail fields", async () => {
@@ -562,7 +716,8 @@ test("backend trace writes follow selected diagnostics event filtering", async (
 
   assert.notEqual(eventsStart, -1);
   assert.notEqual(eventsEnd, -1);
-  assert.match(eventsSource, /bool\s+shouldRecordEvent\s*=\s*isNewSelection\s*\|\|\s*\(\s*signatureChanged\s*&&\s*ShouldRecordTspDiagnosticsEvent\(history,\s*hasRuntimeDebug\s*\|\|\s*hasBusApproachDebug\s*\|\|\s*hasDecisionTrace\)\s*\)/);
+  assert.match(eventsSource, /bool\s+hasTspActivity\s*=\s*hasRuntimeDebug\s*\|\|\s*hasBusApproachDebug\s*\|\|\s*hasDecisionTrace/);
+  assert.match(eventsSource, /bool\s+shouldRecordEvent\s*=\s*isNewSelection\s*\|\|\s*\(\s*signatureChanged\s*&&\s*ShouldRecordTspDiagnosticsEvent\(\s*history,\s*hasTspActivity,\s*EntityManager\.HasComponent<TrafficGroupMember>\(entity\)\)\s*\)/);
   assert.match(eventsSource, /if\s*\(\s*signatureChanged\s*\)/);
   assert.match(eventsSource, /if\s*\(\s*shouldRecordEvent\s*\)/);
   assert.ok(eventsSource.indexOf("bool shouldRecordEvent") < eventsSource.indexOf("WriteTspDiagnosticsTraceEvent"));
@@ -659,7 +814,6 @@ test("static locale provides descriptions for visible mod options", async () => 
     "m_ClearSelectedComponent",
     "m_ReleaseChannel",
     "m_TleVersion",
-    "m_LaneSystemVersion",
     "m_SuppressCanaryWarning",
     "m_MainPanelToggleKeyboardBinding",
     "m_MultiSelectEntityKeyboardBinding",
@@ -674,6 +828,48 @@ test("static locale provides descriptions for visible mod options", async () => 
     assert.equal(typeof locale[descriptionKey], "string", `${option} needs a description`);
     assert.notEqual(locale[descriptionKey].trim(), "", `${option} description cannot be empty`);
     assert.doesNotMatch(locale[descriptionKey], /^Options\.OPTION_DESCRIPTION/, `${option} description cannot be a raw localization key`);
+  }
+});
+
+test("display name is separate from compatibility identifiers", async () => {
+  const manifest = JSON.parse(await repoSource("UI/mod.json"));
+  const locale = JSON.parse(await repoSource("Locale.json"));
+  const webpack = await repoSource("UI/webpack.config.js");
+
+  assert.equal(manifest.id, "C2VM.TrafficLightsEnhancement");
+  assert.equal(manifest.displayName, "Traffic Lights Enhancement");
+  assert.equal(manifest.deployFolder, "TrafficLightsEnhancementExtended");
+  assert.equal(
+    locale["Options.SECTION[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod]"],
+    manifest.displayName,
+  );
+  assert.equal(
+    locale["Options.INPUT_MAP[C2VM.TrafficLightsEnhancement.C2VM.TrafficLightsEnhancement.Mod]"],
+    manifest.displayName,
+  );
+  assert.match(webpack, /Mods\\\\\$\{MOD\.deployFolder\}/);
+});
+
+test("packaged player-facing sources use the Traffic Lights Enhancement brand", async () => {
+  const localeFiles = (await readdir(new URL("../../Locale", import.meta.url)))
+    .filter(file => file.endsWith(".json"))
+    .map(file => `Locale/${file}`);
+  const playerFacingFiles = [
+    "Locale.json",
+    ...localeFiles,
+    "Properties/PublishConfiguration.xml",
+    "Systems/Serialization/TLEDataMigrationSystem.cs",
+    "Systems/UI/UISystem.UIBIndings.cs",
+    "UI/mod.json",
+  ];
+
+  for (const file of playerFacingFiles) {
+    const contents = await repoSource(file);
+    assert.doesNotMatch(
+      contents,
+      /Traffic Lights Enhancement Extended|TLE Extended/,
+      `${file} contains the retired in-game brand`,
+    );
   }
 });
 
@@ -1003,6 +1199,14 @@ test("traffic group and custom phase chrome text is localized", async () => {
   assert.doesNotMatch(customPhasePanel, /"Start delay"|"End early"|"Quick cycle"|"Heavy traffic"|"Pedestrian friendly"|"Rail priority"|"Night mode"/);
 });
 
+test("lockstep followers keep their custom phase editor available", async () => {
+  const trafficGroups = await source("src/mods/components/traffic-groups/main-panel/IndexComponent/index.tsx");
+
+  assert.match(trafficGroups, /const isFollowerInLockstep = isLockstep && !member\.isLeader;/);
+  assert.match(trafficGroups, /<MemberPatternSelector[\s\S]*memberIndex=\{member\.index\}[\s\S]*memberVersion=\{member\.version\}/);
+  assert.doesNotMatch(trafficGroups, /\{isFollowerInLockstep \? \(/);
+});
+
 test("literal UI localization calls reference live locale keys", async () => {
   const locale = JSON.parse(await repoSource("Locale.json"));
   const missingKeys = [];
@@ -1144,7 +1348,7 @@ test("backend exposes bus approach index details", async () => {
   const summarySource = uiBindings.slice(summaryStart, summaryEnd);
   assert.notEqual(summaryStart, -1);
   assert.notEqual(summaryEnd, -1);
-  assert.ok(summarySource.indexOf("if (hasBusApproachDebug && busApproachDebug.m_BusHitCount > 0)") < summarySource.indexOf("if (!settings.m_Enabled)"));
+  assert.ok(summarySource.indexOf("if (!settings.m_Enabled)") < summarySource.indexOf("if (hasBusApproachDebug && busApproachDebug.m_BusHitCount > 0)"));
   assert.match(components, /TransitSignalPriorityBusProbeResult/);
   assert.match(uiBindings, /TransitSignalPriorityBusApproachDebugInfo/);
   assert.doesNotMatch(summarySource, /No tram request/);

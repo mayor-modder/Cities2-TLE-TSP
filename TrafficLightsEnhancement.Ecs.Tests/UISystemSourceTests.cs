@@ -92,6 +92,108 @@ public sealed class UISystemSourceTests
         Assert.Contains("masterSignalGroupCount = group.m_MasterSignalGroupCount", traceSource);
     }
 
+    [Fact]
+    public void Diagnostics_trace_captures_actual_leader_state_with_the_selected_follower()
+    {
+        string source = File.ReadAllText(GetRepoPath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "UI",
+            "UISystem.UIBIndings.cs"));
+        string writerSource = ExtractMethod(
+            source,
+            "private void WriteTspDiagnosticsTraceEvent");
+        string leaderTraceSource = ExtractMethod(
+            source,
+            "private object GetTspTrafficGroupLeaderTrace");
+
+        Assert.Contains(
+            "leaderTrafficLights = GetTspTrafficGroupLeaderTrace(entity)",
+            writerSource);
+        Assert.Contains("member.m_LeaderEntity", leaderTraceSource);
+        Assert.Contains(
+            "EntityManager.TryGetComponent(leaderEntity, out TrafficLights leaderLights)",
+            leaderTraceSource);
+        Assert.Contains("state = leaderLights.m_State.ToString()", leaderTraceSource);
+        Assert.Contains("currentGroup = leaderLights.m_CurrentSignalGroup", leaderTraceSource);
+        Assert.Contains("nextGroup = leaderLights.m_NextSignalGroup", leaderTraceSource);
+        Assert.Contains("updateFrameIndex = GetUpdateFrameIndex(leaderEntity)", leaderTraceSource);
+    }
+
+    [Fact]
+    public void Lockstep_trace_expands_every_member_and_every_output_boundary()
+    {
+        string writer = File.ReadAllText(GetRepoPath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "UI",
+            "UISystem.UIBIndings.cs"));
+        string lockstep = File.ReadAllText(GetRepoPath(
+            "TrafficLightsEnhancement",
+            "Systems",
+            "UI",
+            "UISystem.TrafficGroupLockstepDiagnostics.cs"));
+        string writerSource = ExtractMethod(
+            writer,
+            "private void WriteTspDiagnosticsTraceEvent");
+        string eventSource = ExtractMethod(
+            writer,
+            "private ArrayList GetTspDiagnosticsEvents");
+        string signatureSource = ExtractMethod(
+            writer,
+            "private static string GetTspDiagnosticsSignature");
+        string groupTraceSource = ExtractMethod(
+            lockstep,
+            "private object GetTrafficGroupLockstepTrace");
+        string memberTraceSource = ExtractMethod(
+            lockstep,
+            "private object GetTrafficGroupLockstepMemberTrace");
+        string renderedTraceSource = ExtractMethod(
+            lockstep,
+            "private ArrayList GetRenderedTrafficLightTrace");
+        string warningSource = ExtractMethod(
+            lockstep,
+            "private void WarnLockstepVerdictIfChanged");
+
+        Assert.Contains(
+            "trafficGroupLockstep = trafficGroupLockstepTrace",
+            writerSource);
+        Assert.Contains("object trafficGroupLockstepTrace", eventSource);
+        Assert.Contains("GetTrafficGroupLockstepTrace(entity)", eventSource);
+        Assert.Contains(
+            "JsonConvert.SerializeObject(trafficGroupLockstepTrace)",
+            eventSource);
+        Assert.Contains("trafficGroupLockstepSignature", signatureSource);
+        Assert.Contains(
+            "trafficGroupLockstepSignature}",
+            signatureSource);
+        Assert.Contains("GetGroupMembers", groupTraceSource);
+        Assert.Contains("GetTrafficGroupLockstepMemberTrace", groupTraceSource);
+        Assert.Contains("GetTspLaneSignalTrace", memberTraceSource);
+        Assert.Contains("GetRenderedTrafficLightTrace", memberTraceSource);
+        Assert.Contains("TrafficGroupLockstepDiagnostics.Classify", memberTraceSource);
+        Assert.Contains("TrafficGroupLockstepDebugState", memberTraceSource);
+        Assert.Contains("m_LockstepVerdictWarnings", warningSource);
+        Assert.Contains("Mod.log.Warn", warningSource);
+
+        Assert.Contains("subObject.m_SubObject", renderedTraceSource);
+        Assert.Contains("rendered.m_GroupMask0", renderedTraceSource);
+        Assert.Contains("rendered.m_GroupMask1", renderedTraceSource);
+        Assert.Contains("rendered.m_State.ToString()", renderedTraceSource);
+
+        string laneTraceSource = ExtractMethod(
+            writer,
+            "private ArrayList GetTspLaneSignalTrace");
+        Assert.Contains("laneSignal.m_Petitioner", laneTraceSource);
+        Assert.Contains("laneSignal.m_Blocker", laneTraceSource);
+        Assert.Contains("laneSignal.m_Priority", laneTraceSource);
+        Assert.Contains("laneSignal.m_Default", laneTraceSource);
+        Assert.Contains("laneSignal.m_Flags.ToString()", laneTraceSource);
+        Assert.DoesNotContain(
+            "$\"|{debugState.SimulationFrame}",
+            warningSource);
+    }
+
     private static string GetRepoPath(params string[] segments)
     {
         string path = AppContext.BaseDirectory;

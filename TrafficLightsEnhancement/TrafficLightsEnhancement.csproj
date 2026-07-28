@@ -7,8 +7,9 @@
 
         <AssemblyName>C2VM.TrafficLightsEnhancement</AssemblyName>
         <RootNamespace>C2VM.TrafficLightsEnhancement</RootNamespace>
-        <Version>1.0.0.0</Version>
-        <InformationalVersion>1.0.0.0</InformationalVersion>
+        <TleDeployFolder>TrafficLightsEnhancementExtended</TleDeployFolder>
+        <Version>1.0.8.0</Version>
+        <InformationalVersion>1.0.8.0</InformationalVersion>
         <!--The file where mod information which is required for publishing mod on PDX mods are stored-->
         <PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
     </PropertyGroup>
@@ -124,6 +125,12 @@
             <LaneSystemFiles Include="..\CommonLibraries\LaneSystem\bin\$(Configuration)\$(TargetFramework)\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(LaneSystemFiles)" DestinationFolder="$(OutDir)\" />
+    </Target>
+
+    <Target Name="SetTleDeployDirectory" AfterTargets="BuildGetFullPaths">
+        <PropertyGroup>
+            <DeployDir>$(LocalModsPath)\$(TleDeployFolder)</DeployDir>
+        </PropertyGroup>
     </Target>
 
     <PropertyGroup Condition="'$(Verbosity)' == 'Verbose'">

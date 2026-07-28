@@ -11,6 +11,7 @@ using Unity.Mathematics;
 using System.Collections.Generic;
 using C2VM.TrafficLightsEnhancement.Domain;
 using C2VM.TrafficLightsEnhancement.Extensions;
+using C2VM.TrafficLightsEnhancement.Utils;
 using Colossal.Entities;
 using Game.SceneFlow;
 using TrafficLightsEnhancement.Logic.TrafficGroups;
@@ -23,7 +24,9 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 	private EntityQuery m_GroupQuery;
 	private EntityQuery m_MemberQuery;
+	private EntityQuery m_LockstepDiagnosticQuery;
 	private SimulationSystem m_SimulationSystem;
+	private readonly Dictionary<Entity, string> m_LastMovementMappingFailureReports = new();
 
 	protected override void OnCreate()
 	{
@@ -36,12 +39,20 @@ public partial class TrafficGroupSystem : GameSystemBase
 		m_MemberQuery = GetEntityQuery(
 			ComponentType.ReadOnly<TrafficGroupMember>()
 		);
+
+		m_LockstepDiagnosticQuery = GetEntityQuery(
+			ComponentType.ReadOnly<TrafficGroupLockstepDebugState>()
+		);
 		
 		m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
 	}
 
 	protected override void OnUpdate()
 	{
+		MaintainLockstepDiagnosticsComponents(
+			Mod.m_Setting != null
+			&& Mod.m_Setting.m_ShowTransitSignalPriorityDiagnostics);
+
 		float currentTick = m_SimulationSystem.frameIndex;
 		
 		var groups = m_GroupQuery.ToEntityArray(Allocator.Temp);
@@ -56,6 +67,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 			{
 				continue;
 			}
+
+			Entity leaderEntity = GetGroupLeader(groupEntity);
+			RefreshGroupRuntimeState(groupEntity, leaderEntity);
+			RefreshMovementMappings(groupEntity, leaderEntity);
 			
 			group.m_CycleTimer += 1f;
 			if (group.m_CycleTimer >= group.m_CycleLength)
@@ -69,6 +84,344 @@ public partial class TrafficGroupSystem : GameSystemBase
 		
 		groups.Dispose();
 		groupComponents.Dispose();
+	}
+
+	private void MaintainLockstepDiagnosticsComponents(bool diagnosticsEnabled)
+	{
+		using NativeArray<Entity> memberEntities =
+			m_MemberQuery.ToEntityArray(Allocator.Temp);
+		if (diagnosticsEnabled)
+		{
+			foreach (Entity memberEntity in memberEntities)
+			{
+				if (!EntityManager.HasComponent<TrafficGroupLockstepDebugState>(memberEntity))
+				{
+					EntityManager.AddComponentData(
+						memberEntity,
+						default(TrafficGroupLockstepDebugState));
+				}
+			}
+
+			using NativeArray<Entity> diagnosticEntities =
+				m_LockstepDiagnosticQuery.ToEntityArray(Allocator.Temp);
+			foreach (Entity diagnosticEntity in diagnosticEntities)
+			{
+				if (!EntityManager.HasComponent<TrafficGroupMember>(diagnosticEntity))
+				{
+					EntityManager.RemoveComponent<TrafficGroupLockstepDebugState>(
+						diagnosticEntity);
+				}
+			}
+			return;
+		}
+
+		using NativeArray<Entity> existingDiagnosticEntities =
+			m_LockstepDiagnosticQuery.ToEntityArray(Allocator.Temp);
+		foreach (Entity diagnosticEntity in existingDiagnosticEntities)
+		{
+			EntityManager.RemoveComponent<TrafficGroupLockstepDebugState>(
+				diagnosticEntity);
+		}
+	}
+
+	private void RefreshGroupRuntimeState(Entity groupEntity, Entity leaderEntity)
+	{
+		if (leaderEntity == Entity.Null
+		    || !EntityManager.TryGetSharedComponent<UpdateFrame>(leaderEntity, out var updateFrame))
+		{
+			if (EntityManager.HasComponent<TrafficGroupRuntimeData>(groupEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupRuntimeData>(groupEntity);
+			}
+			return;
+		}
+
+		var runtimeData = new TrafficGroupRuntimeData
+		{
+			m_LeaderUpdateFrameIndex = updateFrame.m_Index
+		};
+		if (EntityManager.HasComponent<TrafficGroupRuntimeData>(groupEntity))
+		{
+			EntityManager.SetComponentData(groupEntity, runtimeData);
+		}
+		else
+		{
+			EntityManager.AddComponentData(groupEntity, runtimeData);
+		}
+	}
+
+	private void RefreshMovementMappings(Entity groupEntity, Entity leaderEntity)
+	{
+		if (leaderEntity == Entity.Null
+		    || !EntityManager.TryGetComponent(leaderEntity, out TrafficLights leaderLights))
+		{
+			RemoveMovementMappings(groupEntity);
+			return;
+		}
+
+		TrafficGroupPhaseSignature[] leaderSignatures =
+			BuildPhaseSignatures(leaderEntity, leaderLights);
+		var members = GetGroupMembers(groupEntity);
+		foreach (Entity memberEntity in members)
+		{
+			if (!EntityManager.TryGetComponent(memberEntity, out TrafficLights memberLights))
+			{
+				if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+				{
+					EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+				}
+				continue;
+			}
+
+			TrafficGroupPhaseSignature[] memberSignatures =
+				BuildPhaseSignatures(memberEntity, memberLights);
+			TrafficGroupPhaseMap phaseMap = default;
+			TrafficGroupMovementMappingFailure mappingFailure;
+			bool useIdentityMapping = memberEntity == leaderEntity
+				|| (UsesCustomPhase(leaderEntity) && UsesCustomPhase(memberEntity));
+			bool mapped = useIdentityMapping
+				? TrafficGroupMovementMappingPolicy.TryBuildIdentity(
+					leaderSignatures,
+					memberSignatures,
+					out phaseMap,
+					out mappingFailure)
+				: TrafficGroupMovementMappingPolicy.TryBuild(
+					leaderSignatures,
+					memberSignatures,
+					out phaseMap,
+					out mappingFailure);
+			if (mapped)
+			{
+				m_LastMovementMappingFailureReports.Remove(memberEntity);
+				var mapping = new TrafficGroupPhaseMapping { m_Map = phaseMap };
+				if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+				{
+					EntityManager.SetComponentData(memberEntity, mapping);
+				}
+				else
+				{
+					EntityManager.AddComponentData(memberEntity, mapping);
+				}
+			}
+			else if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+			}
+
+			if (!mapped)
+			{
+				LogMovementMappingFailureIfChanged(
+					groupEntity,
+					leaderEntity,
+					memberEntity,
+					mappingFailure,
+					leaderSignatures,
+					memberSignatures);
+			}
+		}
+		members.Dispose();
+	}
+
+	private bool UsesCustomPhase(Entity junctionEntity)
+	{
+		return EntityManager.TryGetComponent(
+			       junctionEntity,
+			       out CustomTrafficLights customTrafficLights)
+		       && customTrafficLights.GetPatternOnly()
+		       == CustomTrafficLights.Patterns.CustomPhase;
+	}
+
+	private void LogMovementMappingFailureIfChanged(
+		Entity groupEntity,
+		Entity leaderEntity,
+		Entity memberEntity,
+		TrafficGroupMovementMappingFailure failure,
+		TrafficGroupPhaseSignature[] leaderSignatures,
+		TrafficGroupPhaseSignature[] memberSignatures)
+	{
+		string report =
+			$"[TLE][TrafficGroupMapping] group={groupEntity.Index}:{groupEntity.Version} "
+			+ $"leader={leaderEntity.Index}:{leaderEntity.Version} "
+			+ $"member={memberEntity.Index}:{memberEntity.Version} "
+			+ $"reason={failure.Reason} "
+			+ $"leaderPhase={failure.LeaderPhase} "
+			+ $"memberPhase={failure.MemberPhase} "
+			+ $"leaderSignatures=[{FormatPhaseSignatures(leaderSignatures)}] "
+			+ $"memberSignatures=[{FormatPhaseSignatures(memberSignatures)}]";
+
+		if (m_LastMovementMappingFailureReports.TryGetValue(
+			    memberEntity,
+			    out string previousReport)
+		    && previousReport == report)
+		{
+			return;
+		}
+
+		m_LastMovementMappingFailureReports[memberEntity] = report;
+		m_Log.Warn(report);
+	}
+
+	private static string FormatPhaseSignatures(
+		TrafficGroupPhaseSignature[] signatures)
+	{
+		var formatted = new string[signatures.Length];
+		for (int index = 0; index < signatures.Length; index++)
+		{
+			formatted[index] = signatures[index].ToDiagnosticString();
+		}
+
+		return string.Join(" | ", formatted);
+	}
+
+	private TrafficGroupPhaseSignature[] BuildPhaseSignatures(
+		Entity junctionEntity,
+		TrafficLights trafficLights)
+	{
+		int phaseCount = trafficLights.m_SignalGroupCount;
+		if (phaseCount < 1
+		    || phaseCount > TrafficGroupMovementMappingPolicy.MaximumMappedPhaseCount
+		    || !EntityManager.TryGetBuffer<SubLane>(junctionEntity, true, out var subLanes)
+		    || !EntityManager.TryGetBuffer<ConnectedEdge>(junctionEntity, true, out var connectedEdges)
+		    || !EntityManager.TryGetComponent(junctionEntity, out Node node))
+		{
+			return System.Array.Empty<TrafficGroupPhaseSignature>();
+		}
+
+		var subLaneLookup = GetBufferLookup<SubLane>(true);
+		var laneLookup = GetComponentLookup<Lane>(true);
+		var edgeLookup = GetComponentLookup<Edge>(true);
+		var edgeGeometryLookup = GetComponentLookup<EdgeGeometry>(true);
+		var carLaneLookup = GetComponentLookup<CarLane>(true);
+		var trackLaneLookup = GetComponentLookup<TrackLane>(true);
+		using NativeHashMap<Entity, NodeUtils.LaneConnection> laneConnectionMap =
+			NodeUtils.GetLaneConnectionMap(
+				Allocator.Temp,
+				subLanes,
+				connectedEdges,
+				subLaneLookup,
+				laneLookup);
+
+		var roadAxes = new ulong[phaseCount];
+		var trackAxes = new ulong[phaseCount];
+		var roadMovements = new TrafficGroupMovementMask[phaseCount];
+		var trackMovements = new TrafficGroupMovementMask[phaseCount];
+		var roadYieldMovements = new TrafficGroupMovementMask[phaseCount];
+		var trackYieldMovements = new TrafficGroupMovementMask[phaseCount];
+		for (int laneIndex = 0; laneIndex < subLanes.Length; laneIndex++)
+		{
+			Entity subLaneEntity = subLanes[laneIndex].m_SubLane;
+			if (!EntityManager.TryGetComponent(subLaneEntity, out LaneSignal laneSignal)
+			    || !laneConnectionMap.TryGetValue(
+				    subLaneEntity,
+				    out NodeUtils.LaneConnection laneConnection)
+			    || laneConnection.m_SourceEdge == Entity.Null)
+			{
+				continue;
+			}
+
+			bool isCarLane = carLaneLookup.HasComponent(subLaneEntity)
+			                 || (laneConnection.m_SourceSubLane != Entity.Null
+			                     && carLaneLookup.HasComponent(laneConnection.m_SourceSubLane));
+			bool isTrackLane = trackLaneLookup.HasComponent(subLaneEntity)
+			                   || (laneConnection.m_SourceSubLane != Entity.Null
+			                       && trackLaneLookup.HasComponent(laneConnection.m_SourceSubLane));
+			if (!isCarLane && !isTrackLane)
+			{
+				continue;
+			}
+
+			float3 edgePosition = GetEdgePositionForJunction(
+				junctionEntity,
+				laneConnection.m_SourceEdge,
+				edgeLookup,
+				edgeGeometryLookup);
+			int axisBin = TrafficGroupMovementMappingPolicy.QuantizeUndirectedAxis(
+				edgePosition.x - node.m_Position.x,
+				edgePosition.z - node.m_Position.z);
+			if (axisBin < 0)
+			{
+				continue;
+			}
+
+			ulong axisBit = 1UL << axisBin;
+			ExtraLaneSignal extraLaneSignal =
+				EntityManager.TryGetComponent(subLaneEntity, out ExtraLaneSignal existingExtraLaneSignal)
+					? existingExtraLaneSignal
+					: default;
+			TrafficGroupMovementMask movementBit = default;
+			if (laneConnection.m_DestEdge != Entity.Null)
+			{
+				float3 destinationPosition = GetEdgePositionForJunction(
+					junctionEntity,
+					laneConnection.m_DestEdge,
+					edgeLookup,
+					edgeGeometryLookup);
+				int destinationAxisBin =
+					TrafficGroupMovementMappingPolicy.QuantizeUndirectedAxis(
+						destinationPosition.x - node.m_Position.x,
+						destinationPosition.z - node.m_Position.z);
+				movementBit = TrafficGroupMovementMask.FromAxisBins(
+					axisBin,
+					destinationAxisBin);
+			}
+
+			for (int phaseIndex = 0; phaseIndex < phaseCount; phaseIndex++)
+			{
+				int phaseBit = 1 << phaseIndex;
+				if ((laneSignal.m_GroupMask & phaseBit) == 0)
+				{
+					continue;
+				}
+
+				bool isYieldMovement = (extraLaneSignal.m_YieldGroupMask & phaseBit) != 0;
+				if (isCarLane)
+				{
+					roadAxes[phaseIndex] |= axisBit;
+					roadMovements[phaseIndex] |= movementBit;
+					if (isYieldMovement)
+					{
+						roadYieldMovements[phaseIndex] |= movementBit;
+					}
+				}
+				if (isTrackLane)
+				{
+					trackAxes[phaseIndex] |= axisBit;
+					trackMovements[phaseIndex] |= movementBit;
+					if (isYieldMovement)
+					{
+						trackYieldMovements[phaseIndex] |= movementBit;
+					}
+				}
+			}
+		}
+
+		var signatures = new TrafficGroupPhaseSignature[phaseCount];
+		for (int phaseIndex = 0; phaseIndex < phaseCount; phaseIndex++)
+		{
+			signatures[phaseIndex] = new TrafficGroupPhaseSignature(
+				phaseIndex + 1,
+				roadAxes[phaseIndex],
+				trackAxes[phaseIndex],
+				roadMovements[phaseIndex],
+				trackMovements[phaseIndex],
+				roadYieldMovements[phaseIndex],
+				trackYieldMovements[phaseIndex]);
+		}
+		return signatures;
+	}
+
+	private void RemoveMovementMappings(Entity groupEntity)
+	{
+		var members = GetGroupMembers(groupEntity);
+		foreach (Entity memberEntity in members)
+		{
+			m_LastMovementMappingFailureReports.Remove(memberEntity);
+			if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+			}
+		}
+		members.Dispose();
 	}
 
 	public Entity CreateGroup(string name = null)
@@ -105,34 +458,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 		var member = new TrafficGroupMember(groupEntity, leaderEntity, memberCount, 0f, 0f, 0, 0, 0f, isLeader);
 		SetOrAddTrafficGroupMember(EntityManager, junctionEntity, member);
-		if (EntityManager.HasComponent<CustomTrafficLights>(junctionEntity))
-		{
-			var customTrafficLights = EntityManager.GetComponentData<CustomTrafficLights>(junctionEntity);
-			var currentMode = customTrafficLights.GetMode();
-			if (currentMode != CustomTrafficLights.TrafficMode.Dynamic && currentMode != CustomTrafficLights.TrafficMode.FixedTimed)
-			{
-				customTrafficLights.SetMode(CustomTrafficLights.TrafficMode.Dynamic);
-			}
-			customTrafficLights.m_Timer = 0;
-			EntityManager.SetComponentData(junctionEntity, customTrafficLights);
-		}
-		else
-		{
-			EntityManager.AddComponentData(junctionEntity, new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla));
-		}
-		if (!EntityManager.HasBuffer<CustomPhaseData>(junctionEntity))
-		{
-			EntityManager.AddComponent<CustomPhaseData>(junctionEntity);
-		}
-		if (!EntityManager.HasBuffer<EdgeGroupMask>(junctionEntity))
-		{
-			EntityManager.AddComponent<EdgeGroupMask>(junctionEntity);
-		}
-		if (!EntityManager.HasBuffer<SubLaneGroupMask>(junctionEntity))
-		{
-			EntityManager.AddComponent<SubLaneGroupMask>(junctionEntity);
-		}
-		EntityManager.AddComponentData(junctionEntity, default(Updated));
+		EnsureMemberCustomPhaseSetup(groupEntity, junctionEntity);
 		if (isLeader)
 		{
 			UpdateAllMembersLeader(groupEntity, junctionEntity);
@@ -203,6 +529,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var member = EntityManager.GetComponentData<TrafficGroupMember>(junctionEntity);
 		Entity groupEntity = member.m_GroupEntity;
 
+		if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(junctionEntity))
+		{
+			EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(junctionEntity);
+		}
 		EntityManager.RemoveComponent<TrafficGroupMember>(junctionEntity);
 
 		if (groupEntity != Entity.Null && EntityManager.HasComponent<TrafficGroup>(groupEntity))
@@ -235,6 +565,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var members = GetGroupMembers(groupEntity);
 		foreach (var memberEntity in members)
 		{
+			if (EntityManager.HasComponent<TrafficGroupPhaseMapping>(memberEntity))
+			{
+				EntityManager.RemoveComponent<TrafficGroupPhaseMapping>(memberEntity);
+			}
 			EntityManager.RemoveComponent<TrafficGroupMember>(memberEntity);
 		}
 		members.Dispose();
@@ -766,10 +1100,22 @@ public partial class TrafficGroupSystem : GameSystemBase
 		members.Dispose();
 	}
 
-	// TMPE-style: simple wrap of a 1-indexed phase into a valid range
-	private static int WrapPhase(int phase, int phaseCount)
+	private bool TryMapLeaderPhase(
+		Entity memberEntity,
+		int leaderPhase,
+		out int memberPhase)
 	{
-		return TrafficGroupTimingPolicy.WrapOneBasedPhase(phase, phaseCount);
+		if (EntityManager.TryGetComponent(
+			    memberEntity,
+			    out TrafficGroupPhaseMapping phaseMapping)
+		    && phaseMapping.m_Map.IsComplete
+		    && phaseMapping.m_Map.TryMapLeaderToMember(leaderPhase, out memberPhase))
+		{
+			return true;
+		}
+
+		memberPhase = 0;
+		return false;
 	}
 
 	
@@ -1047,7 +1393,6 @@ public partial class TrafficGroupSystem : GameSystemBase
 			return;
 		}
 
-		// TMPE-style lockstep: set master phase directly on all followers
 		var members = GetGroupMembers(groupEntity);
 
 		foreach (var memberEntity in members)
@@ -1063,13 +1408,16 @@ public partial class TrafficGroupSystem : GameSystemBase
 				continue;
 			}
 
-			var trafficLights = EntityManager.GetComponentData<TrafficLights>(memberEntity);
-
-			int wrappedPhase = WrapPhase(group.m_MasterPhase, trafficLights.m_SignalGroupCount);
-			
-			if (trafficLights.m_CurrentSignalGroup != wrappedPhase)
+			if (!TryMapLeaderPhase(memberEntity, group.m_MasterPhase, out int mappedPhase))
 			{
-				trafficLights.m_NextSignalGroup = (byte)wrappedPhase;
+				continue;
+			}
+
+			var trafficLights = EntityManager.GetComponentData<TrafficLights>(memberEntity);
+			
+			if (trafficLights.m_CurrentSignalGroup != mappedPhase)
+			{
+				trafficLights.m_NextSignalGroup = (byte)mappedPhase;
 				
 				if (trafficLights.m_State == TrafficLightState.Ongoing)
 				{
@@ -1094,6 +1442,8 @@ public partial class TrafficGroupSystem : GameSystemBase
 		var group = EntityManager.GetComponentData<TrafficGroup>(groupEntity);
 		UpdateMasterClock(groupEntity, ref group);
 		EntityManager.SetComponentData(groupEntity, group);
+		Entity leaderEntity = GetGroupLeader(groupEntity);
+		RefreshMovementMappings(groupEntity, leaderEntity);
 
 		if (group.m_MasterSignalGroupCount == 0)
 		{
@@ -1137,8 +1487,10 @@ public partial class TrafficGroupSystem : GameSystemBase
 			}
 			else
 			{
-				// TMPE-style lockstep: mirror master state directly
-				adjustedPhase = WrapPhase(group.m_MasterPhase, trafficLights.m_SignalGroupCount);
+				if (!TryMapLeaderPhase(memberEntity, group.m_MasterPhase, out adjustedPhase))
+				{
+					continue;
+				}
 				trafficLights.m_CurrentSignalGroup = (byte)adjustedPhase;
 				trafficLights.m_State = group.m_MasterState;
 				trafficLights.m_Timer = group.m_MasterTimer;
@@ -1344,325 +1696,212 @@ public partial class TrafficGroupSystem : GameSystemBase
 		members.Dispose();
 	}
 
-	private bool ValidatePhaseSyncCompatibility(Entity sourceJunction, Entity targetJunction, out string errorMessage)
+	public void EnsureMemberCustomPhaseSetup(Entity groupEntity, Entity memberEntity)
 	{
-		errorMessage = "";
-
-		
-		CustomTrafficLights.Patterns sourcePattern = CustomTrafficLights.Patterns.Vanilla;
-		CustomTrafficLights.TrafficMode sourceMode = CustomTrafficLights.TrafficMode.Dynamic;
-		bool sourceHasCustomLights = EntityManager.HasComponent<CustomTrafficLights>(sourceJunction);
-		if (sourceHasCustomLights)
-		{
-			var sourceLights = EntityManager.GetComponentData<CustomTrafficLights>(sourceJunction);
-			sourcePattern = sourceLights.GetPattern();
-			sourceMode = sourceLights.GetMode();
-		}
-
-		
-		CustomTrafficLights.Patterns targetPattern = CustomTrafficLights.Patterns.Vanilla;
-		CustomTrafficLights.TrafficMode targetMode = CustomTrafficLights.TrafficMode.Dynamic;
-		bool targetHasCustomLights = EntityManager.HasComponent<CustomTrafficLights>(targetJunction);
-		if (targetHasCustomLights)
-		{
-			var targetLights = EntityManager.GetComponentData<CustomTrafficLights>(targetJunction);
-			targetPattern = targetLights.GetPattern();
-			targetMode = targetLights.GetMode();
-		}
-
-		
-		if (sourceMode == CustomTrafficLights.TrafficMode.Dynamic || sourceMode == CustomTrafficLights.TrafficMode.FixedTimed)
-		{
-			if (targetMode != CustomTrafficLights.TrafficMode.Dynamic && targetMode != CustomTrafficLights.TrafficMode.FixedTimed)
-			{
-				errorMessage = LocaleHelper.Translate(
-					"UI.LABEL[C2VM.TrafficLightsEnhancement.SyncErrorNotCustomPhases]",
-					"Cannot sync phases: Source intersection uses Custom phases but target intersection does not.\n\nBoth intersections must be set to Custom phases to sync phase configurations.");
-				return false;
-			}
-
-			
-			bool sourceHasPhases = EntityManager.HasBuffer<CustomPhaseData>(sourceJunction) && 
-				EntityManager.GetBuffer<CustomPhaseData>(sourceJunction).Length > 0;
-			bool targetHasPhases = EntityManager.HasBuffer<CustomPhaseData>(targetJunction) && 
-				EntityManager.GetBuffer<CustomPhaseData>(targetJunction).Length > 0;
-
-			if (!sourceHasPhases)
-			{
-				errorMessage = LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SyncErrorNoSourcePhases]", "Cannot sync phases: Source intersection has no custom phase data configured.");
-				return false;
-			}
-		}
-
-		
-		if ((sourceMode != CustomTrafficLights.TrafficMode.Dynamic && sourceMode != CustomTrafficLights.TrafficMode.FixedTimed) && 
-			sourcePattern != CustomTrafficLights.Patterns.Vanilla)
-		{
-			if (targetPattern == CustomTrafficLights.Patterns.Vanilla)
-			{
-				string sourcePatternName = GetPatternDisplayName(sourcePattern, sourceMode);
-				errorMessage = string.Format(
-					LocaleHelper.Translate(
-						"UI.LABEL[C2VM.TrafficLightsEnhancement.SyncErrorNoTargetPattern]",
-						"Cannot sync phases: Target intersection has no pattern configured.\n\nSource intersection: {0}\nTarget intersection: Vanilla (no pattern)\n\nTarget intersection must have a predefined pattern to sync."),
-					sourcePatternName);
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	private string GetPatternDisplayName(CustomTrafficLights.Patterns pattern, CustomTrafficLights.TrafficMode mode)
-	{
-		return (pattern, mode) switch
-		{
-			(CustomTrafficLights.Patterns.Vanilla, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Vanilla]", "Vanilla"),
-			(CustomTrafficLights.Patterns.SplitPhasing, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SplitPhasing]", "Split phasing"),
-			(CustomTrafficLights.Patterns.ProtectedCentreTurn, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PatternProtectedTurns]", "Protected turns"),
-			(CustomTrafficLights.Patterns.SplitPhasingProtectedLeft, _) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.SplitPhasingProtectedLeft]", "Split phasing + protected left"),
-			(_, CustomTrafficLights.TrafficMode.Dynamic) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.Dynamic]", "Dynamic"),
-			(_, CustomTrafficLights.TrafficMode.FixedTimed) => LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.FixedTimed]", "Fixed timed"),
-			_ => $"{pattern} + {mode}"
-		};
-	}
-
-	
-	public bool TryCopyPhasesToJunction(Entity sourceJunction, Entity targetJunction, out string errorMessage)
-	{
-		errorMessage = "";
-
-		if (sourceJunction == Entity.Null || targetJunction == Entity.Null)
-		{
-			return false;
-		}
-
-
-		if (!ValidatePhaseSyncCompatibility(sourceJunction, targetJunction, out errorMessage))
-		{
-			return false;
-		}
-
-		
-		if (EntityManager.HasComponent<CustomTrafficLights>(sourceJunction))
-		{
-			var sourceLights = EntityManager.GetComponentData<CustomTrafficLights>(sourceJunction);
-			
-			if (!EntityManager.HasComponent<CustomTrafficLights>(targetJunction))
-			{
-				EntityManager.AddComponentData(targetJunction, new CustomTrafficLights(sourceLights.GetPattern()));
-			}
-			else
-			{
-				var targetLights = EntityManager.GetComponentData<CustomTrafficLights>(targetJunction);
-				targetLights.SetPattern(sourceLights.GetPattern());
-				targetLights.m_Timer = 0;
-				EntityManager.SetComponentData(targetJunction, targetLights);
-			}
-		}
-
-		
-		if (EntityManager.HasBuffer<CustomPhaseData>(sourceJunction))
-		{
-			EntityManager.TryGetBuffer<CustomPhaseData>(sourceJunction, false, out var sourcePhases);
-			if (sourcePhases.Length > 0)
-			{
-				
-				if (!EntityManager.HasBuffer<CustomPhaseData>(targetJunction))
-				{
-					EntityManager.AddBuffer<CustomPhaseData>(targetJunction);
-				}
-
-				var targetPhases = EntityManager.GetBuffer<CustomPhaseData>(targetJunction);
-				targetPhases.Clear();
-
-				for (int i = 0; i < sourcePhases.Length; i++)
-				{
-					var sourcePhase = sourcePhases[i];
-					
-					var newPhase = new CustomPhaseData
-					{
-						m_MinimumDuration = sourcePhase.m_MinimumDuration,
-						m_MaximumDuration = sourcePhase.m_MaximumDuration,
-						m_ChangeMetric = sourcePhase.m_ChangeMetric,
-						m_WaitFlowBalance = sourcePhase.m_WaitFlowBalance,
-						m_LaneOccupiedMultiplier = sourcePhase.m_LaneOccupiedMultiplier,
-						m_IntervalExponent = sourcePhase.m_IntervalExponent,
-						m_Options = sourcePhase.m_Options & ~CustomPhaseData.Options.EndPhasePrematurely,
-						m_TurnsSinceLastRun = 0,
-						m_LowFlowTimer = 0,
-						m_LowPriorityTimer = 0,
-						m_WeightedWaiting = 0f
-					};
-
-					targetPhases.Add(newPhase);
-				}
-			}
-		}
-
-		CopyEdgeGroupMaskWithDirectionMatching(sourceJunction, targetJunction);
-		CopySubLaneGroupMaskWithLaneTypeMatching(sourceJunction, targetJunction);
-		EntityManager.AddComponentData(targetJunction, default(Updated));
-		return true;
-	}
-
-	public bool CopyPhasesToJunction(Entity sourceJunction, Entity targetJunction)
-	{
-		if (TryCopyPhasesToJunction(sourceJunction, targetJunction, out string errorMessage))
-		{
-			return true;
-		}
-
-		if (!string.IsNullOrEmpty(errorMessage))
-		{
-			var messageDialog = new MessageDialog(
-				LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.PhaseSyncNotAllowed]", "Phase sync not allowed"),
-				errorMessage,
-				LocalizedString.Id("Common.OK"));
-			GameManager.instance.userInterface.appBindings.ShowMessageDialog(messageDialog, null);
-		}
-
-		return false;
-	}
-
-	public void CopyPhasesToAllMembers(Entity sourceJunction)
-	{
-		if (sourceJunction == Entity.Null)
+		if (memberEntity == Entity.Null || !EntityManager.Exists(memberEntity))
 		{
 			return;
 		}
 
-		var members = GetGroupMembers(GetJunctionGroup(sourceJunction));
+		EnsureCustomPhaseComponents(memberEntity);
 
-		int copied = 0;
-		int skipped = 0;
-		string firstSkipReason = "";
+		Entity leaderEntity = groupEntity != Entity.Null
+			&& EntityManager.HasComponent<TrafficGroup>(groupEntity)
+				? GetGroupLeader(groupEntity)
+				: Entity.Null;
+		DynamicBuffer<CustomPhaseData> leaderPhases = default;
+		bool leaderHasCustomPhases = leaderEntity != Entity.Null
+			&& EntityManager.HasComponent<CustomTrafficLights>(leaderEntity)
+			&& EntityManager.GetComponentData<CustomTrafficLights>(leaderEntity)
+				.GetPatternOnly() == CustomTrafficLights.Patterns.CustomPhase
+			&& EntityManager.TryGetBuffer(
+				leaderEntity,
+				true,
+				out leaderPhases)
+			&& leaderPhases.Length > 0;
 
-		foreach (var memberEntity in members)
+		var memberPhases = EntityManager.GetBuffer<CustomPhaseData>(memberEntity);
+		if (leaderHasCustomPhases)
 		{
-			if (memberEntity == sourceJunction)
+			EnsureMemberUsesCustomPhases(memberEntity);
+			for (int i = memberPhases.Length; i < leaderPhases.Length; i++)
 			{
-				continue;
-			}
-
-			if (TryCopyPhasesToJunction(sourceJunction, memberEntity, out string skipReason))
-			{
-				copied++;
-			}
-			else
-			{
-				skipped++;
-				if (string.IsNullOrEmpty(firstSkipReason))
+				CustomPhaseData leaderPhase = leaderPhases[i];
+				var memberPhase = new CustomPhaseData
 				{
-					firstSkipReason = skipReason;
-				}
+					m_MinimumDuration = leaderPhase.m_MinimumDuration,
+					m_MaximumDuration = leaderPhase.m_MaximumDuration
+				};
+				memberPhases.Add(memberPhase);
 			}
 		}
+		else if (memberPhases.Length == 0)
+		{
+			memberPhases.Add(new CustomPhaseData());
+		}
 
-		members.Dispose();
+		EnsureTopologyLocalEdgeMasks(memberEntity);
+		MarkMemberUpdated(memberEntity);
+	}
 
-		if (copied == 0 && skipped == 0)
+	private void EnsureCustomPhaseComponents(Entity memberEntity)
+	{
+		if (!EntityManager.HasComponent<CustomTrafficLights>(memberEntity))
+		{
+			EntityManager.AddComponentData(
+				memberEntity,
+				new CustomTrafficLights(CustomTrafficLights.Patterns.Vanilla));
+		}
+
+		var customTrafficLights =
+			EntityManager.GetComponentData<CustomTrafficLights>(memberEntity);
+		var currentMode = customTrafficLights.GetMode();
+		if (currentMode != CustomTrafficLights.TrafficMode.Dynamic
+			&& currentMode != CustomTrafficLights.TrafficMode.FixedTimed)
+		{
+			customTrafficLights.SetMode(CustomTrafficLights.TrafficMode.Dynamic);
+		}
+		customTrafficLights.m_Timer = 0;
+		EntityManager.SetComponentData(memberEntity, customTrafficLights);
+
+		if (!EntityManager.HasBuffer<CustomPhaseData>(memberEntity))
+		{
+			EntityManager.AddBuffer<CustomPhaseData>(memberEntity);
+		}
+		if (!EntityManager.HasBuffer<EdgeGroupMask>(memberEntity))
+		{
+			EntityManager.AddBuffer<EdgeGroupMask>(memberEntity);
+		}
+		if (!EntityManager.HasBuffer<SubLaneGroupMask>(memberEntity))
+		{
+			EntityManager.AddBuffer<SubLaneGroupMask>(memberEntity);
+		}
+	}
+
+	private void EnsureMemberUsesCustomPhases(Entity memberEntity)
+	{
+		var customTrafficLights =
+			EntityManager.GetComponentData<CustomTrafficLights>(memberEntity);
+		customTrafficLights.SetPatternOnly(
+			CustomTrafficLights.Patterns.CustomPhase);
+		var currentMode = customTrafficLights.GetMode();
+		if (currentMode != CustomTrafficLights.TrafficMode.Dynamic
+			&& currentMode != CustomTrafficLights.TrafficMode.FixedTimed)
+		{
+			customTrafficLights.SetMode(CustomTrafficLights.TrafficMode.Dynamic);
+		}
+		customTrafficLights.m_Timer = 0;
+		EntityManager.SetComponentData(memberEntity, customTrafficLights);
+	}
+
+	private void EnsureTopologyLocalEdgeMasks(Entity memberEntity)
+	{
+		if (!EntityManager.HasBuffer<ConnectedEdge>(memberEntity))
 		{
 			return;
 		}
 
-		string message;
-		if (copied == 0 && !string.IsNullOrEmpty(firstSkipReason))
-		{
-			message = firstSkipReason;
-		}
-		else
-		{
-			message = string.Format(
-				LocaleHelper.Translate(
-					"UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesToAllResult]",
-					"Copied phases to {0} of {1} group member(s)."),
-				copied, copied + skipped);
+		var connectedEdges = EntityManager.GetBuffer<ConnectedEdge>(memberEntity);
+		var edgeMasks = EntityManager.GetBuffer<EdgeGroupMask>(memberEntity);
+		var edgeLookup = GetComponentLookup<Edge>(true);
+		var edgeGeometryLookup = GetComponentLookup<EdgeGeometry>(true);
 
-			if (skipped > 0)
+		foreach (ConnectedEdge connectedEdge in connectedEdges)
+		{
+			Entity edgeEntity = connectedEdge.m_Edge;
+			bool edgeFound = false;
+			for (int i = 0; i < edgeMasks.Length; i++)
 			{
-				message += "\n\n" + string.Format(
-					LocaleHelper.Translate(
-						"UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesToAllSkipped]",
-						"{0} member(s) were skipped because they cannot accept these phases."),
-					skipped);
+				if (edgeMasks[i].m_Edge == edgeEntity)
+				{
+					edgeFound = true;
+					break;
+				}
+			}
+
+			if (!edgeFound)
+			{
+				float3 edgePosition = NodeUtils.GetEdgePosition(
+					memberEntity,
+					edgeEntity,
+					edgeLookup,
+					edgeGeometryLookup);
+				edgeMasks.Add(new EdgeGroupMask(edgeEntity, edgePosition));
 			}
 		}
-
-		var dialog = new MessageDialog(
-			LocaleHelper.Translate("UI.LABEL[C2VM.TrafficLightsEnhancement.CopyPhasesResultTitle]", "Copy phases"),
-			message,
-			LocalizedString.Id("Common.OK"));
-		GameManager.instance.userInterface.appBindings.ShowMessageDialog(dialog, null);
 	}
 
-	
+	private void MarkMemberUpdated(Entity memberEntity)
+	{
+		if (!EntityManager.HasComponent<Updated>(memberEntity))
+		{
+			EntityManager.AddComponentData(memberEntity, default(Updated));
+		}
+	}
+
 	public void MatchPhaseDurationsToLeader(Entity groupEntity)
 	{
-		if (groupEntity == Entity.Null || !EntityManager.HasComponent<TrafficGroup>(groupEntity))
+		if (groupEntity == Entity.Null
+			|| !EntityManager.HasComponent<TrafficGroup>(groupEntity))
 		{
 			return;
 		}
 
 		Entity leaderEntity = GetGroupLeader(groupEntity);
-		if (leaderEntity == Entity.Null || !EntityManager.HasBuffer<CustomPhaseData>(leaderEntity))
+		if (leaderEntity == Entity.Null
+			|| !EntityManager.TryGetBuffer(
+				leaderEntity,
+				true,
+				out DynamicBuffer<CustomPhaseData> leaderPhases)
+			|| leaderPhases.Length == 0)
 		{
-			m_Log.Warn($"Leader has no phases");
-			return;
-		}
-
-		EntityManager.TryGetBuffer<CustomPhaseData>(leaderEntity, false, out var leaderPhases);
-		if (leaderPhases.Length == 0)
-		{
+			m_Log.Warn("Leader has no phases");
 			return;
 		}
 
 		var members = GetGroupMembers(groupEntity);
-		int membersUpdated = 0;
-
-		foreach (var memberEntity in members)
+		foreach (Entity memberEntity in members)
 		{
 			if (memberEntity == leaderEntity)
 			{
 				continue;
 			}
 
-			if (!EntityManager.HasBuffer<CustomPhaseData>(memberEntity))
-			{
-				continue;
-			}
-
-			EntityManager.TryGetBuffer<CustomPhaseData>(memberEntity, false, out var memberPhases);
-			
+			EnsureMemberCustomPhaseSetup(groupEntity, memberEntity);
+			var memberPhases =
+				EntityManager.GetBuffer<CustomPhaseData>(memberEntity);
 			int phaseCount = math.min(leaderPhases.Length, memberPhases.Length);
 			for (int i = 0; i < phaseCount; i++)
 			{
-				var memberPhase = memberPhases[i];
-				var leaderPhase = leaderPhases[i];
-				
-				memberPhase.m_MinimumDuration = leaderPhase.m_MinimumDuration;
-				memberPhase.m_MaximumDuration = leaderPhase.m_MaximumDuration;
-				
+				CustomPhaseData memberPhase = memberPhases[i];
+				CustomPhaseData leaderPhase = leaderPhases[i];
+				memberPhase.m_MinimumDuration =
+					leaderPhase.m_MinimumDuration;
+				memberPhase.m_MaximumDuration =
+					leaderPhase.m_MaximumDuration;
 				memberPhases[i] = memberPhase;
 			}
 
-			membersUpdated++;
+			MarkMemberUpdated(memberEntity);
 		}
 
 		members.Dispose();
+		RecalculateGroupCycleLength(groupEntity);
 	}
 
-	public void PropagatePatternToMembers(Entity groupEntity, CustomTrafficLights.Patterns pattern)
+	public void PropagatePatternToMembers(
+		Entity groupEntity,
+		CustomTrafficLights.Patterns pattern)
 	{
-		if (groupEntity == Entity.Null || !EntityManager.HasComponent<TrafficGroup>(groupEntity))
+		if (groupEntity == Entity.Null
+			|| !EntityManager.HasComponent<TrafficGroup>(groupEntity))
 		{
 			return;
 		}
 
 		Entity leaderEntity = GetGroupLeader(groupEntity);
 		var members = GetGroupMembers(groupEntity);
-
-		foreach (var memberEntity in members)
+		foreach (Entity memberEntity in members)
 		{
 			if (memberEntity == leaderEntity)
 			{
@@ -1671,593 +1910,35 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 			if (!EntityManager.HasComponent<CustomTrafficLights>(memberEntity))
 			{
-				EntityManager.AddComponentData(memberEntity, new CustomTrafficLights(pattern));
+				EntityManager.AddComponentData(
+					memberEntity,
+					new CustomTrafficLights(pattern));
 			}
 			else
 			{
-				var memberLights = EntityManager.GetComponentData<CustomTrafficLights>(memberEntity);
+				var memberLights =
+					EntityManager.GetComponentData<CustomTrafficLights>(
+						memberEntity);
 				memberLights.SetPattern(pattern);
 				memberLights.m_Timer = 0;
 				EntityManager.SetComponentData(memberEntity, memberLights);
 			}
 
-			
-			CopyEdgeGroupMaskWithDirectionMatching(leaderEntity, memberEntity);
-			
-			
-			CopySubLaneGroupMaskWithLaneTypeMatching(leaderEntity, memberEntity);
-
-			if (!EntityManager.HasComponent<Updated>(memberEntity))
+			if (((uint)pattern & 0xFFFF)
+				== (uint)CustomTrafficLights.Patterns.CustomPhase)
 			{
-				EntityManager.AddComponentData(memberEntity, default(Updated));
+				EnsureMemberCustomPhaseSetup(groupEntity, memberEntity);
+			}
+			else
+			{
+				MarkMemberUpdated(memberEntity);
 			}
 		}
 
 		int memberCount = members.Length;
 		members.Dispose();
-		m_Log.Info($"Propagated pattern {pattern} to {memberCount - 1} group members with full lane matching");
-	}
-
-	private void CopyEdgeGroupMaskWithDirectionMatching(Entity sourceJunction, Entity targetJunction)
-	{
-		if (!EntityManager.HasBuffer<EdgeGroupMask>(sourceJunction) ||
-		    !EntityManager.HasBuffer<ConnectedEdge>(sourceJunction) ||
-		    !EntityManager.HasBuffer<ConnectedEdge>(targetJunction))
-		{
-			return;
-		}
-
-		EntityManager.TryGetBuffer<EdgeGroupMask>(sourceJunction, false, out var sourceSignals);
-		EntityManager.TryGetBuffer<ConnectedEdge>(sourceJunction, false, out var sourceConnectedEdges);
-		EntityManager.TryGetBuffer<ConnectedEdge>(targetJunction, false, out var targetConnectedEdges);
-
-		if (sourceSignals.Length == 0)
-		{
-			return;
-		}
-
-		if (!EntityManager.HasBuffer<EdgeGroupMask>(targetJunction))
-		{
-			EntityManager.AddBuffer<EdgeGroupMask>(targetJunction);
-		}
-
-		EntityManager.TryGetBuffer<EdgeGroupMask>(targetJunction, false, out var targetSignals);
-		targetSignals.Clear();
-
-		var edgeLookup = GetComponentLookup<Edge>(true);
-		var edgeGeometryLookup = GetComponentLookup<EdgeGeometry>(true);
-		var connectedEdgeLookup = GetBufferLookup<ConnectedEdge>(true);
-
-		
-		var sourceEdgeToSignal = new NativeHashMap<Entity, EdgeGroupMask>(sourceSignals.Length, Allocator.Temp);
-		for (int i = 0; i < sourceSignals.Length; i++)
-		{
-			sourceEdgeToSignal[sourceSignals[i].m_Edge] = sourceSignals[i];
-		}
-
-		
-		var matchedTargetEdges = new NativeHashSet<Entity>(targetConnectedEdges.Length, Allocator.Temp);
-
-		
-		for (int t = 0; t < targetConnectedEdges.Length; t++)
-		{
-			var targetEdge = targetConnectedEdges[t].m_Edge;
-			
-			
-			Entity matchedSourceEdge = TryFindConnectedSourceEdge(
-				targetJunction, targetEdge, sourceJunction, 
-				edgeLookup, connectedEdgeLookup, 10); 
-			
-			if (matchedSourceEdge != Entity.Null && sourceEdgeToSignal.TryGetValue(matchedSourceEdge, out var sourceSignal))
-			{
-				var targetEdgePos = GetEdgePositionForJunction(targetJunction, targetEdge, edgeLookup, edgeGeometryLookup);
-				var newSignal = new EdgeGroupMask(targetEdge, targetEdgePos, sourceSignal);
-				targetSignals.Add(newSignal);
-				matchedTargetEdges.Add(targetEdge);
-			}
-		}
-
-		
-		float3 sourceCenter = float3.zero;
-		for (int i = 0; i < sourceConnectedEdges.Length; i++)
-		{
-			var edgePos = GetEdgePositionForJunction(sourceJunction, sourceConnectedEdges[i].m_Edge, edgeLookup, edgeGeometryLookup);
-			sourceCenter += edgePos;
-		}
-		sourceCenter /= sourceConnectedEdges.Length;
-
-		float3 targetCenter = float3.zero;
-		for (int i = 0; i < targetConnectedEdges.Length; i++)
-		{
-			var edgePos = GetEdgePositionForJunction(targetJunction, targetConnectedEdges[i].m_Edge, edgeLookup, edgeGeometryLookup);
-			targetCenter += edgePos;
-		}
-		targetCenter /= targetConnectedEdges.Length;
-
-		
-		var sourceEdgeData = new NativeList<(Entity edge, float angle, EdgeGroupMask signal)>(sourceConnectedEdges.Length, Allocator.Temp);
-		for (int i = 0; i < sourceConnectedEdges.Length; i++)
-		{
-			var edgeEntity = sourceConnectedEdges[i].m_Edge;
-			var edgePos = GetEdgePositionForJunction(sourceJunction, edgeEntity, edgeLookup, edgeGeometryLookup);
-			float angle = math.atan2(edgePos.z - sourceCenter.z, edgePos.x - sourceCenter.x);
-			if (sourceEdgeToSignal.TryGetValue(edgeEntity, out var signal))
-			{
-				sourceEdgeData.Add((edgeEntity, angle, signal));
-			}
-		}
-
-		
-		for (int t = 0; t < targetConnectedEdges.Length; t++)
-		{
-			var targetEdge = targetConnectedEdges[t].m_Edge;
-			
-			
-			if (matchedTargetEdges.Contains(targetEdge))
-			{
-				continue;
-			}
-
-			var targetEdgePos = GetEdgePositionForJunction(targetJunction, targetEdge, edgeLookup, edgeGeometryLookup);
-			float targetAngle = math.atan2(targetEdgePos.z - targetCenter.z, targetEdgePos.x - targetCenter.x);
-
-			
-			float bestAngleDiff = float.MaxValue;
-			int bestSourceIndex = -1;
-
-			for (int s = 0; s < sourceEdgeData.Length; s++)
-			{
-				float angleDiff = math.abs(AngleDifference(targetAngle, sourceEdgeData[s].angle));
-				if (angleDiff < bestAngleDiff)
-				{
-					bestAngleDiff = angleDiff;
-					bestSourceIndex = s;
-				}
-			}
-
-			if (bestSourceIndex >= 0 && bestAngleDiff < math.PI / 4) 
-			{
-				var sourceSignal = sourceEdgeData[bestSourceIndex].signal;
-				var newSignal = new EdgeGroupMask(targetEdge, targetEdgePos, sourceSignal);
-				targetSignals.Add(newSignal);
-			}
-		}
-
-		sourceEdgeData.Dispose();
-		sourceEdgeToSignal.Dispose();
-		matchedTargetEdges.Dispose();
-	}
-
-	private Entity TryFindConnectedSourceEdge(
-		Entity startNode, Entity startEdge, Entity targetNode,
-		ComponentLookup<Edge> edgeLookup, BufferLookup<ConnectedEdge> connectedEdgeLookup,
-		int maxHops)
-	{
-		if (!edgeLookup.HasComponent(startEdge))
-		{
-			return Entity.Null;
-		}
-
-		
-		var edge = edgeLookup[startEdge];
-		Entity currentNode = edge.m_Start == startNode ? edge.m_End : edge.m_Start;
-		Entity previousEdge = startEdge;
-
-		
-		float3 startDirection = GetEdgeDirection(startNode, startEdge, edgeLookup);
-
-		for (int hop = 0; hop < maxHops; hop++)
-		{
-			
-			if (currentNode == targetNode)
-			{
-				
-				return previousEdge;
-			}
-
-			
-			if (!connectedEdgeLookup.HasBuffer(currentNode))
-			{
-				break;
-			}
-
-			var connectedEdges = connectedEdgeLookup[currentNode];
-			
-			
-			if (connectedEdges.Length == 2)
-			{
-				
-				Entity nextEdge = Entity.Null;
-				for (int i = 0; i < connectedEdges.Length; i++)
-				{
-					if (connectedEdges[i].m_Edge != previousEdge)
-					{
-						nextEdge = connectedEdges[i].m_Edge;
-						break;
-					}
-				}
-
-				if (nextEdge == Entity.Null || !edgeLookup.HasComponent(nextEdge))
-				{
-					break;
-				}
-
-				
-				var nextEdgeData = edgeLookup[nextEdge];
-				Entity nextNode = nextEdgeData.m_Start == currentNode ? nextEdgeData.m_End : nextEdgeData.m_Start;
-				
-				previousEdge = nextEdge;
-				currentNode = nextNode;
-			}
-			else
-			{
-				
-				Entity bestEdge = Entity.Null;
-				float bestAlignment = -2f; 
-
-				float3 incomingDir = GetEdgeDirection(currentNode, previousEdge, edgeLookup);
-				
-				incomingDir = -incomingDir;
-
-				for (int i = 0; i < connectedEdges.Length; i++)
-				{
-					var candidateEdge = connectedEdges[i].m_Edge;
-					if (candidateEdge == previousEdge)
-					{
-						continue;
-					}
-
-					float3 candidateDir = GetEdgeDirection(currentNode, candidateEdge, edgeLookup);
-					float alignment = math.dot(math.normalize(incomingDir.xz), math.normalize(candidateDir.xz));
-
-					
-					if (edgeLookup.HasComponent(candidateEdge))
-					{
-						var candidateEdgeData = edgeLookup[candidateEdge];
-						Entity otherEnd = candidateEdgeData.m_Start == currentNode ? candidateEdgeData.m_End : candidateEdgeData.m_Start;
-						
-						if (otherEnd == targetNode)
-						{
-							
-							return candidateEdge;
-						}
-					}
-
-					
-					if (alignment > bestAlignment && alignment > 0.5f)
-					{
-						bestAlignment = alignment;
-						bestEdge = candidateEdge;
-					}
-				}
-
-				if (bestEdge == Entity.Null || !edgeLookup.HasComponent(bestEdge))
-				{
-					break;
-				}
-
-				var bestEdgeData = edgeLookup[bestEdge];
-				Entity nextNode = bestEdgeData.m_Start == currentNode ? bestEdgeData.m_End : bestEdgeData.m_Start;
-				
-				previousEdge = bestEdge;
-				currentNode = nextNode;
-			}
-		}
-
-		return Entity.Null;
-	}
-
-	private float3 GetEdgeDirection(Entity node, Entity edgeEntity, ComponentLookup<Edge> edgeLookup)
-	{
-		if (!edgeLookup.HasComponent(edgeEntity))
-		{
-			return float3.zero;
-		}
-
-		var edge = edgeLookup[edgeEntity];
-		var edgeGeometryLookup = GetComponentLookup<EdgeGeometry>(true);
-		
-		if (!edgeGeometryLookup.HasComponent(edgeEntity))
-		{
-			return float3.zero;
-		}
-
-		var geometry = edgeGeometryLookup[edgeEntity];
-		
-		
-		if (edge.m_Start == node)
-		{
-			
-			float3 start = (geometry.m_Start.m_Left.a + geometry.m_Start.m_Right.a) / 2;
-			float3 end = (geometry.m_End.m_Left.d + geometry.m_End.m_Right.d) / 2;
-			return math.normalize(end - start);
-		}
-		else
-		{
-			
-			float3 start = (geometry.m_Start.m_Left.a + geometry.m_Start.m_Right.a) / 2;
-			float3 end = (geometry.m_End.m_Left.d + geometry.m_End.m_Right.d) / 2;
-			return math.normalize(start - end);
-		}
-	}
-
-	private float AngleDifference(float a, float b)
-	{
-		float diff = a - b;
-		while (diff > math.PI) diff -= 2 * math.PI;
-		while (diff < -math.PI) diff += 2 * math.PI;
-		return diff;
-	}
-
-	private void CopySubLaneGroupMaskWithLaneTypeMatching(Entity sourceJunction, Entity targetJunction)
-	{
-		if (!EntityManager.HasBuffer<SubLaneGroupMask>(sourceJunction) ||
-		    !EntityManager.HasBuffer<ConnectedEdge>(sourceJunction) ||
-		    !EntityManager.HasBuffer<ConnectedEdge>(targetJunction) ||
-		    !EntityManager.HasBuffer<SubLane>(sourceJunction) ||
-		    !EntityManager.HasBuffer<SubLane>(targetJunction))
-		{
-			return;
-		}
-
-		EntityManager.TryGetBuffer<SubLaneGroupMask>(sourceJunction, false, out var sourceSubLaneMasks);
-		if (sourceSubLaneMasks.Length == 0)
-		{
-			return;
-		}
-
-		if (!EntityManager.HasBuffer<SubLaneGroupMask>(targetJunction))
-		{
-			EntityManager.AddBuffer<SubLaneGroupMask>(targetJunction);
-		}
-
-		EntityManager.TryGetBuffer<SubLaneGroupMask>(targetJunction, false, out var targetSubLaneMasks);
-		EntityManager.TryGetBuffer<SubLane>(sourceJunction, false, out var sourceSubLanes);
-		EntityManager.TryGetBuffer<SubLane>(targetJunction, false, out var targetSubLanes);
-
-		var edgeLookup = GetComponentLookup<Edge>(true);
-		var edgeGeometryLookup = GetComponentLookup<EdgeGeometry>(true);
-		var connectedEdgeLookup = GetBufferLookup<ConnectedEdge>(true);
-		var ownerLookup = GetComponentLookup<Owner>(true);
-		var carLaneLookup = GetComponentLookup<CarLane>(true);
-		var trackLaneLookup = GetComponentLookup<TrackLane>(true);
-		var curveLookup = GetComponentLookup<Curve>(true);
-
-		
-		var sourceSubLaneMap = new NativeHashMap<Entity, NativeList<SubLaneMatchInfo>>(16, Allocator.Temp);
-		
-		foreach (var subLaneMask in sourceSubLaneMasks)
-		{
-			if (!ownerLookup.HasComponent(subLaneMask.m_SubLane))
-			{
-				continue;
-			}
-
-			var owner = ownerLookup[subLaneMask.m_SubLane];
-			Entity edgeEntity = owner.m_Owner;
-			
-			LaneTurnType turnType = GetLaneTurnType(subLaneMask.m_SubLane, carLaneLookup, trackLaneLookup);
-			float3 position = GetSubLanePosition(subLaneMask.m_SubLane, curveLookup);
-
-			if (!sourceSubLaneMap.TryGetValue(edgeEntity, out var list))
-			{
-				list = new NativeList<SubLaneMatchInfo>(8, Allocator.Temp);
-				sourceSubLaneMap[edgeEntity] = list;
-			}
-			list.Add(new SubLaneMatchInfo
-			{
-				subLane = subLaneMask.m_SubLane,
-				turnType = turnType,
-				position = position,
-				mask = subLaneMask
-			});
-			sourceSubLaneMap[edgeEntity] = list;
-		}
-
-		
-		var targetToSourceEdgeMap = BuildEdgeMapping(sourceJunction, targetJunction, edgeLookup, edgeGeometryLookup, connectedEdgeLookup);
-
-		
-		for (int t = 0; t < targetSubLaneMasks.Length; t++)
-		{
-			var targetMask = targetSubLaneMasks[t];
-			
-			if (!ownerLookup.HasComponent(targetMask.m_SubLane))
-			{
-				continue;
-			}
-
-			var targetOwner = ownerLookup[targetMask.m_SubLane];
-			Entity targetEdge = targetOwner.m_Owner;
-			
-			
-			if (!targetToSourceEdgeMap.TryGetValue(targetEdge, out Entity sourceEdge))
-			{
-				continue;
-			}
-
-			
-			if (!sourceSubLaneMap.TryGetValue(sourceEdge, out var sourceSubLanes2))
-			{
-				continue;
-			}
-
-			LaneTurnType targetTurnType = GetLaneTurnType(targetMask.m_SubLane, carLaneLookup, trackLaneLookup);
-			float3 targetPosition = GetSubLanePosition(targetMask.m_SubLane, curveLookup);
-
-			
-			int bestMatchIndex = -1;
-			float bestMatchScore = float.MaxValue;
-
-			for (int s = 0; s < sourceSubLanes2.Length; s++)
-			{
-				var sourceInfo = sourceSubLanes2[s];
-				
-				
-				float turnTypeScore = (sourceInfo.turnType == targetTurnType) ? 0f : 100f;
-				
-				
-				float positionScore = math.distance(sourceInfo.position, targetPosition);
-				
-				float totalScore = turnTypeScore + positionScore;
-				
-				if (totalScore < bestMatchScore)
-				{
-					bestMatchScore = totalScore;
-					bestMatchIndex = s;
-				}
-			}
-
-			if (bestMatchIndex >= 0)
-			{
-				var sourceInfo = sourceSubLanes2[bestMatchIndex];
-				var newMask = new SubLaneGroupMask(targetMask.m_SubLane, targetPosition, sourceInfo.mask);
-				targetSubLaneMasks[t] = newMask;
-			}
-		}
-
-		
-		foreach (var kvp in sourceSubLaneMap)
-		{
-			kvp.Value.Dispose();
-		}
-		sourceSubLaneMap.Dispose();
-		targetToSourceEdgeMap.Dispose();
-	}
-
-	private struct SubLaneMatchInfo
-	{
-		public Entity subLane;
-		public LaneTurnType turnType;
-		public float3 position;
-		public SubLaneGroupMask mask;
-	}
-
-	private enum LaneTurnType
-	{
-		Straight,
-		Left,
-		Right,
-		UTurn,
-		Other
-	}
-
-	private LaneTurnType GetLaneTurnType(Entity subLane, ComponentLookup<CarLane> carLaneLookup, ComponentLookup<TrackLane> trackLaneLookup)
-	{
-		if (carLaneLookup.TryGetComponent(subLane, out var carLane))
-		{
-			if ((carLane.m_Flags & (CarLaneFlags.UTurnLeft | CarLaneFlags.UTurnRight)) != 0)
-			{
-				return LaneTurnType.UTurn;
-			}
-			if ((carLane.m_Flags & (CarLaneFlags.TurnLeft | CarLaneFlags.GentleTurnLeft)) != 0)
-			{
-				return LaneTurnType.Left;
-			}
-			if ((carLane.m_Flags & (CarLaneFlags.TurnRight | CarLaneFlags.GentleTurnRight)) != 0)
-			{
-				return LaneTurnType.Right;
-			}
-			return LaneTurnType.Straight;
-		}
-
-		if (trackLaneLookup.TryGetComponent(subLane, out var trackLane))
-		{
-			if ((trackLane.m_Flags & TrackLaneFlags.TurnLeft) != 0)
-			{
-				return LaneTurnType.Left;
-			}
-			if ((trackLane.m_Flags & TrackLaneFlags.TurnRight) != 0)
-			{
-				return LaneTurnType.Right;
-			}
-			return LaneTurnType.Straight;
-		}
-
-		return LaneTurnType.Other;
-	}
-
-	private float3 GetSubLanePosition(Entity subLane, ComponentLookup<Curve> curveLookup)
-	{
-		if (curveLookup.TryGetComponent(subLane, out var curve))
-		{
-			return curve.m_Bezier.d;
-		}
-		return float3.zero;
-	}
-
-	private NativeHashMap<Entity, Entity> BuildEdgeMapping(
-		Entity sourceJunction, Entity targetJunction,
-		ComponentLookup<Edge> edgeLookup, ComponentLookup<EdgeGeometry> edgeGeometryLookup,
-		BufferLookup<ConnectedEdge> connectedEdgeLookup)
-	{
-		var result = new NativeHashMap<Entity, Entity>(8, Allocator.Temp);
-
-		if (!connectedEdgeLookup.HasBuffer(sourceJunction) || !connectedEdgeLookup.HasBuffer(targetJunction))
-		{
-			return result;
-		}
-
-		var sourceEdges = connectedEdgeLookup[sourceJunction];
-		var targetEdges = connectedEdgeLookup[targetJunction];
-
-		
-		float3 sourceCenter = float3.zero;
-		for (int i = 0; i < sourceEdges.Length; i++)
-		{
-			sourceCenter += GetEdgePositionForJunction(sourceJunction, sourceEdges[i].m_Edge, edgeLookup, edgeGeometryLookup);
-		}
-		sourceCenter /= sourceEdges.Length;
-
-		float3 targetCenter = float3.zero;
-		for (int i = 0; i < targetEdges.Length; i++)
-		{
-			targetCenter += GetEdgePositionForJunction(targetJunction, targetEdges[i].m_Edge, edgeLookup, edgeGeometryLookup);
-		}
-		targetCenter /= targetEdges.Length;
-
-		
-		var sourceEdgeAngles = new NativeList<(Entity edge, float angle)>(sourceEdges.Length, Allocator.Temp);
-		for (int i = 0; i < sourceEdges.Length; i++)
-		{
-			var pos = GetEdgePositionForJunction(sourceJunction, sourceEdges[i].m_Edge, edgeLookup, edgeGeometryLookup);
-			float angle = math.atan2(pos.z - sourceCenter.z, pos.x - sourceCenter.x);
-			sourceEdgeAngles.Add((sourceEdges[i].m_Edge, angle));
-		}
-
-		
-		for (int t = 0; t < targetEdges.Length; t++)
-		{
-			var targetEdge = targetEdges[t].m_Edge;
-			var targetPos = GetEdgePositionForJunction(targetJunction, targetEdge, edgeLookup, edgeGeometryLookup);
-			float targetAngle = math.atan2(targetPos.z - targetCenter.z, targetPos.x - targetCenter.x);
-
-			
-			Entity matchedSource = TryFindConnectedSourceEdge(targetJunction, targetEdge, sourceJunction, edgeLookup, connectedEdgeLookup, 10);
-			
-			if (matchedSource == Entity.Null)
-			{
-				
-				float bestAngleDiff = float.MaxValue;
-				for (int s = 0; s < sourceEdgeAngles.Length; s++)
-				{
-					float angleDiff = math.abs(AngleDifference(targetAngle, sourceEdgeAngles[s].angle));
-					if (angleDiff < bestAngleDiff && angleDiff < math.PI / 4)
-					{
-						bestAngleDiff = angleDiff;
-						matchedSource = sourceEdgeAngles[s].edge;
-					}
-				}
-			}
-
-			if (matchedSource != Entity.Null)
-			{
-				result[targetEdge] = matchedSource;
-			}
-		}
-
-		sourceEdgeAngles.Dispose();
-		return result;
+		m_Log.Info(
+			$"Propagated pattern {pattern} to {memberCount - 1} group members");
 	}
 
 	#endregion
@@ -2368,6 +2049,7 @@ public partial class TrafficGroupSystem : GameSystemBase
 
 		if (bestPhase != currentPhase)
 		{
+			RefreshMovementMappings(groupEntity, leaderEntity);
 			
 			var members = GetGroupMembers(groupEntity);
 
@@ -2387,7 +2069,14 @@ public partial class TrafficGroupSystem : GameSystemBase
 					continue;
 				}
 
-				int adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(bestPhase + memberData.m_PhaseOffset, phaseCount);
+				if (!TryMapLeaderPhase(memberEntity, bestPhase + 1, out int mappedPhase))
+				{
+					continue;
+				}
+
+				int adjustedPhase = TrafficGroupTimingPolicy.WrapZeroBasedPhase(
+					(mappedPhase - 1) + memberData.m_PhaseOffset,
+					phaseCount);
 				trafficLights.m_NextSignalGroup = (byte)(adjustedPhase + 1);
 				EntityManager.SetComponentData(memberEntity, trafficLights);
 			}

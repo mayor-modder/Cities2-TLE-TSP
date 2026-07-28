@@ -15,6 +15,9 @@ not an idealized design.
 - `TrafficLightsEnhancement/Components/TrafficGroupMember.cs`
   marks a junction as a member of a group and stores leader, index, offset, and
   per-member timing data.
+- `TrafficLightsEnhancement/Components/TrafficGroupRuntimeData.cs` and
+  `TrafficGroupPhaseMapping.cs` store reconstructed update-shard and physical
+  movement-map state. Neither component is serialized.
 - `TrafficLightsEnhancement/Components/TrafficGroupName.cs`
   stores the group name in fixed `ulong` fields while serializing as a string.
 - `TrafficLightsEnhancement/Components/TrafficGroupTspDebugState.cs`
@@ -30,6 +33,9 @@ not an idealized design.
 - `TrafficLightsEnhancement.Logic/TrafficGroups/TrafficGroupTimingPolicy.cs`
   owns pure timing helpers for phase wrapping, cycle-position wrapping, and
   green-wave phase-offset math.
+- `TrafficLightsEnhancement.Logic/TrafficGroups/TrafficGroupPhaseMap.cs`
+  owns undirected road-axis quantization, road/track movement signatures,
+  complete-map matching, and packed forward/inverse phase lookup.
 - `TrafficLightsEnhancement.Tests/TrafficGroups/TrafficGroupTimingPolicyTests.cs`
   covers the pure timing helpers. `TrafficGroupSystemSourceTests.cs` verifies
   that the runtime system still uses those helpers in the key green-wave paths.
@@ -111,17 +117,44 @@ Verified from code: `TrafficGroupSystem` is registered at
 advances groups whose `TrafficGroup.m_IsCoordinated` flag is true. Each system
 update it:
 
-1. Advances the group cycle timer.
-2. Captures the leader's current signal group, next signal group, state, timer,
+1. Records the leader's update-frame shard and reconstructs each member's
+   physical movement map from live lane signals and incoming road/track axes.
+2. Advances the group cycle timer.
+3. Captures the leader's current signal group, next signal group, state, timer,
    signal group count, and custom timer into the group master-clock fields.
-3. Applies coordination to followers.
+4. Applies coordination to followers.
 
-When green wave is disabled, followers use the job-level
-`SyncSignalGroupWithLeader(...)` path and copy the leader phase/state/timers
-directly.
+Base-state-machine patterns (vanilla and the predefined patterns) use a staged
+runtime path when their leader's update-frame shard is active:
+
+1. Every base-state-machine member in the active group contributes its local
+   lane demand, even when that member belongs to a different update-frame
+   shard. Its petitioner and priority bookkeeping is consumed once. Follower
+   masks are translated into leader phase space through the inverse physical
+   movement map.
+2. The leader unions every member's locally winning requested and extendable
+   phases. A higher numeric priority at one intersection cannot erase another
+   intersection's local winner.
+3. The leader makes one demand-responsive phase decision for the group.
+4. Every base-state-machine follower receives that newly calculated state in
+   the same simulation tick. Current and next phases are translated from leader
+   phase space into that follower's local phase space.
+
+This transient demand and master-state data is stored only in native job
+containers whose lifetime extends through the final follower pass. It is not
+added to the save format. If a member, leader, movement map, aggregate, or
+same-tick master state is invalid or missing, the affected junction runs its
+base state machine independently instead of copying stale group state or
+assuming that equal phase numbers mean equal movements.
+
+Custom-phase followers retain the inherited `SyncSignalGroupWithLeader(...)`
+path, but it now requires the same complete physical movement map. When green
+wave is disabled, that path translates the stored leader phase before copying
+state and timers.
 
 When green wave is enabled, followers use offset-based timing instead of direct
-lockstep copying. Signal delays and phase offsets stagger member cycle
+lockstep copying. The leader phase is translated to the equivalent local
+movement first; signal delays and phase offsets then stagger member cycle
 positions while staying tied to the leader's cycle.
 
 ## Green-Wave Timing
@@ -131,10 +164,10 @@ are centralized in `TrafficGroupTimingPolicy`. That helper intentionally keeps
 traffic-group phase numbers one-based when talking to `TrafficLights`, while
 enhanced green-wave offsets remain zero-based because they are later added to a
 zero-based phase index. Negative enhanced offsets preserve C# remainder
-semantics from the inherited inline implementation. Runtime paths then wrap
-zero-based offsets before converting them to signal groups, while direct
-one-based group mapping keeps the inherited rule that non-positive groups map to
-G1.
+semantics from the inherited inline implementation. Runtime paths translate
+the physical movement, then wrap zero-based offsets before converting them to
+signal groups. Current phase is required, while next phase is optional: zero
+remains zero to mean that no next phase is pending.
 
 `CalculateGreenWaveTiming(...)` is the simple distance-based path:
 
@@ -171,34 +204,61 @@ traffic-light data it needs:
 - `EdgeGroupMask`
 - `SubLaneGroupMask`
 
-If the junction is already in a custom traffic mode that is not dynamic or fixed
-timed, the group system switches it to dynamic mode.
+`EnsureMemberCustomPhaseSetup(...)` is the shared, idempotent initializer used
+when a member is added, when its custom phase editor opens, when the leader
+propagates a custom pattern, and when missing phases are repaired during load.
+If the leader uses custom phases, the initializer adds enough member phase
+records to match the leader and copies only each new phase's minimum and maximum
+duration. Existing member phase records are not removed or overwritten.
 
-## Phase Copying And Geometry Matching
+The initializer also materializes missing `EdgeGroupMask` entries from the
+member's own `ConnectedEdge` topology. New movement masks are stopped by
+default. Existing `EdgeGroupMask` and `SubLaneGroupMask` values remain local to
+the member and are never cleared or translated from another junction.
 
-Inferred from current behavior: traffic groups include helpers for copying a
-leader's custom phase setup to member junctions, but this is more topology
-sensitive than the green-wave timing math.
+## Diagnostics
 
-`CopyPhasesToJunction(...)` first checks a coarse compatibility boundary, then
-copies or creates `CustomTrafficLights`, `CustomPhaseData`, `EdgeGroupMask`, and
-`SubLaneGroupMask` data on the target junction.
+The selected-junction diagnostics panel uses the existing **Group phase
+mapping** row to expose the runtime result:
 
-`CopyEdgeGroupMaskWithDirectionMatching(...)` tries two edge-matching strategies:
+- `Identity mapping` means every leader phase maps to the same local phase
+  number.
+- `Movement mapping` lists the leader's current/next phases, their translated
+  member phases, and the member's actual current/next state.
+- `Movement mapping unavailable; follower held` means the runtime rejected an
+  empty, incomplete, or ambiguous map and did not use raw-number lockstep.
 
-- path-following through connected edges for nearby source/target junctions
-- angle matching around the source and target junction centers as a fallback
+This diagnostic is opt-in with the existing TSP diagnostics setting. It reports
+coordination state but does not enable local TSP for grouped intersections.
 
-`CopySubLaneGroupMaskWithLaneTypeMatching(...)` maps sub-lane masks after edge
-matching. It scores candidate source lanes by turn type first, then by lane
-position. Car and track lane flags are classified as straight, left, right,
-U-turn, or other.
+Mapping strategy follows the signal pattern:
 
-Needs in-game evidence: the code documents the intended matching strategy, but
-the repository does not currently have a full ECS/in-game topology harness that
-proves copied edge and sub-lane masks are correct across different junction
-shapes, tram tracks, bike lanes, or asymmetric lane counts. Treat changes here
-as high-risk until backed by focused diagnostics or playtesting.
+- custom-phase groups use validated phase-number identity, because the player
+  explicitly defines what each numbered phase serves at every junction;
+- automatically derived patterns use physical movement signatures so
+  equivalent movements can still be coordinated across rotated junctions;
+- the leader always maps each phase number to itself.
+
+Identity mapping still requires every synchronized local phase to contain a
+supported approach. An empty phase therefore remains fail-closed and appears
+as needing setup.
+
+## Phase Ownership
+
+Traffic groups intentionally separate coordination data from physical movement
+data:
+
+- The leader owns coordinated phase count and timing.
+- Each junction owns its vehicle, track, bicycle, and pedestrian movement
+  permissions.
+- **Match phase timings to leader** updates minimum and maximum durations only.
+- No production action copies movement masks between junctions.
+- A follower without a complete physical movement map remains fail-closed and
+  appears as **needs phase setup** in the traffic-groups panel.
+
+This boundary is required even when two junctions look similar. Rotation,
+asymmetric lanes, tram tracks, bicycle lanes, and local turn rules can make the
+same phase number represent different physical movements.
 
 ## TSP Interaction
 
@@ -265,12 +325,12 @@ Compatibility rules for future work:
   save compatibility first.
 - Group behavior is hard to reason about without in-game context. Prefer adding
   pure tests and small docs before changing runtime behavior.
-- The best-tested traffic-group behavior today is serialization, stale member
-  reuse, and pure timing math. Leader election, actual follower signal sync,
-  and phase-copy geometry matching still need stronger runtime or in-game
-  evidence.
+- Serialization, stale member reuse, timing math, movement-map matching,
+  demand remapping, scheduler contracts, and fail-closed synchronization have
+  automated coverage. Actual rendered signal indications and end-to-end group
+  synchronization still require in-game evidence.
 - Future hardening should extract more pure helpers only when their behavior can
   be described without Unity ECS state. Good candidates are phase metric
-  selection, green-wave delay selection, and lane/edge matching scoring. Avoid
+  selection and green-wave delay selection. Avoid
   broad refactors that change saved components or group semantics at the same
   time.
