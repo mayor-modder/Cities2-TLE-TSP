@@ -32,6 +32,12 @@ When an AI agent writes GitHub-facing text for this repository, the text should 
 
 Pull requests should be squash-merged into `main`, and merged head branches should be deleted after merge unless a maintainer asks to keep one. Keep local branch commits useful for review and iteration, but treat the PR title/body, linked issues, review discussion, and final squash commit as the durable project history.
 
+## Handoff Evidence
+
+- Verify the exact pushed head from a fresh clone before declaring a branch or pull request ready.
+- Before gameplay testing, confirm the installed assembly's informational version contains the commit used to build it.
+- Record the playtested commit. Later runtime, UI, dependency, build, or packaging changes invalidate that evidence for the affected surface and must be disclosed; documentation-only and CI-only commits do not, but were not part of the installed assembly.
+
 ## Maintenance Rules
 
 - Keep skill bodies concise and procedural; move durable project knowledge into normal docs when humans should read it too.

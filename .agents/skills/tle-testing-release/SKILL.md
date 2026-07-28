@@ -38,6 +38,26 @@ Choose verification by risk and ownership. Prefer focused tests while developing
 - For player-visible behavior, update and sanity-check `GUIDE.md`.
 - For broad cross-layer changes, run all three .NET test projects plus UI tests before claiming completion.
 
+## Fresh Checkout Verification
+
+Before declaring a branch or pull request ready, push the final head and verify that exact remote commit from a fresh clone. Run the required restore/build checks there instead of relying only on an existing workspace, cached outputs, nested repositories, or locally available Git objects.
+
+## Installed Build Verification
+
+Before asking the user to playtest:
+
+1. Confirm Cities: Skylines II is not running.
+2. Run the normal deploying Release build without `DisablePostProcessors=true`.
+3. Read the installed `C2VM.TrafficLightsEnhancement.dll` and confirm its informational version contains the commit used to build it, normally `git rev-parse HEAD`.
+4. Hash-match directly copied dependencies such as `C2VM.CommonLibraries.LaneSystem.dll` between the build output and installed mod folder.
+5. Confirm the installed `.mjs`, `.css`, native libraries, and other expected package files were produced by the current build.
+
+Do not require the installed main DLL to hash-match the raw `bin` DLL: the Cities II mod post-processor changes the deployed assembly. The installed informational commit version is the authoritative source check for that assembly.
+
+## Playtest Evidence
+
+Record the exact installed commit covered by each gameplay test. Runtime, UI, dependency, build-system, or packaging changes after that commit make the earlier gameplay evidence stale for the affected surface; disclose that immediately, reinstall the new head, and request only the necessary retest. Documentation-only and CI-only commits do not invalidate gameplay evidence, but record that they were not included in the installed assembly.
+
 ## Release Readiness
 
 Before public packaging, verify compatibility with the current Cities: Skylines II version, run a release build, check local mod install output, and review README/GUIDE/ROADMAP for stale claims. The repository is currently treated as source-built local mod work, not public Paradox Mods distribution.

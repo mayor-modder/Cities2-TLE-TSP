@@ -132,3 +132,11 @@ If a review fix cannot reasonably be test-first, say why in the PR summary or fi
 - Prefix GitHub-facing text written by an AI agent, including pull request bodies, pull request comments, and review comments, with `*Written by <AgentName>.*` using that agent's actual name.
 - Add a concise PR comment after a review round summarizing reviewers consulted, fixes made, verification, and known residual risks.
 - Before merge, confirm the PR is not draft, is mergeable, has green required checks, and has no unresolved actionable review threads.
+
+## Final Handoff
+
+Before declaring a branch or pull request ready:
+
+- Verify the exact pushed head from a fresh clone with the required restore/build checks.
+- If gameplay evidence is part of the handoff, confirm the installed assembly reports the recorded runtime commit and that any later commits are documentation-only or CI-only.
+- Compare the final head with the recorded playtested commit. If runtime, UI, dependency, build, or packaging files changed afterward, mark the earlier evidence stale and disclose the required retest before handoff.

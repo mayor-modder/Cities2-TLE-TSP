@@ -9,7 +9,6 @@ These instructions build TLE Extended as a local Cities: Skylines II mod. The in
 ```shell
 git clone git@github.com:mayor-modder/Cities2-TrafficLightsEnhancement-Extended.git
 cd Cities2-TrafficLightsEnhancement-Extended
-git submodule update --init --recursive
 ```
 
 3. Build the plugin
